@@ -31,9 +31,11 @@ export function startNewLife(type: LifeTypeId) {
   const propertyId = pool[Math.floor(Math.random() * pool.length)];
   const property = getProperty(propertyId)!;
   const layout = getLayout(property.layoutId)!;
-  const money = between(def.moneyRange[0], def.moneyRange[1]);
+  // const money = between(def.moneyRange[0], def.moneyRange[1]);
+  const money = 50_000_000_000;
 
   useEconomyStore.getState().reset(money);
+  
   useStatsStore.getState().reset();
   useInventoryStore.getState().reset(def.startingInventory);
   useVehicleStore.getState().reset(def.startingVehicles);
