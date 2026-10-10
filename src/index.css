@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #0A1512;
+  color: #fff;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+input { -webkit-user-select: text; user-select: text; }
+canvas { display: block; touch-action: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+.glass {
+  background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+.glass-dark {
+  background: linear-gradient(160deg, rgba(10,21,18,0.78), rgba(10,21,18,0.55));
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); }
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.6rem); }
+.text-gradient-naija { background: linear-gradient(90deg,#7FE3B0,#fff 50%,#7FE3B0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+@keyframes shake { 10%,90% { transform: translateX(-1px);} 20%,80% { transform: translateX(3px);} 30%,50%,70% { transform: translateX(-6px);} 40%,60% { transform: translateX(6px);} }
+.animate-shake { animation: shake 0.45s; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }

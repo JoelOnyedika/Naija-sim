@@ -1,0 +1,11 @@
+export interface ContactDef { id: string; name: string; role: string; avatar: string; group: 'family' | 'friend' | 'business' | 'npc'; line: string }
+export const CONTACTS: ContactDef[] = [
+  { id: 'mama', name: 'Mama', role: 'Family', avatar: '👩🏾', group: 'family', line: 'Have you eaten? Do not skip meals.' },
+  { id: 'daddy', name: 'Daddy', role: 'Family', avatar: '👨🏾‍🦳', group: 'family', line: 'Work hard. Respect your elders.' },
+  { id: 'tunde', name: 'Tunde (Yaba)', role: 'Friend', avatar: '🧑🏾', group: 'friend', line: 'Guy, wetin dey happen? Link up this weekend.' },
+  { id: 'chioma', name: 'Chioma', role: 'Friend', avatar: '👩🏾‍🦱', group: 'friend', line: 'Quilox on Saturday? I dey come.' },
+  { id: 'bashir', name: 'Bashir the Suya Man', role: 'Business', avatar: '🧔🏾', group: 'business', line: 'Extra yaji, always.' },
+  { id: 'eko-bank', name: 'Eko Trust Bank', role: 'Business', avatar: '🏦', group: 'business', line: 'Your trusted partner across Nigeria.' },
+  { id: 'landlady', name: 'Mrs. Adeyemi', role: 'Neighbour', avatar: '👵🏾', group: 'npc', line: 'Do not make noise after 10pm.' },
+  { id: 'agent', name: 'Seun Properties', role: 'Estate agent', avatar: '🧑🏾‍💼', group: 'business', line: 'I get a nice flat for you. Just say the word.' },
+];
