@@ -6,7 +6,8 @@ import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
 import { WALL_T, wallPieces, windowsOnPiece, type WallPiece } from '@/world/layoutGeometry';
 import { B } from '../models/primitives';
-import { wallTexture } from '../textures';
+import { wallTexture, wallpaperTexture } from '../textures';
+import { isFinishable, useHomeFinishes } from './useHomeFinishes';
 import { FadeGroup } from './FadeGroup';
 import { WindowUnit } from './Windows';
 
@@ -38,6 +39,16 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
     t.repeat.set(Math.max(1, (piece.b - piece.a) / 2), Math.max(1, piece.height / 2)); t.needsUpdate = true;
     return t;
   }, [layout.palette.wall, layout.finish, piece.a, piece.b, piece.height]);
+
+  // Interior-only finish: thin panels on the room side(s) of each solid wall rectangle. The outside face keeps the
+  // house's own look, openings stay open, and furniture is never touched.
+  const wallFin = useHomeFinishes(layout.id).wall;
+  const finTex = useMemo(() => {
+    if (!wallFin) return null;
+    const t = (wallFin.pattern ? wallpaperTexture(wallFin.color, wallFin.accent ?? '#999999', wallFin.pattern) : wallTexture(wallFin.color, wallFin.finish)).clone();
+    t.repeat.set(Math.max(1, (piece.b - piece.a) / 2), Math.max(1, piece.height / 2)); t.needsUpdate = true; return t;
+  }, [wallFin, piece.a, piece.b, piece.height]);
+  const panelSides = [piece.hi && isFinishable(piece.hi) ? 1 : 0, piece.lo && isFinishable(piece.lo) ? -1 : 0].filter(Boolean) as number[];
 
   const openings: Opening[] = [
     ...windowsOnPiece(layout, piece).map((w) => ({ c: flip * w.along, w: w.width, sill: w.sill, h: w.height, window: w })),
@@ -75,6 +86,12 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
           <meshStandardMaterial map={tex} roughness={0.95} />
         </mesh>
       ))}
+      {finTex && panelSides.map((side) => rs.map((r, i) => (
+        <mesh key={`f${side}${i}`} position={[r.cx, r.cy, side * (T / 2 + 0.007)]} receiveShadow>
+          <boxGeometry args={[r.w, r.h, 0.012]} />
+          <meshStandardMaterial map={finTex} roughness={wallFin?.finish === 'marble' ? 0.3 : 0.92} />
+        </mesh>
+      )))}
       {openings.filter((o) => o.window).map((o, i) => (
         <group key={`w${i}`} position={[o.c, o.sill + o.h / 2, 0]}>
           <WindowUnit width={o.w} height={o.h} style={o.window!.style} T={T} trim={layout.palette.trim} />

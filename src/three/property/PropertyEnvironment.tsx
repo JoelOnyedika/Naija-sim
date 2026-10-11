@@ -10,15 +10,19 @@ import { Water } from '../world/Water';
 import { DecorItem } from './Decor';
 import { Fence } from './Fence';
 import { Walls } from './Walls';
+import { isFinishable, useHomeFinishes } from './useHomeFinishes';
 
 const OUTER: Partial<Record<FloorKind, string>> = { dirt: '#8A7A60', paving: '#A9A59A', grass: '#7FA27A', concrete: '#9B9B96' };
 
-function ZoneFloor({ zone }: { zone: Zone }) {
+function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
   const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0;
+  const fin = useHomeFinishes(propertyId).floor;
+  const finish = isFinishable(zone) ? fin : undefined;
+  const kind = finish?.floor ?? zone.floor;
   const tex = useMemo(() => {
-    if (zone.floor === 'water') return null;
-    const t = floorTexture(zone.floor).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t;
-  }, [zone.floor, w, d]);
+    if (kind === 'water') return null;
+    const t = floorTexture(kind).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t;
+  }, [kind, w, d]);
   const cx = (zone.x0 + zone.x1) / 2, cz = (zone.z0 + zone.z1) / 2;
   if (zone.floor === 'water') return <Water size={[w, d]} position={[cx, -0.12, cz]} />;
   return (
@@ -26,7 +30,7 @@ function ZoneFloor({ zone }: { zone: Zone }) {
       {zone.indoor && <mesh position={[cx, -0.08, cz]} receiveShadow><boxGeometry args={[w, 0.16, d]} /><meshStandardMaterial color="#B9AD94" roughness={1} /></mesh>}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.003, cz]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial map={tex ?? undefined} roughness={zone.floor === 'marble' ? 0.25 : 0.85} metalness={zone.floor === 'marble' ? 0.06 : 0} />
+        <meshStandardMaterial map={tex ?? undefined} color={finish?.tint ?? '#ffffff'} roughness={finish?.rough ?? (kind === 'marble' ? 0.25 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
       </mesh>
     </group>
   );
@@ -67,7 +71,7 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.2, cz]} receiveShadow><planeGeometry args={[220, 220]} /><meshStandardMaterial color={OUTER[plot.ground] ?? '#9A9484'} roughness={1} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.01, cz]} receiveShadow><planeGeometry args={[w, d]} /><meshStandardMaterial map={groundTex} roughness={0.95} /></mesh>
-      {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} />)}
+      {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} propertyId={layout.id} />)}
       {layout.zones.filter((z) => z.kind === 'garage' || z.kind === 'parking').map((z) => <ParkingLines key={`l${z.id}`} zone={z} />)}
       <Walls layout={layout} />
       <Fence layout={layout} />

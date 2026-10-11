@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bath, Beef, ChevronUp, Droplet, HeartPulse, Smile, Sparkles, Toilet, Users, Zap, type LucideIcon } from 'lucide-react';
 import { useStatsStore } from '@/stores/statsStore';
+import { SKILLS, levelOf, useSkillStore, xpForLevel } from '@/stores/skillStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { StatKey } from '@/types/game';
 import { STAT_KEYS } from '@/types/game';
@@ -34,6 +35,7 @@ export function StatsWidget() {
   const stats = useStatsStore((s) => s.stats);
   const expanded = useUiStore((s) => s.statsExpanded);
   const toggle = useUiStore((s) => s.toggleStats);
+  const skillXp = useSkillStore((s) => s.xp);
   return (
     <motion.div className="pointer-events-none absolute inset-x-0 bottom-[5.6rem] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <motion.button layout onClick={toggle} className="panel pointer-events-auto w-full max-w-sm rounded-lg px-3 py-2 text-left" aria-expanded={expanded}>
@@ -41,6 +43,15 @@ export function StatsWidget() {
           {expanded ? (
             <motion.div key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-3 gap-x-3 gap-y-2.5 pb-1 pt-1">
               {STAT_KEYS.map((k) => <Bar key={k} k={k} v={stats[k]} tall />)}
+              {SKILLS.map((sk) => {
+                const xp = skillXp[sk.id] ?? 0, lv = levelOf(xp), lo = xpForLevel(lv), hi = xpForLevel(lv + 1);
+                return (
+                  <div key={sk.id} className="col-span-3 border-t border-white/10 pt-2">
+                    <div className="mb-1 flex items-center justify-between text-[11.5px] font-semibold"><span>{sk.icon} {sk.name} · Lv {lv}</span><span className="text-white/50">{xp - lo}/{hi - lo} XP</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, ((xp - lo) / (hi - lo)) * 100)}%` }} /></div>
+                  </div>
+                );
+              })}
             </motion.div>
           ) : (
             <motion.div key="compact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">

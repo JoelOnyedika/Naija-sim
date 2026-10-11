@@ -15,5 +15,11 @@
 - Loading screen (indeterminate, watchdog) for entering the game and changing homes.
 - Automatic graphics tiers (PerfGovernor) with hysteresis/cooldowns + WebGL context-loss recovery.
 
+## Customisation pass
+- **Floors and walls**: 7 floors, 9 walls (paint, wallpaper, marble cladding). Try-on in Build mode (Floors / Walls tabs) is free and reversible; Buy & apply charges once via the shared economy store. Scope is stated in the UI: all interior floors / all interior walls of the home. Walls are interior-only overlay panels (outside faces, openings and furniture untouched). Each home remembers its own finishes; owned finishes re-apply free; persisted (`nigerialife.finishes`); cleared on a new life.
+- **Independent fixtures**: toilet, shower, bathtub, jacuzzi, washbasin are separate items, any number of each. Also new: bedside table, coffee table, wall shelf, tower speaker, disco light.
+- **Interactions**: the desk trains a Coding skill (XP on finish, level shown in the expanded stats); the speaker starts a party and the disco light only runs while it does.
+- Dock now steps aside during floor/wall previews (a hook-order bug introduced and caught by tests while doing this is fixed).
+
 ## Not done yet
-Wall/floor customization, expanded furniture & independent bathroom fixtures, object/skill interactions, Lagos map expansion, billboards, GLB vehicle loader, banking/messaging/investment upgrades, remaining house layouts (flat/duplex proportions), free-angle furniture rotation.
+Lagos map expansion, billboards, GLB vehicle loader, banking/messaging/investment upgrades, remaining house layouts (flat/duplex proportions), free-angle furniture rotation.

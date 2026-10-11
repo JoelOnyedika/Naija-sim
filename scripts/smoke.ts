@@ -92,5 +92,31 @@ ok(home.placed.length >= 8, `nepo starts in ${home.property.name} with ${home.pl
 ok(useVehicleStore.getState().owned.length === 2 && carSlots(home.layout).length >= 2, 'nepo owns 2 cars with garage space');
 ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore.getState().money}`);
 
+
+// ── finishes + skills (shared economy rules)
+{
+  const { useFinishStore } = await import('../src/stores/finishStore');
+  const { previewFinish, applyFinish, finishCost } = await import('../src/game/finishes');
+  const { useSkillStore, levelOf } = await import('../src/stores/skillStore');
+  startNewLife('lapo');
+  const homeId = getActiveHome()!.property.id;
+  useEconomyStore.getState().reset(200_000);
+  previewFinish('floor_tile');
+  ok(useEconomyStore.getState().money === 200_000, 'previewing a floor does not charge');
+  useFinishStore.getState().clearPreview();
+  ok(!useFinishStore.getState().byProperty[homeId]?.floor, 'cancelled preview applies nothing');
+  previewFinish('floor_marble_white');
+  ok(!applyFinish('floor').ok && useEconomyStore.getState().money === 200_000, 'unaffordable finish fails without charging');
+  previewFinish('floor_tile');
+  ok(applyFinish('floor').ok && useEconomyStore.getState().money === 200_000 - 150_000, 'floor purchase charges exactly once');
+  ok(finishCost('floor_tile') === 0, 'owned finish re-applies for free');
+  ok(useFinishStore.getState().byProperty[homeId]?.floor === 'floor_tile', 'finish saved on its own home');
+  startNewLife('lapo');
+  ok(Object.keys(useFinishStore.getState().byProperty).length === 0 && useFinishStore.getState().owned.length === 0, 'new life clears finishes');
+  useSkillStore.getState().reset();
+  useSkillStore.getState().add('coding', 25);
+  ok(levelOf(useSkillStore.getState().xp.coding) >= 2, 'coding XP raises the level');
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nAll smoke checks passed');
 process.exit(fails ? 1 : 0);

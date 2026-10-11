@@ -5,13 +5,17 @@ import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { CONFIG } from '@/data/config';
 import { FURNITURE, ITEM_CATEGORIES, RARITY_COLOR, getFurniture, type ItemCategory } from '@/data/items';
+import { FINISH_TABS, FLOORS, WALLS, getFinish, type FinishDef } from '@/data/finishes';
+import { useFinishStore } from '@/stores/finishStore';
+import { applyFinish, cancelFinishPreview, finishCost, previewFinish } from '@/game/finishes';
+import { getActiveHome } from '@/game/active';
 import { beginPlace, cancelDraft, confirmDraft, exitBuild, nudgeDraft, rotateDraft, sellItem, storeItem } from '@/game/buy';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useEditorStore, type Draft } from '@/stores/editorStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useUiStore } from '@/stores/uiStore';
 
-type Tab = ItemCategory | 'owned';
+type Tab = ItemCategory | 'owned' | 'floors' | 'walls';
 type Dir = 'forward' | 'back' | 'left' | 'right';
 
 /** Press-and-hold repeats the action; always cleans its timers up on release, leave, cancel and unmount. */
@@ -95,6 +99,65 @@ function PlacementBar({ draft }: { draft: Draft }) {
   );
 }
 
+function FinishGrid({ tab }: { tab: 'floors' | 'walls' }) {
+  const owned = useFinishStore((s) => s.owned);
+  const applied = useFinishStore((s) => s.byProperty);
+  const preview = useFinishStore((s) => s.preview);
+  const money = useEconomyStore((s) => s.money);
+  const home = getActiveHome();
+  const kind = tab === 'floors' ? 'floor' : 'wall';
+  const current = home ? applied[home.property.id]?.[kind] : undefined;
+  const items: FinishDef[] = tab === 'floors' ? FLOORS : WALLS;
+  return (
+    <>
+      <p className="col-span-full -mb-0.5 text-[11.5px] text-white/55">{tab === 'floors' ? 'Applies to every interior floor in this home.' : 'Applies to every interior wall in this home. Outside walls stay as they are.'}</p>
+      {items.map((f) => {
+        const isOwned = owned.includes(f.id) || f.price === 0, on = preview[kind] === f.id, worn = (current ?? (tab === 'floors' ? 'floor_cement' : undefined)) === f.id;
+        return (
+          <button key={f.id} onClick={() => previewFinish(f.id)} aria-pressed={on} className={`panel-solid relative flex flex-col items-center rounded-lg border-t-2 p-2 text-center active:scale-95 ${on ? 'border-accent ring-2 ring-accent' : 'border-white/10'}`}>
+            <span className="h-9 w-full rounded-md ring-1 ring-white/15" style={{ background: f.swatch }} />
+            <span className="mt-1 line-clamp-2 min-h-[2rem] text-[11.5px] font-semibold leading-tight">{f.name}</span>
+            <span className={`text-[12px] font-bold tabular-nums ${isOwned ? 'text-accent-glow' : money >= f.price ? 'text-white' : 'text-rose-300'}`}>{isOwned ? (f.price === 0 ? 'Included' : 'Owned') : formatNaira(f.price)}</span>
+            {worn && <span className="absolute right-1 top-1.5 rounded bg-accent px-1.5 text-[10px] font-bold">In use</span>}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+/** Shown while a floor or wall is being tried on. Trying costs nothing; only Buy/Apply charges, once. */
+function FinishBar({ id }: { id: string }) {
+  const def = getFinish(id);
+  const money = useEconomyStore((s) => s.money);
+  const homeName = getActiveHome()?.property.name ?? 'this home';
+  if (!def) return null;
+  const cost = finishCost(id);
+  const afford = money >= cost;
+  return (
+    <motion.div className="pb-safe absolute inset-x-0 bottom-0 z-[65] px-2" initial={{ y: 200 }} animate={{ y: 0 }} exit={{ y: 200 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+      <div className="panel mx-auto max-w-md rounded-xl p-3">
+        <div className="mb-2.5 flex items-center gap-2.5">
+          <span className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/20" style={{ background: def.swatch }} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-display text-[15px] font-bold leading-tight">{def.name}</div>
+            <div className="text-[11.5px] text-white/60">{def.kind === 'floor' ? 'All interior floors' : 'All interior walls'} · {homeName}</div>
+          </div>
+          <div className={`font-display text-[15px] font-extrabold ${cost === 0 ? 'text-accent-glow' : afford ? 'text-danfo' : 'text-rose-300'}`}>{cost === 0 ? 'Free' : formatNaira(cost)}</div>
+        </div>
+        <p className="mb-2 text-[11.5px] text-white/50">This is a preview. Nothing is charged until you confirm.</p>
+        <div className="flex gap-2">
+          <button onClick={cancelFinishPreview} aria-label="Cancel preview" className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-white/[0.08] px-4 text-sm font-semibold ring-1 ring-white/10"><X size={17} />Cancel</button>
+          <button disabled={!afford} onClick={() => applyFinish(def.kind)} className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent text-[15px] font-bold text-white disabled:bg-white/10 disabled:text-white/35">
+            <Check size={18} />{cost === 0 ? 'Apply' : `Buy & apply ${formatNaira(cost)}`}
+          </button>
+        </div>
+        {!afford && <p className="mt-1.5 text-center text-xs text-rose-300">Omo, your money no reach. Hustle harder.</p>}
+      </div>
+    </motion.div>
+  );
+}
+
 function Catalog() {
   const open = useUiStore((s) => s.catalogOpen);
   const setOpen = useUiStore((s) => s.setCatalogOpen);
@@ -104,8 +167,8 @@ function Catalog() {
   const setTab = useUiStore((s) => s.setCatalogTab);
   const counts = useMemo(() => Object.fromEntries(ITEM_CATEGORIES.map((c) => [c.id, FURNITURE.filter((f) => f.category === c.id).length])) as Record<ItemCategory, number>, []);
   const ownedCount = FURNITURE.reduce((n, f) => n + (inv[f.id] ?? 0), 0);
-  const list = tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab).sort((a, b) => a.price - b.price);
-  const tabs: { id: Tab; label: string; icon: string }[] = [...ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon })), { id: 'owned', label: `Owned ${ownedCount}`, icon: '🎒' }];
+  const list = tab === 'floors' || tab === 'walls' ? [] : tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab).sort((a, b) => a.price - b.price);
+  const tabs: { id: Tab; label: string; icon: string }[] = [...ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon })), { id: 'owned', label: `Owned ${ownedCount}`, icon: '🎒' }, ...FINISH_TABS.map((t) => ({ id: t.id as Tab, label: t.label, icon: t.icon }))];
 
   return (
     <>
@@ -124,9 +187,10 @@ function Catalog() {
             </div>
             <button onClick={() => { sfx.close(); setOpen(false); }} aria-label="Close catalogue" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"><X size={18} /></button>
           </div>
-          <div className="no-scrollbar grid max-h-[38vh] grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pb-1 sm:grid-cols-4">
-            {list.length === 0 && <p className="col-span-full py-8 text-center text-sm text-white/55">Nothing here yet.</p>}
-            {list.map((f) => {
+          <div className="no-scrollbar grid max-h-[30vh] grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pb-1 sm:grid-cols-4">
+            {(tab === 'floors' || tab === 'walls') && <FinishGrid tab={tab} />}
+            {tab !== 'floors' && tab !== 'walls' && list.length === 0 && <p className="col-span-full py-8 text-center text-sm text-white/55">Nothing here yet.</p>}
+            {tab !== 'floors' && tab !== 'walls' && list.map((f) => {
               const owned = inv[f.id] ?? 0, afford = money >= f.price;
               return (
                 <button key={f.id} onClick={() => beginPlace(f.id)} className="panel-solid relative flex flex-col items-center rounded-lg border-t-2 p-2 text-center active:scale-95 active:border-accent" style={{ borderTopColor: RARITY_COLOR[f.rarity] }}>
@@ -158,9 +222,10 @@ function Catalog() {
 export function BuyMode() {
   const mode = useUiStore((s) => s.mode);
   const draft = useEditorStore((s) => s.draft);
+  const finishId = useFinishStore((s) => s.preview.floor ?? s.preview.wall);
 
-  // Whatever way Buy mode ends, an unconfirmed preview must not outlive it.
-  useEffect(() => { if (mode !== 'buy') useEditorStore.setState({ draft: null, dragging: false }); }, [mode]);
+  // Whatever way Buy mode ends, an unconfirmed preview (furniture or finish) must not outlive it.
+  useEffect(() => { if (mode !== 'buy') { useEditorStore.setState({ draft: null, dragging: false }); useFinishStore.getState().clearPreview(); } }, [mode]);
 
   return (
     <AnimatePresence>
@@ -169,7 +234,7 @@ export function BuyMode() {
           <ExitBar />
           <div className="pointer-events-auto contents">
             <AnimatePresence mode="wait">
-              {draft ? <PlacementBar key="bar" draft={draft} /> : <motion.div key="cat" className="contents"><Catalog /></motion.div>}
+              {draft ? <PlacementBar key="bar" draft={draft} /> : finishId ? <FinishBar key={`fin-${finishId}`} id={finishId} /> : <motion.div key="cat" className="contents"><Catalog /></motion.div>}
             </AnimatePresence>
           </div>
         </motion.div>

@@ -5,6 +5,7 @@ import { getFurniture } from '@/data/items';
 import { uid } from '@/core/format';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useEditorStore, type Draft } from '@/stores/editorStore';
+import { useFinishStore } from '@/stores/finishStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { findFreeSpot, fixturesOf, resolvePlacement, validatePlacement, type Pose } from '@/world/placement';
@@ -25,6 +26,7 @@ function revalidate(draft: Draft, pose: Pose): Draft {
 export function beginPlace(defId: string): boolean {
   const home = getActiveHome(); const def = getFurniture(defId);
   if (!home || !def) return false;
+  useFinishStore.getState().clearPreview(); // one thing at a time: placing furniture drops any floor/wall try-on
   const owned = useInventoryStore.getState().count(defId) > 0;
   const pose = findFreeSpot(def, home.layout, home.placed) ?? resolvePlacement(def, home.layout, 0, 0, 0);
   useEditorStore.getState().setDraft(revalidate({ defId, pose, valid: true, purchase: !owned }, pose));
@@ -78,6 +80,7 @@ export function cancelDraft() {
 /** Leave Buy mode: discard any unconfirmed preview (never charged, never saved) and hand control back to the home camera. */
 export function exitBuild() {
   useEditorStore.setState({ draft: null, dragging: false });
+  useFinishStore.getState().clearPreview();
   useUiStore.getState().setMode('home');
   sfx.close();
 }

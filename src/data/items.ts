@@ -17,6 +17,10 @@ export interface UseDef {
   pose: 'stand' | 'sit' | 'sleep';
   /** Fires a task event, e.g. 'use:bathe'. */
   event?: string;
+  /** Skill practice: XP is granted only when the activity finishes. */
+  skill?: { id: 'coding'; xp: number };
+  /** While this runs the home is throwing a party (disco lights switch on). */
+  party?: boolean;
 }
 
 export interface FurnitureDef {
@@ -72,12 +76,21 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'gaming_setup', name: 'Gaming setup', description: 'Big monitor, console, RGB. Obviously.', price: 480000, category: 'fun', rarity: 'epic', glyph: '🎮', model: 'gaming_setup', footprint: { w: 1.2, d: 0.6 }, height: 1.1, placement: floor, style: 7, use: { label: 'Play games', seconds: 12, effects: { happiness: 28, energy: -5 }, pose: 'sit' } },
   { id: 'piano', name: 'Keyboard piano', description: 'Weighted keys and a proper stand.', price: 900000, category: 'fun', rarity: 'epic', glyph: '🎹', model: 'piano', footprint: { w: 1.4, d: 0.5 }, height: 0.95, placement: floor, style: 8, use: { label: 'Play keys', seconds: 10, effects: { happiness: 10, charisma: 2, energy: -3 }, pose: 'stand' } },
   // ---- Skills
-  { id: 'desk', name: 'Study desk and laptop', description: 'Learn something. Or at least look busy.', price: 140000, category: 'skills', rarity: 'uncommon', glyph: '💻', model: 'desk', footprint: { w: 1.2, d: 0.6 }, height: 1.2, placement: floor, style: 4, use: { label: 'Study', seconds: 12, effects: { charisma: 3, energy: -6, happiness: -2 }, pose: 'sit' } },
+  { id: 'desk', name: 'Desk and laptop', description: 'A proper desk and a laptop that can actually code.', price: 140000, category: 'skills', rarity: 'uncommon', glyph: '💻', model: 'desk', footprint: { w: 1.2, d: 0.6 }, height: 1.2, placement: floor, style: 4, use: { label: 'Practise coding', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 10 }, event: 'use:study' } },
   // ---- Designs
   { id: 'rug', name: 'Ankara rug', description: 'Bold pattern that ties the room together.', price: 35000, category: 'designs', rarity: 'common', glyph: '🟧', model: 'rug', footprint: { w: 2.0, d: 1.4 }, height: 0.03, placement: { surface: 'floor', collides: false, rotatable: true }, style: 2 },
   { id: 'wall_frame', name: 'Wall frame', description: 'Sunset over the lagoon, framed.', price: 25000, category: 'designs', rarity: 'common', glyph: '🖼️', model: 'wall_frame', footprint: { w: 0.8, d: 0.06 }, height: 0.6, placement: { surface: 'wall', collides: true, rotatable: false, mountHeight: 1.5 }, style: 2 },
   { id: 'plant', name: 'Potted plant', description: 'A little green for the corner.', price: 12000, category: 'designs', rarity: 'common', glyph: '🪴', model: 'plant', footprint: { w: 0.45, d: 0.45 }, height: 1.0, placement: floor, place: 'any', style: 2 },
   { id: 'lamp', name: 'Floor lamp', description: 'Warm light for late nights.', price: 30000, category: 'designs', rarity: 'uncommon', glyph: '💡', model: 'lamp', footprint: { w: 0.35, d: 0.35 }, height: 1.6, placement: floor, place: 'any', style: 3 },
+  // ---- Added in the customisation pass. Every entry is its own item: owning a bathtub never replaces a shower.
+  { id: 'washbasin', name: 'Washbasin', description: 'Pedestal basin with a proper tap.', price: 95000, category: 'bathroom', rarity: 'common', glyph: '🚰', model: 'washbasin', footprint: { w: 0.6, d: 0.5 }, height: 1.0, placement: floor, style: 2, use: { label: 'Wash up', seconds: 3, effects: { hygiene: 20 }, pose: 'stand' } },
+  { id: 'bathtub', name: 'Bathtub', description: 'Long, deep and white. A real soak.', price: 420000, category: 'bathroom', rarity: 'rare', glyph: '🛁', model: 'bathtub', footprint: { w: 0.85, d: 1.75 }, height: 0.6, placement: floor, style: 6, use: { label: 'Take a bath', seconds: 8, effects: { hygiene: 100, happiness: 10, energy: 2 }, pose: 'stand', event: 'use:bathe' } },
+  { id: 'jacuzzi', name: 'Jacuzzi', description: 'Round, bubbling and completely unnecessary.', price: 1400000, category: 'bathroom', rarity: 'epic', glyph: '♨️', model: 'jacuzzi', footprint: { w: 1.9, d: 1.9 }, height: 0.65, placement: floor, style: 9, use: { label: 'Soak in the jacuzzi', seconds: 10, effects: { hygiene: 100, happiness: 25, energy: 8 }, pose: 'stand', event: 'use:bathe' } },
+  { id: 'bedside_table', name: 'Bedside table', description: 'Two drawers for the small things.', price: 45000, category: 'sleep', rarity: 'common', glyph: '🕯️', model: 'bedside_table', footprint: { w: 0.48, d: 0.42 }, height: 0.5, placement: floor, style: 2 },
+  { id: 'coffee_table', name: 'Coffee table', description: 'Low wooden table with a lower shelf.', price: 85000, category: 'comfort', rarity: 'uncommon', glyph: '☕', model: 'coffee_table', footprint: { w: 1.05, d: 0.6 }, height: 0.45, placement: floor, style: 3 },
+  { id: 'speaker', name: 'Tower speaker', description: 'Loud enough for the whole compound. Starts a house party.', price: 150000, category: 'fun', rarity: 'rare', glyph: '🔊', model: 'speaker', footprint: { w: 0.4, d: 0.36 }, height: 1.0, placement: floor, style: 4, use: { label: 'Start a party', seconds: 14, effects: { happiness: 20, social: 6, energy: -4 }, pose: 'stand', party: true, event: 'use:party' } },
+  { id: 'wall_shelf', name: 'Wall shelf', description: 'A shelf for books and one tasteful pot.', price: 35000, category: 'storage', rarity: 'common', glyph: '📚', model: 'wall_shelf', footprint: { w: 1.0, d: 0.24 }, height: 0.3, placement: { surface: 'wall', collides: true, rotatable: false, mountHeight: 1.4 }, style: 2 },
+  { id: 'disco_light', name: 'Disco light', description: 'Spins colour across the room. Only when there is a party.', price: 120000, category: 'fun', rarity: 'rare', glyph: '🪩', model: 'disco_light', footprint: { w: 0.4, d: 0.4 }, height: 1.4, placement: floor, style: 4 },
 ];
 
 const byId = new Map(FURNITURE.map((f) => [f.id, f]));

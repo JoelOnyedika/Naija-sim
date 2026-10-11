@@ -80,6 +80,20 @@ export function wallTexture(color: string, finish: WallFinish): CanvasTexture {
   });
 }
 
+/** Patterned wallpaper. One tile covers 2m x 2m of wall; clone before setting repeat. */
+export function wallpaperTexture(base: string, accent: string, pattern: 'stripes' | 'dots' | 'diamond'): CanvasTexture {
+  return make(`wallpaper:${base}:${accent}:${pattern}`, 256, (ctx, n) => {
+    ctx.fillStyle = base; ctx.fillRect(0, 0, n, n);
+    ctx.fillStyle = accent;
+    if (pattern === 'stripes') { for (let x = 0; x < n; x += n / 8) ctx.fillRect(x, 0, n / 16, n); }
+    else if (pattern === 'dots') { for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { ctx.beginPath(); ctx.arc(x * 32 + (y % 2) * 16 + 16, y * 32 + 16, 5, 0, 7); ctx.fill(); } }
+    else {
+      ctx.strokeStyle = accent; ctx.lineWidth = 2;
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const cx = x * 64 + 32, cy = y * 64 + 32; ctx.beginPath(); ctx.moveTo(cx, cy - 26); ctx.lineTo(cx + 26, cy); ctx.lineTo(cx, cy + 26); ctx.lineTo(cx - 26, cy); ctx.closePath(); ctx.stroke(); }
+    }
+  });
+}
+
 export const zincTexture = () => make('zinc', 128, (ctx, n) => {
   ctx.fillStyle = '#A9AEB0'; ctx.fillRect(0, 0, n, n);
   for (let x = 0; x < n; x += 16) { const g = ctx.createLinearGradient(x, 0, x + 16, 0); g.addColorStop(0, '#8E9496'); g.addColorStop(0.5, '#D8DCDD'); g.addColorStop(1, '#8E9496'); ctx.fillStyle = g; ctx.fillRect(x, 0, 16, n); }

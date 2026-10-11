@@ -23,6 +23,10 @@ export interface Activity {
   /** Paid out at the end (jobs). */
   payout?: number;
   slept?: boolean;
+  /** Skill XP granted on completion (practice items). */
+  skill?: { id: 'coding'; xp: number };
+  /** True while a house party is running. */
+  party?: boolean;
 }
 
 interface StatsState {

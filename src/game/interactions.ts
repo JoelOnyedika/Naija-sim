@@ -41,7 +41,7 @@ export function interactWith(item: PlacedItem) {
     effects = { energy: gain, hunger: -6, thirst: -6, bladder: -8 };
   }
   if (u.cost && !useEconomyStore.getState().debit(u.cost, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return; }
-  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep });
+  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party });
   sfx.click();
 }
 

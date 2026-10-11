@@ -8,6 +8,7 @@ import { useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useLifeStore } from '@/stores/lifeStore';
+import { useSkillStore } from '@/stores/skillStore';
 import { useStatsStore, type Activity } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { notify } from './notify';
@@ -20,6 +21,10 @@ function onFinished(a: Activity) {
     sfx.coin();
   } else if (a.doneMessage) toast(a.doneMessage, 'good');
   if (a.slept) toast('You woke up rested.', 'good');
+  if (a.skill) {
+    const { before, after } = useSkillStore.getState().add(a.skill.id, a.skill.xp);
+    toast(after > before ? `Coding level ${after}! +${a.skill.xp} XP` : `Coding +${a.skill.xp} XP`, 'good');
+  }
   if (a.event) fireTask(a.event);
 }
 

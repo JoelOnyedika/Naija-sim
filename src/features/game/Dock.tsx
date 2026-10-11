@@ -4,6 +4,7 @@ import { sfx } from '@/audio/sfx';
 import { exitBuild } from '@/game/buy';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useEditorStore } from '@/stores/editorStore';
+import { useFinishStore } from '@/stores/finishStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -17,7 +18,10 @@ export function Dock() {
   const mode = useUiStore((s) => s.mode);
   const phoneOpen = usePhoneStore((s) => s.open);
   const unread = usePhoneStore((s) => s.notifications.filter((n) => !n.read).length);
-  const placing = useEditorStore((s) => !!s.draft);
+  // The dock steps aside whenever a bottom action bar (furniture placement or a floor/wall preview) needs the space.
+  const placingFurniture = useEditorStore((s) => !!s.draft);
+  const previewingFinish = useFinishStore((s) => !!(s.preview.floor || s.preview.wall));
+  const placing = placingFurniture || previewingFinish; // (hooks above run every render, never short-circuited)
   const active: Id = phoneOpen ? 'phone' : mode === 'buy' ? 'buy' : mode === 'map' ? 'map' : 'home';
 
   const press = (id: Id) => {
