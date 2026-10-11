@@ -2,6 +2,12 @@ import { B, Cyl, Sph } from '../models/primitives';
 import { Water } from '../world/Water';
 import type { Decor } from '@/types/world';
 import { zincTexture } from '../textures';
+import { useEditorStore } from '@/stores/editorStore';
+import { useUiStore } from '@/stores/uiStore';
+import { FadeGroup } from './FadeGroup';
+
+/** Roofs and awnings get out of the way while building and unless the camera is tilted low for an outside view of the home. */
+const roofHidden = () => useUiStore.getState().mode === 'buy' || useEditorStore.getState().cameraPolar < 1.1;
 
 const GREEN = ['#2F7F3D', '#3F9A4A', '#4BAE55'];
 
@@ -195,7 +201,7 @@ export function DecorItem({ d }: { d: Decor }) {
     case 'clothesline': node = <Clothesline w={d.w} />; break;
     case 'gate': node = <Gate />; break;
     case 'pillar': node = <Pillar {...props} />; break;
-    case 'awning': node = <Awning w={d.w} d={d.d} />; break;
+    case 'awning': node = <FadeGroup hide={roofHidden}><Awning w={d.w} d={d.d} /></FadeGroup>; break;
     case 'hedge': node = <Hedge w={d.w} />; break;
     case 'bench': node = <Bench />; break;
     case 'generatorHouse': node = <GeneratorHouse />; break;

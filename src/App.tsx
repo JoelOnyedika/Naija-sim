@@ -5,12 +5,14 @@ import { GameScreen } from '@/features/game/GameScreen';
 import { LandingScreen } from '@/features/landing/LandingScreen';
 import { RouletteScreen } from '@/features/roulette/RouletteScreen';
 import { SummaryScreen } from '@/features/summary/SummaryScreen';
+import { resetTransientUi } from '@/game/life';
 import { useMusicSync } from '@/hooks/useMusicSync';
 import { useAuthStore } from '@/stores/authStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useFlowStore } from '@/stores/flowStore';
 import { useLifeStore } from '@/stores/lifeStore';
 import { usePropertyStore } from '@/stores/propertyStore';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
 
 /** Top-level flow: landing → login/signup → character → roulette → summary → game. */
 export default function App() {
@@ -32,13 +34,18 @@ export default function App() {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-night text-white">
+      <ErrorBoundary onRecover={resetTransientUi} label="The game">
+      {/* The game screen holds many independent exit animations (phone, sheets, toasts). Keeping it outside
+          the `wait` presence group means it unmounts at once, so a reset triggered while the phone is open
+          can no longer leave the old screen waiting on exits that never finish. */}
+      {phase === 'game' && <GameScreen key="game" />}
       <AnimatePresence mode="wait">
         {(phase === 'landing' || phase === 'login' || phase === 'signup') && <LandingScreen key="landing" />}
         {phase === 'character' && <CharacterScreen key="character" />}
         {phase === 'roulette' && <RouletteScreen key="roulette" />}
         {phase === 'summary' && <SummaryScreen key="summary" />}
-        {phase === 'game' && <GameScreen key="game" />}
       </AnimatePresence>
+      </ErrorBoundary>
     </div>
   );
 }

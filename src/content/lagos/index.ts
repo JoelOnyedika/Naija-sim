@@ -24,8 +24,16 @@ export const lagos: StateDefinition = {
     landmarks: LANDMARKS.map((l) => ({ ...l, stateId: STATE_ID })),
   },
   visualData: { sceneId: 'lagos', skyTop: '#2B7FBF', skyBottom: '#F7D7A0', accent: '#FFC21A' },
+  legacyPropertyIds: {
+    ...Object.fromEntries(['7-by-7-yaba', '7-by-7-mushin'].map((k) => [`lagos.${k}`, 'lagos.face-me-i-face-you'])),
+    ...Object.fromEntries(['self-contain-agege'].map((k) => [`lagos.${k}`, 'lagos.self-contain-mushin'])),
+    ...Object.fromEntries(['room-and-parlour-mushin', 'room-and-parlour-agege'].map((k) => [`lagos.${k}`, 'lagos.room-and-parlour-yaba'])),
+    ...Object.fromEntries(['mini-flat-yaba', 'mini-flat-lagos-island', '2-bedroom-flat-surulere', '2-bedroom-flat-yaba', '2-bedroom-flat-lagos-island', '3-bedroom-flat-yaba', '3-bedroom-flat-surulere', '4-bedroom-flat-ikeja', '4-bedroom-flat-lekki'].map((k) => [`lagos.${k}`, 'lagos.3-bedroom-flat-ikeja'])),
+    ...Object.fromEntries(['3-bedroom-luxury-apartment-lekki', '4-bedroom-luxury-apartment-lekki', '4-bedroom-luxury-apartment-vi', 'terrace-duplex-lekki', 'semi-detached-duplex-lekki'].map((k) => [`lagos.${k}`, 'lagos.detached-duplex-lekki'])),
+    ...Object.fromEntries(['detached-duplex-ikoyi', '5-bedroom-duplex-banana-island', 'luxury-mansion-banana-island', 'waterfront-mansion-banana-island'].map((k) => [`lagos.${k}`, 'lagos.luxury-duplex-ikoyi'])),
+  },
   startingProperties: {
-    lapo: ['lagos.face-me-i-face-you', 'lagos.7-by-7-yaba', 'lagos.7-by-7-mushin', 'lagos.self-contain-mushin'],
-    nepo: ['lagos.detached-duplex-lekki', 'lagos.4-bedroom-luxury-apartment-lekki', 'lagos.3-bedroom-luxury-apartment-lekki'],
+    lapo: ['lagos.face-me-i-face-you'],
+    nepo: ['lagos.detached-duplex-lekki'],
   },
 };

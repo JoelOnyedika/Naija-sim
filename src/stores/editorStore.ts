@@ -14,11 +14,19 @@ export interface Draft {
 interface EditorState {
   draft: Draft | null;
   dragging: boolean;
+  /** Camera azimuth (radians), written by the camera rig so nudge controls can be screen-relative. */
+  cameraAzimuth: number;
+  /** Camera polar angle (0 = straight down), written by the camera rig; roofs hide when looking steeply down. */
+  cameraPolar: number;
   setDraft: (d: Draft | null) => void;
   setDragging: (v: boolean) => void;
+  setCameraAzimuth: (a: number) => void;
+  setCameraPolar: (a: number) => void;
 }
 export const useEditorStore = create<EditorState>((set) => ({
-  draft: null, dragging: false,
+  draft: null, dragging: false, cameraAzimuth: 0.55, cameraPolar: 0.95,
   setDraft: (draft) => set({ draft }),
   setDragging: (dragging) => set({ dragging }),
+  setCameraAzimuth: (cameraAzimuth) => set({ cameraAzimuth }),
+  setCameraPolar: (cameraPolar) => set({ cameraPolar }),
 }));

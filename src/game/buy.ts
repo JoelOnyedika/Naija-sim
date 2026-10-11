@@ -47,17 +47,38 @@ export function moveDraft(rawX: number, rawZ: number) {
   useEditorStore.getState().setDraft(revalidate(d, resolvePlacement(def, home.layout, rawX, rawZ, d.pose.rotation)));
 }
 
-export function rotateDraft() {
+/** Rotate the ghost a quarter turn: +1 clockwise, -1 counter-clockwise. Four turns return to the start, so it can never get stuck. */
+export function rotateDraft(dir: 1 | -1 = 1) {
   const d = useEditorStore.getState().draft; const home = getActiveHome(); const def = d && getFurniture(d.defId);
   if (!d || !home || !def?.placement.rotatable) return;
-  const rotation = (d.pose.rotation + 1) % 4;
+  const rotation = (((d.pose.rotation + dir) % 4) + 4) % 4;
   useEditorStore.getState().setDraft(revalidate(d, resolvePlacement(def, home.layout, d.pose.x, d.pose.z, rotation)));
   sfx.click();
+}
+
+/**
+ * Nudge the ghost one step in a screen-relative direction. "Forward" points away from the camera on the ground
+ * plane, so the pad always matches what the player sees, whichever way they have rotated the view.
+ */
+export function nudgeDraft(dir: 'forward' | 'back' | 'left' | 'right', step = 0.25) {
+  const { draft, cameraAzimuth: az } = useEditorStore.getState();
+  if (!draft) return;
+  const fx = -Math.sin(az), fz = -Math.cos(az); // away from the camera
+  const rx = Math.cos(az), rz = -Math.sin(az);  // towards screen-right
+  const [dx, dz] = dir === 'forward' ? [fx, fz] : dir === 'back' ? [-fx, -fz] : dir === 'right' ? [rx, rz] : [-rx, -rz];
+  moveDraft(draft.pose.x + dx * step, draft.pose.z + dz * step);
 }
 
 export function cancelDraft() {
   useEditorStore.getState().setDraft(null);
   useEditorStore.getState().setDragging(false);
+  sfx.close();
+}
+
+/** Leave Buy mode: discard any unconfirmed preview (never charged, never saved) and hand control back to the home camera. */
+export function exitBuild() {
+  useEditorStore.setState({ draft: null, dragging: false });
+  useUiStore.getState().setMode('home');
   sfx.close();
 }
 

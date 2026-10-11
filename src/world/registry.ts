@@ -9,9 +9,11 @@ const areas = new Map<string, AreaDefinition>();
 const properties = new Map<string, PropertyDefinition>();
 const layouts = new Map<string, PropertyLayout>();
 const landmarks = new Map<string, LandmarkDefinition>();
+const legacyIds = new Map<string, string>();
 
 export function registerState(def: StateDefinition) {
   states.set(def.id, def);
+  Object.entries(def.legacyPropertyIds ?? {}).forEach(([from, to]) => legacyIds.set(from, to));
   def.areas.forEach((a) => areas.set(a.id, a));
   def.properties.forEach((p) => properties.set(p.id, p));
   def.layouts.forEach((l) => layouts.set(l.id, l));
@@ -33,3 +35,5 @@ export const stateOfProperty = (propertyId: string) => {
 export const layoutOf = (property: PropertyDefinition) => layouts.get(property.layoutId);
 /** The first registered state is the default. No state is special-cased. */
 export const firstStateId = () => [...states.keys()][0] ?? '';
+/** The current property that replaces a retired id (undefined if the id was never known). */
+export const resolveLegacyProperty = (id: string) => legacyIds.get(id);

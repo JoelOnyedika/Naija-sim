@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Music, Music2, Plus, Users } from 'lucide-react';
 import { sfx } from '@/audio/sfx';
+import { formatNairaCompact } from '@/core/format';
 import { clockParts, useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { usePhoneStore } from '@/stores/phoneStore';
@@ -9,7 +10,7 @@ import { moodOf, useStatsStore } from '@/stores/statsStore';
 import { useUiStore } from '@/stores/uiStore';
 import { AnimatedNumber } from '@/ui/AnimatedNumber';
 
-/** Top bar: date/time, mood, online players, music, money (+ top-up shortcut to the Bank app). */
+/** Compact single-row top bar: clock + mood, cash (short form for big values, never wraps), players, music. */
 export function Hud() {
   const minutes = useClockStore((s) => s.minutes);
   const anchor = useClockStore((s) => s.anchor);
@@ -21,24 +22,23 @@ export function Hud() {
   const mood = moodOf(stats);
 
   return (
-    <motion.div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-3 pt-safe" initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
-      <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2">
-        <div className="glass-dark pointer-events-auto flex items-center gap-3 rounded-2xl px-3 py-1.5">
-          <div className="leading-tight"><div className="text-[11px] font-medium text-white/60">{t.weekday}, {t.dateLabel}</div><div className="font-display text-base font-bold tabular-nums">{t.time}</div></div>
-          <div className="h-7 w-px bg-white/15" />
-          <div className="text-center leading-tight"><div className="text-lg">{mood.emoji}</div></div>
-          <div className="text-xs font-semibold">{mood.label}</div>
+    <motion.div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-2 pt-safe" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
+      <div className="mx-auto flex max-w-2xl items-stretch gap-1.5">
+        <div className="panel pointer-events-auto flex min-w-0 items-center gap-2 rounded-lg px-2 py-1" title={mood.label}>
+          <span className="text-lg leading-none" aria-label={mood.label}>{mood.emoji}</span>
+          <div className="min-w-0 whitespace-nowrap leading-tight">
+            <div className="text-[10px] font-medium text-white/55">{t.weekday.slice(0, 3)} {t.dateLabel}</div>
+            <div className="font-display text-[13px] font-bold tabular-nums">{t.time}</div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="glass-dark pointer-events-auto flex items-center gap-1.5 rounded-2xl px-2.5 py-2 text-xs font-semibold"><Users size={14} className="text-emerald-300" />{(online / 1000).toFixed(0)}K</div>
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => { useSettingsStore.getState().toggleMusic(); sfx.click(); }} aria-label="Toggle music" className="glass-dark pointer-events-auto flex h-9 w-9 items-center justify-center rounded-2xl">
-            {music ? <Music size={16} className="text-danfo" /> : <Music2 size={16} className="text-white/40" />}
-          </motion.button>
+        <div className="panel pointer-events-auto ml-auto flex min-w-0 items-center gap-1 whitespace-nowrap rounded-lg py-1 pl-2.5 pr-1">
+          <AnimatedNumber value={money} format={formatNairaCompact} className="font-display text-[15px] font-extrabold text-danfo" />
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => { sfx.click(); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp('bank'); sfx.phoneOpen(); }} aria-label="Open bank" className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-white"><Plus size={16} strokeWidth={3} /></motion.button>
         </div>
-        <div className="glass-dark pointer-events-auto flex w-full items-center justify-between rounded-2xl py-1.5 pl-4 pr-1.5 sm:w-auto sm:min-w-[15rem]">
-          <span className="font-display text-xl font-extrabold text-danfo"><AnimatedNumber value={money} /></span>
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => { sfx.click(); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp('bank'); sfx.phoneOpen(); }} aria-label="Open bank" className="ml-3 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-b from-danfo to-danfo-deep text-night shadow-pop"><Plus size={20} strokeWidth={3} /></motion.button>
-        </div>
+        <div className="panel pointer-events-auto flex items-center gap-1 rounded-lg px-2 text-[11px] font-semibold tabular-nums"><Users size={13} className="text-accent-glow" />{(online / 1000).toFixed(0)}K</div>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { useSettingsStore.getState().toggleMusic(); sfx.click(); }} aria-label="Toggle music" className="panel pointer-events-auto flex w-9 items-center justify-center rounded-lg">
+          {music ? <Music size={15} className="text-accent-glow" /> : <Music2 size={15} className="text-white/40" />}
+        </motion.button>
       </div>
     </motion.div>
   );

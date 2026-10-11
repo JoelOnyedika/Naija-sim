@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useUiStore } from '@/stores/uiStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 
-const tone = { info: 'glass-dark text-white', good: 'bg-emerald-500/90 text-white', bad: 'bg-rose-500/90 text-white' };
+const tone = { info: 'panel text-white', good: 'bg-emerald-500/90 text-white', bad: 'bg-rose-500/90 text-white' };
 
 /** Toasts + the in-world notification banner that drops in when the phone is closed. */
 export function Toasts() {
@@ -12,11 +12,11 @@ export function Toasts() {
   const openPhone = usePhoneStore((s) => s.openPhone);
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+8.4rem)] z-[90] flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+4.1rem)] z-[90] flex flex-col items-center gap-2 px-4">
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div key={t.id} initial={{ y: -16, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-              className={`max-w-sm rounded-2xl px-4 py-2.5 text-sm font-medium shadow-glass ${tone[t.tone]}`}>{t.text}</motion.div>
+              className={`max-w-sm rounded-lg px-3.5 py-2 text-sm font-medium shadow-glass ${tone[t.tone]}`}>{t.text}</motion.div>
           ))}
         </AnimatePresence>
       </div>

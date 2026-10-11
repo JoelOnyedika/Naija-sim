@@ -12,7 +12,6 @@ import { AvatarPreview } from '@/three/avatar/AvatarPreview';
 import { AnimatedNumber } from '@/ui/AnimatedNumber';
 import { Button } from '@/ui/Button';
 import { Logo } from '@/ui/Logo';
-import { SocialLinks } from '@/ui/SocialLinks';
 import { getArea, getProperty } from '@/world/registry';
 
 export function SummaryScreen() {
@@ -29,35 +28,43 @@ export function SummaryScreen() {
   const nepo = lifeType === 'nepo';
   const date = startedAt ? new Date(startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
+  const stat = (label: string, value: React.ReactNode, wide = false) => (
+    <div className={`rounded-lg bg-white/[0.05] px-2.5 py-1.5 ${wide ? 'col-span-2' : ''}`}><dt className="text-[10.5px] font-medium uppercase tracking-wide text-white/45">{label}</dt><dd className="truncate text-[13.5px] font-semibold leading-snug">{value}</dd></div>
+  );
+
   return (
-    <motion.div className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-night-700 to-night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className={`pointer-events-none absolute left-1/2 top-10 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl ${nepo ? 'bg-danfo/30' : 'bg-naija/30'}`} />
-      <div className="relative mx-auto flex min-h-full max-w-md flex-col px-5 pb-8 pt-safe">
-        <Logo />
-        <div className="h-56 -mb-4"><AvatarPreview appearance={appearance} zoom={1.15} /></div>
-        <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 240, damping: 24, delay: 0.1 }} className="glass-dark rounded-[2rem] p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-white/55">Life #{lifeNumber}</p>
-              <h1 className="font-display text-3xl font-extrabold leading-tight">{username}</h1>
-            </div>
-            <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${nepo ? 'bg-danfo text-night' : 'bg-white/15 text-white'}`}>{life.name}</span>
-          </div>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-2xl bg-white/5 p-3"><dt className="text-white/55">Date started</dt><dd className="font-semibold">{date}</dd></div>
-            <div className="rounded-2xl bg-white/5 p-3"><dt className="text-white/55">Current money</dt><dd className="font-display text-lg font-bold text-danfo"><AnimatedNumber value={money} /></dd></div>
-            <div className="col-span-2 rounded-2xl bg-white/5 p-3"><dt className="text-white/55">Starting home</dt><dd className="font-semibold">{prop?.name}{area ? ` · ${area.name}` : ''}</dd></div>
-            <div className="col-span-2 rounded-2xl bg-white/5 p-3"><dt className="text-white/55">Phone</dt><dd className="font-semibold">{life.phoneName}</dd></div>
-          </dl>
-          <p className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wider text-white/45">Starting condition</p>
-          <ul className="space-y-1 text-sm text-white/80">{life.conditions.map((c) => <li key={c} className="flex gap-2"><span className="text-naija-mint">✓</span>{c}</li>)}</ul>
-        </motion.div>
-        <div className="mt-5 space-y-3">
-          <Button size="lg" className="w-full" onClick={() => { sfx.reward(); go('game'); }}>Continue</Button>
-          <Button variant="glass" className="w-full" onClick={() => setConfirm(true)}>Start New Life</Button>
+    <motion.div className="absolute inset-0 flex flex-col overflow-hidden bg-gradient-to-b from-ink-700 to-ink md:flex-row" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className={`pointer-events-none absolute left-1/2 top-16 h-64 w-64 -translate-x-1/2 rounded-full blur-3xl md:left-1/4 ${nepo ? 'bg-danfo/20' : 'bg-accent/20'}`} />
+      {/* The character gets everything the info card does not need, so it is never pushed out of frame. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="relative z-10 flex items-center justify-between px-3 pt-safe">
+          <Logo />
+          <span className={`rounded-md px-2.5 py-1 text-[13px] font-bold ${nepo ? 'bg-danfo text-night' : 'bg-white/15 text-white'}`}>{life.name}</span>
         </div>
-        <SocialLinks className="mt-6 justify-center" />
+        <div className="relative min-h-[14rem] flex-1"><AvatarPreview appearance={appearance} focus="full" /></div>
       </div>
+      <motion.aside initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 240, damping: 26, delay: 0.1 }}
+        className="panel-solid relative z-10 flex max-h-[52vh] flex-col rounded-t-xl border-x-0 border-b-0 p-3 pb-safe md:max-h-none md:w-[24rem] md:justify-center md:rounded-none md:border-y-0 md:border-r-0 md:p-6">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h1 className="truncate font-display text-xl font-extrabold leading-tight">{username}</h1>
+          <span className="shrink-0 text-xs font-semibold text-white/50">Life #{lifeNumber}</span>
+        </div>
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <dl className="grid grid-cols-2 gap-1.5">
+            {stat('Money', <AnimatedNumber value={money} className="font-display font-bold text-danfo" />)}
+            {stat('Started', date)}
+            {stat('Home', `${prop?.name ?? ''}${area ? ` · ${area.name}` : ''}`, true)}
+            {stat('Phone', life.phoneName, true)}
+          </dl>
+          <ul className="mt-2 flex flex-wrap gap-1">
+            {life.conditions.map((c) => <li key={c} className="rounded-md bg-white/[0.06] px-2 py-1 text-[11.5px] text-white/75">{c}</li>)}
+          </ul>
+        </div>
+        <div className="mt-2.5 flex gap-2">
+          <Button variant="accent" size="lg" className="flex-1 !py-3" onClick={() => { sfx.reward(); go('game'); }}>Continue</Button>
+          <Button variant="quiet" className="!px-4" onClick={() => setConfirm(true)}>New life</Button>
+        </div>
+      </motion.aside>
       <AnimatePresence>
         {confirm && (
           <motion.div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

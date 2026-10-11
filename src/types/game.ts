@@ -21,9 +21,12 @@ export interface PlacedItem {
   fixed?: boolean;
 }
 
-export type HairStyle = 'bald' | 'lowcut' | 'afro' | 'braids' | 'dreads' | 'bun';
-export type TopStyle = 'tee' | 'hoodie' | 'kaftan' | 'jersey';
-export type BottomStyle = 'jeans' | 'shorts' | 'trousers' | 'skirt';
+export type HairStyle = 'bald' | 'lowcut' | 'fade' | 'afro' | 'braids' | 'dreads' | 'bun';
+export type TopStyle = 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey';
+/** `dress` is a one-piece: it replaces the top as well. */
+export type BottomStyle = 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress';
+export type ShoeStyle = 'sneakers' | 'boots' | 'sandals' | 'barefoot';
+export type Accessory = 'none' | 'glasses' | 'cap' | 'chain';
 export interface Appearance {
   skin: string;
   hairStyle: HairStyle;
@@ -32,4 +35,7 @@ export interface Appearance {
   topColor: string;
   bottom: BottomStyle;
   bottomColor: string;
+  shoes: ShoeStyle;
+  shoeColor: string;
+  accessory: Accessory;
 }

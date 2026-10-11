@@ -7,6 +7,7 @@ import type { PropertyLayout } from '@/types/world';
 import { WALL_T, wallPieces, windowsOnPiece, type WallPiece } from '@/world/layoutGeometry';
 import { B } from '../models/primitives';
 import { wallTexture } from '../textures';
+import { FadeGroup } from './FadeGroup';
 import { WindowUnit } from './Windows';
 
 interface Opening { c: number; w: number; sill: number; h: number; window?: ReturnType<typeof windowsOnPiece>[number]; door?: boolean }
@@ -57,8 +58,17 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
     : { position: [piece.c, 0, 0] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] };
   const len = u1 - u0;
 
+  // A tall wall drops to curb height while the camera is on its outer side, so orbiting behind the house never walls you out.
+  const outward = !piece.lo ? -1 : !piece.hi ? 1 : 0;
+  const hideWhenBehind = (cam: { position: { x: number; z: number } }) => {
+    if (!piece.tall || !outward) return false;
+    const cam1 = piece.o === 'h' ? cam.position.z : cam.position.x;
+    return (cam1 - piece.c) * outward > 0;
+  };
+
   return (
     <group {...group}>
+      <FadeGroup hide={hideWhenBehind} minScale={0.16}>
       {rs.map((r, i) => (
         <mesh key={i} position={[r.cx, r.cy, 0]} onClick={onClick} castShadow receiveShadow>
           <boxGeometry args={[r.w, r.h, T]} />
@@ -82,6 +92,7 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
       {/* cap / skirting */}
       <B size={[len, 0.04, T + 0.02]} pos={[(u0 + u1) / 2, piece.height + 0.02, 0]} color={layout.palette.trim} rough={0.6} radius={0.005} shadow={false} />
       {piece.tall && <B size={[len, 0.1, T + 0.05]} pos={[(u0 + u1) / 2, 0.05, 0]} color={layout.palette.trim} rough={0.6} radius={0.005} shadow={false} />}
+      </FadeGroup>
     </group>
   );
 }

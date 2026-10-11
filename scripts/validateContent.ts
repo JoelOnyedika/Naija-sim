@@ -27,7 +27,8 @@ for (const state of listStates()) {
   for (const a of state.areas) {
     if (a.stateId !== state.id) err(`area ${a.id} has wrong stateId`);
     for (const pid of a.propertyIds) if (!propIds.has(pid)) err(`area ${a.id} lists unknown property ${pid}`);
-    if (!a.propertyIds.length) warn(`area ${a.id} has no properties`);
+    // A district with no listing is fine as long as the map gives it a reason to exist (a landmark).
+    if (!a.propertyIds.length && !state.mapData.landmarks.some((l) => l.areaId === a.id)) warn(`area ${a.id} has no properties and no landmarks`);
   }
   for (const l of state.mapData.landmarks) if (l.areaId && !areaIds.has(l.areaId)) err(`landmark ${l.id} references unknown area ${l.areaId}`);
   for (const t of ['lapo', 'nepo'] as const) for (const pid of state.startingProperties[t]) if (!propIds.has(pid)) err(`startingProperties.${t}: unknown ${pid}`);

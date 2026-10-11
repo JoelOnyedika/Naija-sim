@@ -156,4 +156,6 @@ export interface StateDefinition {
   visualData: StateVisualData;
   /** Property ids a new life can start in, per life type. */
   startingProperties: { lapo: string[]; nepo: string[] };
+  /** Retired property ids -> the property that replaces them, so old saves keep a valid home. */
+  legacyPropertyIds?: Record<string, string>;
 }

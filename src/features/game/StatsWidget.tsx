@@ -36,7 +36,7 @@ export function StatsWidget() {
   const toggle = useUiStore((s) => s.toggleStats);
   return (
     <motion.div className="pointer-events-none absolute inset-x-0 bottom-[5.6rem] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
-      <motion.button layout onClick={toggle} className="glass-dark pointer-events-auto w-full max-w-sm rounded-2xl px-3 py-2 text-left" aria-expanded={expanded}>
+      <motion.button layout onClick={toggle} className="panel pointer-events-auto w-full max-w-sm rounded-lg px-3 py-2 text-left" aria-expanded={expanded}>
         <AnimatePresence initial={false} mode="wait">
           {expanded ? (
             <motion.div key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-3 gap-x-3 gap-y-2.5 pb-1 pt-1">

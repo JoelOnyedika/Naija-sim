@@ -7,6 +7,9 @@ export default {
         naija: { DEFAULT: '#0B8F4D', deep: '#07603A', mint: '#7FE3B0' },
         danfo: { DEFAULT: '#FFC21A', deep: '#E5A400', soft: '#FFE9A6' },
         night: { DEFAULT: '#0A1512', 800: '#0F211C', 700: '#16302A', 600: '#1F4339' },
+        // Design tokens: blue marks selection/interaction; ink is the neutral surface scale.
+        accent: { DEFAULT: '#2F6BFF', deep: '#1D4ED8', soft: '#DCE8FF', glow: '#5B93FF' },
+        ink: { DEFAULT: '#0D1117', 800: '#141A23', 700: '#1C2430', 600: '#283241' },
         hibiscus: '#FF4D6D',
         lagoon: '#19C3A6',
         sunset: '#FF8A3D',
@@ -19,6 +22,7 @@ export default {
       boxShadow: {
         glass: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.14)',
         pop: '0 10px 30px rgba(255,194,26,0.35)',
+        accent: '0 6px 18px rgba(47,107,255,0.35)',
       },
     },
   },

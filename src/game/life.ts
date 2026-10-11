@@ -5,6 +5,7 @@ import type { LifeTypeId } from '@/types/game';
 import { useAppsStore } from '@/stores/appsStore';
 import { useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
+import { useEditorStore } from '@/stores/editorStore';
 import { useFlowStore } from '@/stores/flowStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useLifeStore } from '@/stores/lifeStore';
@@ -21,7 +22,7 @@ import { autoPlace } from './housing';
 /** Decide the roulette result. Odds live in CONFIG.nepoChance. */
 export const rollLifeType = (): LifeTypeId => (Math.random() < CONFIG.nepoChance ? 'nepo' : 'lapo');
 
-// const between = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 500) * 500;
+const between = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 500) * 500;
 
 /** Create a brand-new life from the roulette result. Seeds every store. */
 export function startNewLife(type: LifeTypeId) {
@@ -31,11 +32,9 @@ export function startNewLife(type: LifeTypeId) {
   const propertyId = pool[Math.floor(Math.random() * pool.length)];
   const property = getProperty(propertyId)!;
   const layout = getLayout(property.layoutId)!;
-  // const money = between(def.moneyRange[0], def.moneyRange[1]);
-  const money = 50_000_000_000;
+  const money = between(def.moneyRange[0], def.moneyRange[1]);
 
   useEconomyStore.getState().reset(money);
-  
   useStatsStore.getState().reset();
   useInventoryStore.getState().reset(def.startingInventory);
   useVehicleStore.getState().reset(def.startingVehicles);
@@ -53,12 +52,23 @@ export function startNewLife(type: LifeTypeId) {
   const phone = usePhoneStore.getState();
   phone.say('mama', 'them', pickCopy(copy.welcome));
   phone.push({ title: 'Mama', body: 'Have you eaten? Do not skip meals.', icon: '👩🏾', appId: 'messages' });
-  useUiStore.setState({ mode: 'home', buySpent: 0, taskPanelOpen: true, statsExpanded: false });
+  useUiStore.setState({ mode: 'home', buySpent: 0, taskPanelOpen: typeof window === 'undefined' || window.innerWidth >= 640, statsExpanded: false });
   useLifeStore.getState().begin({ type, money, propertyId });
+}
+
+/** Drop every transient, life-specific UI state so nothing from the old life leaks into the next one. */
+export function resetTransientUi() {
+  useEditorStore.setState({ draft: null, dragging: false });
+  usePhoneStore.getState().closePhone();
+  useStatsStore.getState().stop();
+  useUiStore.setState({
+    mode: 'home', catalogOpen: true, buySpent: 0, detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, banner: null, toasts: [],
+  });
 }
 
 /** "Start New Life": wipe the current life (account and character stay) and go back to the roulette. */
 export function restartLife() {
+  resetTransientUi();
   useLifeStore.getState().clear();
   usePropertyStore.getState().reset();
   useFlowStore.getState().go('roulette');

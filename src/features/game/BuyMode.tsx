@@ -1,63 +1,95 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronDown, ChevronUp, RotateCw, Trash2, Undo2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, RotateCcw, RotateCw, Trash2, Undo2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { CONFIG } from '@/data/config';
 import { FURNITURE, ITEM_CATEGORIES, RARITY_COLOR, getFurniture, type ItemCategory } from '@/data/items';
-import { beginPlace, cancelDraft, confirmDraft, rotateDraft, sellItem, storeItem } from '@/game/buy';
+import { beginPlace, cancelDraft, confirmDraft, exitBuild, nudgeDraft, rotateDraft, sellItem, storeItem } from '@/game/buy';
 import { useEconomyStore } from '@/stores/economyStore';
-import { useEditorStore } from '@/stores/editorStore';
+import { useEditorStore, type Draft } from '@/stores/editorStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useUiStore } from '@/stores/uiStore';
-import { AnimatedNumber } from '@/ui/AnimatedNumber';
-import { Button } from '@/ui/Button';
 
 type Tab = ItemCategory | 'owned';
+type Dir = 'forward' | 'back' | 'left' | 'right';
 
-function Budget() {
-  const money = useEconomyStore((s) => s.money);
-  const spent = useUiStore((s) => s.buySpent);
+/** Press-and-hold repeats the action; always cleans its timers up on release, leave, cancel and unmount. */
+function useHoldRepeat(action: () => void) {
+  const timers = useRef<{ start?: number; rep?: number }>({});
+  const act = useRef(action); act.current = action;
+  const stop = () => { window.clearTimeout(timers.current.start); window.clearInterval(timers.current.rep); timers.current = {}; };
+  useEffect(() => stop, []);
+  return {
+    onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); act.current(); stop(); timers.current.start = window.setTimeout(() => { timers.current.rep = window.setInterval(() => act.current(), 90); }, 380); },
+    onPointerUp: stop, onPointerLeave: stop, onPointerCancel: stop,
+  };
+}
+
+function PadButton({ dir, Icon, label }: { dir: Dir; Icon: typeof ArrowUp; label: string }) {
+  const hold = useHoldRepeat(() => nudgeDraft(dir));
+  return <button {...hold} aria-label={label} className="flex h-10 w-10 touch-none items-center justify-center rounded-lg bg-white/[0.08] text-white ring-1 ring-white/10 active:bg-accent"><Icon size={18} /></button>;
+}
+
+/** The top-right Build/Buy exit. Always visible (even while an item is selected) and independent of the catalogue. */
+function ExitBar() {
   return (
-    <motion.div className="pointer-events-none absolute left-3 top-[8.4rem] z-30" initial={{ x: -60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -60, opacity: 0 }}>
-      <div className="glass-dark rounded-2xl px-3.5 py-2.5">
-        <div className="text-[11px] font-semibold text-white/60">Apartment Budget</div>
-        <div className="font-display text-lg font-extrabold text-danfo"><AnimatedNumber value={money} /></div>
-        <div className="mt-1 text-[11px] font-semibold text-white/60">Spent</div>
-        <div className="font-display text-base font-bold text-rose-300"><AnimatedNumber value={Math.max(0, spent)} /></div>
+    <motion.div className="pointer-events-auto absolute right-2 top-[calc(env(safe-area-inset-top,0px)+3.6rem)] z-[66]" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+      <div className="panel flex items-center gap-2 rounded-lg py-1 pl-3 pr-1">
+        <span className="flex items-center gap-1.5 text-[12px] font-bold"><span className="h-2 w-2 rounded-full bg-accent-glow" />Build / Buy</span>
+        <button onClick={exitBuild} aria-label="Exit Build mode" className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"><X size={18} /></button>
       </div>
     </motion.div>
   );
 }
 
-function PlacementBar() {
-  const draft = useEditorStore((s) => s.draft)!;
-  const def = getFurniture(draft.defId)!;
+/**
+ * Placement controls for the selected item. It receives the draft as a prop on purpose: while the bar animates out
+ * (after Place/Cancel clears the draft) the exiting copy keeps rendering the last draft instead of reading a now-null store.
+ */
+function PlacementBar({ draft }: { draft: Draft }) {
+  const def = getFurniture(draft.defId);
   const money = useEconomyStore((s) => s.money);
+  if (!def) return null;
   const cost = draft.purchase ? def.price : 0;
   const moving = !!draft.uid;
   const afford = money >= cost;
   return (
-    <motion.div className="pb-safe absolute inset-x-0 bottom-0 z-[65] px-3" initial={{ y: 140 }} animate={{ y: 0 }} exit={{ y: 140 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-      <div className="glass-dark mx-auto max-w-md rounded-[1.75rem] p-4">
-        <div className="mb-3 flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-2xl">{def.glyph}</span>
+    <motion.div className="pb-safe absolute inset-x-0 bottom-0 z-[65] px-2" initial={{ y: 200 }} animate={{ y: 0 }} exit={{ y: 200 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+      <div className="panel mx-auto max-w-md rounded-xl p-3">
+        <div className="mb-2 flex items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xl">{def.glyph}</span>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-display text-lg font-bold">{def.name}</div>
-            <div className={`text-xs font-semibold ${draft.valid ? 'text-emerald-300' : 'text-rose-300'}`}>{draft.valid ? 'Looks good here. Drag or tap the floor to move it.' : 'Does not fit here. Try another spot.'}</div>
+            <div className="truncate font-display text-[15px] font-bold leading-tight">{def.name}</div>
+            <div className={`text-[11.5px] font-semibold ${draft.valid ? 'text-emerald-300' : 'text-rose-300'}`}>{draft.valid ? 'Fits here. Drag it, or use the pad.' : 'Does not fit here.'}</div>
           </div>
-          {draft.purchase && <div className={`font-display text-lg font-extrabold ${afford ? 'text-danfo' : 'text-rose-300'}`}>{formatNaira(def.price)}</div>}
+          {draft.purchase && <div className={`font-display text-[15px] font-extrabold ${afford ? 'text-danfo' : 'text-rose-300'}`}>{formatNaira(def.price)}</div>}
+        </div>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="grid grid-cols-3 gap-1" aria-label="Move item">
+            <span /><PadButton dir="forward" Icon={ArrowUp} label="Move forward" /><span />
+            <PadButton dir="left" Icon={ArrowLeft} label="Move left" /><PadButton dir="back" Icon={ArrowDown} label="Move back" /><PadButton dir="right" Icon={ArrowRight} label="Move right" />
+          </div>
+          {def.placement.rotatable && (
+            <div className="flex flex-col gap-1">
+              <button onClick={() => rotateDraft(-1)} aria-label="Rotate counter-clockwise" className="flex h-10 items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 text-[13px] font-semibold ring-1 ring-white/10 active:bg-accent"><RotateCcw size={16} />90°</button>
+              <button onClick={() => rotateDraft(1)} aria-label="Rotate clockwise" className="flex h-10 items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 text-[13px] font-semibold ring-1 ring-white/10 active:bg-accent"><RotateCw size={16} />90°</button>
+            </div>
+          )}
+          {moving && (
+            <div className="flex flex-col gap-1">
+              <button onClick={() => storeItem(draft.uid!)} aria-label="Store" className="flex h-10 items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 text-[13px] font-semibold ring-1 ring-white/10"><Undo2 size={16} />Store</button>
+              <button onClick={() => sellItem(draft.uid!)} aria-label="Sell" className="flex h-10 items-center gap-1.5 rounded-lg bg-hibiscus/90 px-3 text-[13px] font-semibold"><Trash2 size={16} />+{formatNaira(Math.round(def.price * CONFIG.sellRefund))}</button>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
-          <Button variant="glass" size="sm" onClick={cancelDraft} aria-label="Cancel"><X size={18} /></Button>
-          {def.placement.rotatable && <Button variant="glass" size="sm" onClick={rotateDraft}><RotateCw size={16} />Rotate</Button>}
-          {moving && <Button variant="glass" size="sm" onClick={() => storeItem(draft.uid!)} aria-label="Store"><Undo2 size={16} />Store</Button>}
-          {moving && <Button variant="danger" size="sm" onClick={() => sellItem(draft.uid!)} aria-label="Sell"><Trash2 size={16} />+{formatNaira(Math.round(def.price * CONFIG.sellRefund))}</Button>}
-          <Button className="flex-1" size="sm" disabled={!draft.valid || !afford} onClick={() => confirmDraft()}>
-            <Check size={18} />{moving ? 'Done' : draft.purchase ? 'Buy' : 'Place'}
-          </Button>
+          <button onClick={cancelDraft} aria-label="Cancel" className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-white/[0.08] px-4 text-sm font-semibold ring-1 ring-white/10"><X size={17} />Cancel</button>
+          <button disabled={!draft.valid || !afford} onClick={() => confirmDraft()} className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent text-[15px] font-bold text-white disabled:bg-white/10 disabled:text-white/35">
+            <Check size={18} />{moving ? 'Done' : draft.purchase ? `Buy ${formatNaira(def.price)}` : 'Place'}
+          </button>
         </div>
-        {!afford && <p className="mt-2 text-center text-xs text-rose-300">Omo, your money no reach. Hustle harder.</p>}
+        {!afford && <p className="mt-1.5 text-center text-xs text-rose-300">Omo, your money no reach. Hustle harder.</p>}
       </div>
     </motion.div>
   );
@@ -68,37 +100,41 @@ function Catalog() {
   const setOpen = useUiStore((s) => s.setCatalogOpen);
   const money = useEconomyStore((s) => s.money);
   const inv = useInventoryStore((s) => s.items);
-  const [tab, setTab] = useState<Tab>('sleep');
+  const tab = useUiStore((s) => s.catalogTab) as Tab;
+  const setTab = useUiStore((s) => s.setCatalogTab);
   const counts = useMemo(() => Object.fromEntries(ITEM_CATEGORIES.map((c) => [c.id, FURNITURE.filter((f) => f.category === c.id).length])) as Record<ItemCategory, number>, []);
   const ownedCount = FURNITURE.reduce((n, f) => n + (inv[f.id] ?? 0), 0);
   const list = tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab).sort((a, b) => a.price - b.price);
+  const tabs: { id: Tab; label: string; icon: string }[] = [...ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon })), { id: 'owned', label: `Owned ${ownedCount}`, icon: '🎒' }];
 
   return (
     <>
-      <motion.div className="absolute inset-x-0 bottom-0 z-[65] flex justify-center px-2" initial={false} animate={{ y: open ? 0 : '104%' }} transition={{ type: 'spring', stiffness: 280, damping: 32 }}>
-        <div className="glass-dark w-full max-w-2xl rounded-t-[2rem] p-3 pb-[5.8rem]">
+      <motion.div className="absolute inset-x-0 bottom-0 z-[65] flex justify-center px-2" initial={false} animate={{ y: open ? 0 : '104%' }} transition={{ type: 'spring', stiffness: 280, damping: 32 }} aria-hidden={!open}>
+        <div className="panel w-full max-w-2xl rounded-t-xl p-2.5 pb-[5.2rem]">
           <div className="mb-2 flex items-center gap-2">
-            <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
-              {[...ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} (${counts[c.id]})`, icon: c.icon })), { id: 'owned' as Tab, label: `Owned (${ownedCount})`, icon: '🎒' }].map((c) => (
-                <button key={c.id} onClick={() => { sfx.click(); setTab(c.id); }} className="relative shrink-0 rounded-full px-3 py-2 text-[13px] font-semibold">
-                  {tab === c.id && <motion.span layoutId="cat-pill" className="absolute inset-0 rounded-full bg-danfo" />}
-                  <span className={`relative ${tab === c.id ? 'text-night' : 'text-white/80'}`}>{c.icon} {c.label}</span>
-                </button>
-              ))}
+            <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="Furniture categories">
+              {tabs.map((c) => {
+                const on = tab === c.id;
+                return (
+                  <button key={c.id} role="tab" aria-selected={on} onClick={() => { sfx.click(); setTab(c.id); }} className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-[12.5px] font-semibold transition-colors ${on ? 'bg-accent text-white shadow-accent' : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.1]'}`}>
+                    {c.icon} {c.label}
+                  </button>
+                );
+              })}
             </div>
-            <button onClick={() => { sfx.close(); setOpen(false); }} aria-label="Hide catalog" className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-full"><ChevronDown size={18} /></button>
+            <button onClick={() => { sfx.close(); setOpen(false); }} aria-label="Close catalogue" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"><X size={18} /></button>
           </div>
-          <div className="no-scrollbar grid max-h-[40vh] grid-cols-3 gap-2 overflow-y-auto pb-1 sm:grid-cols-4">
+          <div className="no-scrollbar grid max-h-[38vh] grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pb-1 sm:grid-cols-4">
             {list.length === 0 && <p className="col-span-full py-8 text-center text-sm text-white/55">Nothing here yet.</p>}
             {list.map((f) => {
               const owned = inv[f.id] ?? 0, afford = money >= f.price;
               return (
-                <motion.button key={f.id} whileTap={{ scale: 0.95 }} onClick={() => beginPlace(f.id)} className="relative flex flex-col items-center rounded-2xl p-2 text-center ring-1" style={{ background: `linear-gradient(160deg, ${RARITY_COLOR[f.rarity]}22, rgba(255,255,255,0.04))`, borderColor: RARITY_COLOR[f.rarity], boxShadow: `inset 0 0 0 1px ${RARITY_COLOR[f.rarity]}55` }}>
-                  <span className="text-3xl drop-shadow">{f.glyph}</span>
-                  <span className="mt-1 line-clamp-2 min-h-[2rem] text-[12px] font-semibold leading-tight">{f.name}</span>
-                  <span className={`mt-0.5 text-[12px] font-bold ${owned && tab === 'owned' ? 'text-emerald-300' : afford ? 'text-danfo' : 'text-rose-300'}`}>{tab === 'owned' ? 'Place' : formatNaira(f.price)}</span>
-                  {owned > 0 && <span className="absolute right-1.5 top-1.5 rounded-md bg-night/80 px-1.5 text-[10px] font-bold">×{owned}</span>}
-                </motion.button>
+                <button key={f.id} onClick={() => beginPlace(f.id)} className="panel-solid relative flex flex-col items-center rounded-lg border-t-2 p-2 text-center active:scale-95 active:border-accent" style={{ borderTopColor: RARITY_COLOR[f.rarity] }}>
+                  <span className="text-2xl">{f.glyph}</span>
+                  <span className="mt-1 line-clamp-2 min-h-[2rem] text-[11.5px] font-semibold leading-tight">{f.name}</span>
+                  <span className={`mt-0.5 text-[12px] font-bold tabular-nums ${tab === 'owned' ? 'text-accent-glow' : afford ? 'text-white' : 'text-rose-300'}`}>{tab === 'owned' ? 'Place' : formatNaira(f.price)}</span>
+                  {owned > 0 && <span className="absolute right-1 top-1.5 rounded bg-accent px-1.5 text-[10px] font-bold">×{owned}</span>}
+                </button>
               );
             })}
           </div>
@@ -106,8 +142,8 @@ function Catalog() {
       </motion.div>
       <AnimatePresence>
         {!open && (
-          <motion.button initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} onClick={() => { sfx.open(); setOpen(true); }} className="glass-dark absolute bottom-[5.8rem] left-1/2 z-[65] flex -translate-x-1/2 items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold">
-            <ChevronUp size={16} />Catalog
+          <motion.button initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} onClick={() => { sfx.open(); setOpen(true); }} className="panel absolute bottom-[5.4rem] left-1/2 z-[65] flex h-11 -translate-x-1/2 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-bold">
+            <span className="text-accent-glow">▲</span>Catalogue
           </motion.button>
         )}
       </AnimatePresence>
@@ -115,22 +151,27 @@ function Catalog() {
   );
 }
 
-/** Buy mode: the catalog slides up over the live 3D home; a ghost + action bar handle placement. */
+/**
+ * Build/Buy mode. Three independent pieces: the session (ExitBar, shown for as long as the mode is active), the
+ * catalogue sheet (open/closed on its own) and the placement bar (only while an item is selected).
+ */
 export function BuyMode() {
   const mode = useUiStore((s) => s.mode);
   const draft = useEditorStore((s) => s.draft);
-  const catalogOpen = useUiStore((s) => s.catalogOpen);
+
+  // Whatever way Buy mode ends, an unconfirmed preview must not outlive it.
+  useEffect(() => { if (mode !== 'buy') useEditorStore.setState({ draft: null, dragging: false }); }, [mode]);
+
   return (
     <AnimatePresence>
       {mode === 'buy' && (
         <motion.div key="buy" className="pointer-events-none absolute inset-0 z-30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="pointer-events-none contents"><Budget /></div>
+          <ExitBar />
           <div className="pointer-events-auto contents">
             <AnimatePresence mode="wait">
-              {draft ? <PlacementBar key="bar" /> : <motion.div key="cat" className="contents"><Catalog /></motion.div>}
+              {draft ? <PlacementBar key="bar" draft={draft} /> : <motion.div key="cat" className="contents"><Catalog /></motion.div>}
             </AnimatePresence>
           </div>
-          {!draft && catalogOpen && <div />}
         </motion.div>
       )}
     </AnimatePresence>

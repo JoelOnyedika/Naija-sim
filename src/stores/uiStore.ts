@@ -11,6 +11,10 @@ interface UiState {
   statsExpanded: boolean;
   /** Buy catalog sheet visible (slides down when hidden but Buy mode stays active). */
   catalogOpen: boolean;
+  /** Selected catalogue tab (kept here so it survives the catalogue unmounting while an item is being placed). */
+  catalogTab: string;
+  /** True from the moment a home (or a new life) starts building until its first frames are on screen. */
+  sceneLoading: boolean;
   /** Money spent since entering Buy mode. */
   buySpent: number;
   budgetStart: number;
@@ -24,6 +28,8 @@ interface UiState {
   toggleTasks: () => void;
   toggleStats: () => void;
   setCatalogOpen: (v: boolean) => void;
+  setCatalogTab: (t: string) => void;
+  setSceneLoading: (v: boolean) => void;
   addSpent: (n: number) => void;
   startBuy: (money: number) => void;
   openProperty: (id: string | null) => void;
@@ -38,13 +44,15 @@ interface UiState {
 
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
-  mode: 'home', taskPanelOpen: true, statsExpanded: false, catalogOpen: true, buySpent: 0, budgetStart: 0,
+  mode: 'home', taskPanelOpen: true, statsExpanded: false, catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
   detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null,
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),
   toggleTasks: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
   toggleStats: () => set((s) => ({ statsExpanded: !s.statsExpanded })),
   setCatalogOpen: (catalogOpen) => set({ catalogOpen }),
+  setCatalogTab: (catalogTab) => set({ catalogTab }),
+  setSceneLoading: (sceneLoading) => set({ sceneLoading }),
   addSpent: (n) => set((s) => ({ buySpent: s.buySpent + n })),
   startBuy: (money) => set({ mode: 'buy', catalogOpen: true, buySpent: 0, budgetStart: money }),
   openProperty: (detailPropertyId) => set({ detailPropertyId }),

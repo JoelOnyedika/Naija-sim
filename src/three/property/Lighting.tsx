@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { Color } from 'three';
 import { clockParts, useClockStore } from '@/stores/clockStore';
+import { QUALITY_TIERS, useQualityStore } from '@/stores/qualityStore';
 import type { PropertyLayout } from '@/types/world';
 
 /** Day/night lighting driven by the in-game clock, plus warm interior lights after dark. */
 export function Lighting({ layout }: { layout: PropertyLayout }) {
+  const q = useQualityStore((s) => QUALITY_TIERS[s.tier]);
   const minutes = useClockStore((s) => s.minutes);
   const anchor = useClockStore((s) => s.anchor);
   const hour = clockParts(minutes, anchor).hour + (minutes % 60) / 60;
@@ -19,10 +21,10 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
       <hemisphereLight args={['#FFF4DC', '#9A8D78', 0.3 + day * 0.65]} />
       <ambientLight intensity={0.1 + day * 0.15} />
       <directionalLight
-        position={[8, 12, 9]} intensity={0.25 + day * 1.7} color={dusk > 0.2 ? '#FFB06B' : '#FFF1D6'} castShadow
+        position={[8, 12, 9]} intensity={0.25 + day * 1.7} color={dusk > 0.2 ? '#FFB06B' : '#FFF1D6'} castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}
       />
-      {night > 0.15 && lamps.map((z) => <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 2.3, (z.z0 + z.z1) / 2]} intensity={night * 14} distance={7} decay={1.6} color="#FFC987" />)}
+      {night > 0.15 && q.nightLights && lamps.map((z) => <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 2.3, (z.z0 + z.z1) / 2]} intensity={night * 14} distance={7} decay={1.6} color="#FFC987" />)}
     </>
   );
 }

@@ -15,7 +15,7 @@ export function Btn({ tone = 'dark', className = '', onClick, ...rest }: ButtonH
 }
 
 export const Chip = ({ active, onClick, children }: { active?: boolean; onClick: () => void; children: ReactNode }) => (
-  <motion.button whileTap={{ scale: 0.93 }} onClick={() => { sfx.click(); onClick(); }} className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold ${active ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 shadow-sm'}`}>{children}</motion.button>
+  <motion.button whileTap={{ scale: 0.93 }} onClick={() => { sfx.click(); onClick(); }} className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold ${active ? 'bg-accent text-white' : 'bg-white text-slate-600 shadow-sm'}`}>{children}</motion.button>
 );
 
 export const Row = ({ glyph, title, sub, right }: { glyph?: string; title: ReactNode; sub?: ReactNode; right?: ReactNode }) => (

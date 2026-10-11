@@ -74,13 +74,13 @@ ok(useTaskStore.getState().active.length === 3, 'three active tasks');
 // ── moving house: mid-level then luxury
 useEconomyStore.getState().credit(900_000_000, 'test');
 const countBefore = getActiveHome()!.placed.length;
-let r = acquireProperty('lagos.mini-flat-yaba');
-ok(r.ok && getActiveHome()!.property.id === 'lagos.mini-flat-yaba', 'bought Mini Flat (Yaba)');
+let r = acquireProperty('lagos.3-bedroom-flat-ikeja');
+ok(r.ok && getActiveHome()!.property.id === 'lagos.3-bedroom-flat-ikeja', 'bought 3 Bedroom Flat (Ikeja)');
 ok(getActiveHome()!.placed.length + useInventoryStore.getState().count('chair') >= 1, `furniture moved (${countBefore} before, ${getActiveHome()!.placed.length} after)`);
-r = acquireProperty('lagos.waterfront-mansion-banana-island');
-ok(r.ok, 'bought Waterfront Mansion');
+r = acquireProperty('lagos.luxury-duplex-ikoyi');
+ok(r.ok, 'bought Luxury Duplex (Ikoyi)');
 useVehicleStore.getState().reset(['gwagon', 'camry', 'supercar', 'rangerover']);
-ok(carSlots(getActiveHome()!.layout).length >= 4, `mansion has ${carSlots(getActiveHome()!.layout).length} car slots`);
+ok(carSlots(getActiveHome()!.layout).length >= 3, `luxury duplex has ${carSlots(getActiveHome()!.layout).length} car slots`);
 r = acquireProperty('lagos.face-me-i-face-you');
 ok(!r.ok === false, 'can move back to a cheaper owned/purchasable property');
 ok(usePropertyStore.getState().ownedIds.length >= 3, `owns ${usePropertyStore.getState().ownedIds.length} properties`);

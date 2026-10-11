@@ -32,6 +32,15 @@ canvas { display: block; touch-action: none; }
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow: 0 10px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
 }
+.panel {
+  background: rgba(13,17,23,0.84);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.38);
+}
+.panel-solid { background: #131922; border: 1px solid rgba(255,255,255,0.08); }
+button:focus-visible, [role='button']:focus-visible, input:focus-visible { outline: 2px solid #5B93FF; outline-offset: 2px; }
 .pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); }
 .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.6rem); }
 .text-gradient-naija { background: linear-gradient(90deg,#7FE3B0,#fff 50%,#7FE3B0); -webkit-background-clip: text; background-clip: text; color: transparent; }

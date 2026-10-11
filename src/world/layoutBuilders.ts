@@ -33,33 +33,36 @@ export interface CompoundCfg { id: string; palette: Palette; fence?: FenceKind }
 
 /** A row of rooms along a veranda, facing a shared yard. The player's room is first; the others belong to neighbours. */
 export function faceMeIFaceYou(c: CompoundCfg & { roomSize?: number; neighbours?: number }): PropertyLayout {
-  const s = c.roomSize ?? 3.8, n = c.neighbours ?? 2;
-  const zones: Zone[] = [zone('room', 'bedroom', 'Your room', 0, 0, s, s, 'cement')];
-  for (let i = 0; i < n; i++) zones.push(zone(`n${i}`, 'neighbour', "Neighbour's room", s + i * 3.4, 0, s + (i + 1) * 3.4, s, 'cement', true, false));
-  const bx = s + n * 3.4;
-  zones.push(zone('bath', 'bathroom', 'Shared bathroom', bx, 0, bx + 2.0, s, 'cement', true, false));
-  const W = bx + 2.0;
-  zones.push(zone('veranda', 'corridor', 'Veranda', 0, s, W, s + 1.4, 'concrete', false, false));
-  zones.push(zone('yard', 'compound', 'Shared compound', 0, s + 1.4, W, s + 5.6, 'concrete', false, true));
+  // Worn and humble, but with a room you can actually furnish: ~4.8 x 4.4 m, one neighbour's room, a shared bathroom,
+  // a covered veranda and a compound deep enough for the drums, line and generator. The plot stays close to square.
+  const sw = c.roomSize ?? 4.8, sd = 4.4, nw = 4.0, bw = 2.4, vd = 1.8, yd = 5.6, n = c.neighbours ?? 1;
+  const zones: Zone[] = [zone('room', 'bedroom', 'Your room', 0, 0, sw, sd, 'cement')];
+  for (let i = 0; i < n; i++) zones.push(zone(`n${i}`, 'neighbour', "Neighbour's room", sw + i * nw, 0, sw + (i + 1) * nw, sd, 'cement', true, false));
+  const bx = sw + n * nw;
+  zones.push(zone('bath', 'bathroom', 'Shared bathroom', bx, 0, bx + bw, sd, 'cement', true, false));
+  const W = bx + bw;
+  zones.push(zone('veranda', 'corridor', 'Veranda', 0, sd, W, sd + vd, 'concrete', false, false));
+  zones.push(zone('yard', 'compound', 'Shared compound', 0, sd + vd, W, sd + vd + yd, 'concrete', false, true));
   const windows: WindowSpec[] = [
-    { wall: 'back', along: s / 2, width: 0.8, height: 0.8, sill: 1.3, style: 'burglar' },
-    { wall: 'left', along: s / 2, width: 0.7, height: 0.7, sill: 1.4, style: 'louvre' },
-    ...Array.from({ length: n }, (_, i) => ({ wall: 'back' as const, along: s + i * 3.4 + 1.7, width: 0.8, height: 0.8, sill: 1.3, style: 'louvre' as WindowStyle })),
+    { wall: 'back', along: sw / 2, width: 0.9, height: 0.9, sill: 1.3, style: 'burglar' },
+    { wall: 'left', along: sd / 2, width: 0.8, height: 0.8, sill: 1.4, style: 'louvre' },
+    ...Array.from({ length: n }, (_, i) => ({ wall: 'back' as const, along: sw + i * nw + nw / 2, width: 0.8, height: 0.8, sill: 1.3, style: 'louvre' as WindowStyle })),
   ];
+  const yz = sd + vd;
   const decor: Decor[] = [
-    { kind: 'awning', x: W / 2, z: s + 0.7, w: W, d: 1.6 },
-    { kind: 'tree', x: W - 1.6, z: s + 4.2, scale: 1.1 },
-    { kind: 'drum', x: 1.2, z: s + 2.4 },
-    { kind: 'drum', x: 1.8, z: s + 2.6, scale: 0.9 },
-    { kind: 'clothesline', x: W / 2 + 0.6, z: s + 4.6, w: 5 },
-    { kind: 'generatorHouse', x: W - 1.0, z: s + 2.2 },
+    { kind: 'awning', x: W / 2, z: sd + vd / 2, w: W, d: vd + 0.2 },
+    { kind: 'tree', x: W - 1.5, z: yz + yd - 1.4, scale: 1.1 },
+    { kind: 'drum', x: 1.0, z: yz + 1.0 },
+    { kind: 'drum', x: 1.6, z: yz + 1.25, scale: 0.9 },
+    { kind: 'clothesline', x: W / 2, z: yz + yd - 1.0, w: Math.min(6, W - 2) },
+    { kind: 'generatorHouse', x: W - 1.0, z: yz + 1.2 },
   ];
   const plot = plotAround(zones, 0.9, 'dirt', c.fence ?? 'zinc');
   decor.push({ kind: 'gate', x: W / 2, z: plot.z1 });
   return {
     id: c.id, plot, zones, wallHeight: 2.6, windows, palette: c.palette, finish: 'rough', decor, publicPower: false,
     connections: [{ a: 'room', b: 'veranda' }, { a: 'bath', b: 'veranda' }],
-    fixtures: [...bathFixtures(zones.find((z) => z.id === 'bath')!, false), { defId: 'bucket', x: bx + 1.45, z: s - 0.6, rotation: 0 }],
+    fixtures: [...bathFixtures(zones.find((z) => z.id === 'bath')!, false), { defId: 'bucket', x: bx + bw - 0.55, z: sd - 0.6, rotation: 0 }],
   };
 }
 
