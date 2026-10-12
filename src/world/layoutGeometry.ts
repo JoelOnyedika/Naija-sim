@@ -4,7 +4,6 @@ import { BAY_LENGTH, BAY_WIDTH } from './garage';
 const EPS = 1e-3;
 export const WALL_T = 0.14;
 export const LOW_WALL = 0.95; // interior partitions are "cutaway" so you can see every room
-export const CURB_WALL = 0.45; // front/right exterior walls
 
 export interface WallPiece {
   /** 'h' runs along x at z = c. 'v' runs along z at x = c. */
@@ -59,9 +58,10 @@ export function wallPieces(layout: PropertyLayout): WallPiece[] {
       if (!hiIn && !loIn) continue;
       const conn = link(hi, lo);
       if (hiIn && loIn && conn?.open) continue; // open-plan: one room, no wall
+      // Cutaway: the camera-facing front (z = S) and right (x = S) sides have no wall at all, so nothing blocks the view in.
+      if (loIn && !hiIn) continue;
       let height: number, tall = false;
       if (hiIn && !loIn) { height = layout.wallHeight; tall = true; }
-      else if (loIn && !hiIn) height = CURB_WALL;
       else height = LOW_WALL;
       const doors = conn && !conn.open && b - a >= 1.1 ? [m] : [];
       pieces.push({ o: group[0].o, c: group[0].c, a, b, height, tall, doors, hi, lo });
@@ -73,7 +73,12 @@ export function wallPieces(layout: PropertyLayout): WallPiece[] {
 /** Tall pieces that belong to a furnishable indoor room: where wall-mounted items and windows can go. */
 export const tallWalls = (layout: PropertyLayout) => wallPieces(layout).filter((p) => p.tall);
 
+/**
+ * Windows live ONLY on the tall outer back (z = 0) and left (x = 0) walls: the far faces, away from the default camera,
+ * which sees the front and right faces. Front/right walls and interior partitions never get windows.
+ */
 export function windowsOnPiece(layout: PropertyLayout, p: WallPiece): WindowSpec[] {
+  if (!p.tall) return [];
   const wall = p.o === 'h' ? 'back' : 'left';
   return layout.windows.filter((w) => w.wall === wall && w.along - w.width / 2 >= p.a - EPS && w.along + w.width / 2 <= p.b + EPS);
 }
@@ -83,13 +88,34 @@ export function windowsOnPiece(layout: PropertyLayout, p: WallPiece): WindowSpec
  * `rotation` is the yaw (radians about +y) the car's NOSE should point along: 0 = +z (south, towards the camera).
  * `width` is across the car, `length` along it. Use garage.ts `fitModelToBay` to place a GLB in a slot.
  */
-export interface CarSlot { id: string; x: number; z: number; rotation: number; width: number; length: number; zoneId: string; covered: false }
+export interface CarSlot { id: string; x: number; z: number; rotation: number; width: number; length: number; zoneId: string; covered: boolean }
 
 /** Parking positions: one slot per open bay zone, in the order the layout lists them (left to right). */
 export function carSlots(layout: PropertyLayout): CarSlot[] {
   return layout.zones
     .filter((z) => z.kind === 'parking')
-    .map((z) => ({ id: z.id, x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, rotation: 0, width: Math.min(BAY_WIDTH, z.x1 - z.x0), length: Math.min(BAY_LENGTH, z.z1 - z.z0), zoneId: z.id, covered: false as const }));
+    .map((z) => ({ id: z.id, x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, rotation: 0, width: Math.min(BAY_WIDTH, z.x1 - z.x0), length: Math.min(BAY_LENGTH, z.z1 - z.z0), zoneId: z.id, covered: true }));
+}
+
+/** Where the parking sign stands: just outside the left end of the parking extension, near its far end. Null if no bays. */
+export function parkingSignPos(layout: PropertyLayout): { x: number; z: number } | null {
+  const bays = layout.zones.filter((z) => z.kind === 'parking');
+  if (!bays.length) return null;
+  return { x: Math.max(...bays.map((b) => b.x1)) + 0.4, z: Math.max(...bays.map((b) => b.z1)) - 0.3 };
+}
+
+/** Square main building bounds (indoor zones only) and its centre: the camera always looks at this centre. */
+export function houseBounds(layout: PropertyLayout) {
+  const ind = layout.zones.filter((z) => z.indoor);
+  const x0 = Math.min(...ind.map((z) => z.x0)), x1 = Math.max(...ind.map((z) => z.x1));
+  const z0 = Math.min(...ind.map((z) => z.z0)), z1 = Math.max(...ind.map((z) => z.z1));
+  return { x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0 };
+}
+/** Axis-aligned box of the carport (all parking bays), or null. */
+export function carportBounds(layout: PropertyLayout) {
+  const b = layout.zones.filter((z) => z.kind === 'parking');
+  if (!b.length) return null;
+  return { x0: Math.min(...b.map((z) => z.x0)), x1: Math.max(...b.map((z) => z.x1)), z0: Math.min(...b.map((z) => z.z0)), z1: Math.max(...b.map((z) => z.z1)) };
 }
 
 export interface DoorRect { x0: number; z0: number; x1: number; z1: number }

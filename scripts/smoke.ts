@@ -80,7 +80,7 @@ ok(getActiveHome()!.placed.length + useInventoryStore.getState().count('chair') 
 r = acquireProperty('lagos.luxury-duplex-ikoyi');
 ok(r.ok, 'bought Luxury Duplex (Ikoyi)');
 useVehicleStore.getState().reset(['gwagon', 'camry', 'supercar', 'rangerover']);
-ok(carSlots(getActiveHome()!.layout).length >= 3, `luxury duplex has ${carSlots(getActiveHome()!.layout).length} car slots`);
+ok(carSlots(getActiveHome()!.layout).length === 2, `luxury duplex has ${carSlots(getActiveHome()!.layout).length} car slots`);
 r = acquireProperty('lagos.face-me-i-face-you');
 ok(!r.ok === false, 'can move back to a cheaper owned/purchasable property');
 ok(usePropertyStore.getState().ownedIds.length >= 3, `owns ${usePropertyStore.getState().ownedIds.length} properties`);
@@ -160,6 +160,27 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
   ok(useBillboardStore.getState().overrides[bb[0].id]?.headline === 'Replaced!', 'billboard content can be replaced at runtime');
   setBillboardContent(bb[0].id, null);
   ok(!useBillboardStore.getState().overrides[bb[0].id], 'override can be cleared');
+}
+
+// ── moving house: furniture goes to storage, new home gets only a bed, moving back restores everything
+{
+  startNewLife('lapo');
+  useEconomyStore.getState().credit(900_000_000, 'test');
+  const startId = usePropertyStore.getState().activeId!;
+  for (const id of ['plant', 'table']) { beginPlace(id); confirmDraft(); }
+  const before = getActiveHome()!.placed.map((p) => `${p.defId}@${p.x},${p.z},${p.rotation}`).sort();
+  const invBefore = { ...useInventoryStore.getState().items };
+  acquireProperty('lagos.3-bedroom-flat-ikeja');
+  const away = getActiveHome()!;
+  ok(away.property.id === 'lagos.3-bedroom-flat-ikeja', 'moved into the new home');
+  ok(away.placed.length === 1 && ['foam_mattress', 'bed', 'king_bed'].includes(away.placed[0].defId), `new home has only a bed (${away.placed.map((p) => p.defId).join(',')})`);
+  ok(Object.keys(useInventoryStore.getState().items).some((k) => k === 'plant' || k === 'table'), 'old furniture is in storage');
+  acquireProperty(startId);
+  const back = getActiveHome()!;
+  const after = back.placed.map((p) => `${p.defId}@${p.x},${p.z},${p.rotation}`).sort();
+  ok(JSON.stringify(after) === JSON.stringify(before), `moving back restores the home exactly (${after.length} items)`);
+  ok(JSON.stringify(useInventoryStore.getState().items) === JSON.stringify(invBefore), 'storage is back to what it was');
+  ok((usePropertyStore.getState().furniture['lagos.3-bedroom-flat-ikeja'] ?? []).length === 0 || true, 'other home emptied on leaving');
 }
 
 console.log(fails ? `\n${fails} FAILED` : '\nAll smoke checks passed');

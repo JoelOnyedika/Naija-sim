@@ -15,6 +15,7 @@ import { Dock } from './Dock';
 import { FoodPicker } from './FoodPicker';
 import { Hud } from './Hud';
 import { LoadingOverlay } from './LoadingOverlay';
+import { RotateButton } from './RotateButton';
 import { StatsWidget } from './StatsWidget';
 import { TaskPanel } from './TaskPanel';
 
@@ -30,6 +31,7 @@ export function GameScreen() {
     <div className="absolute inset-0 bg-night">
       <ErrorBoundary inline label="The 3D home"><PropertyScene /></ErrorBoundary>
       <Hud />
+      <RotateButton />
       <ActivityBanner />
       {mode === 'home' && <TaskPanel />}
       <AnimatePresence>{mode === 'home' && <StatsWidget key="stats" />}</AnimatePresence>

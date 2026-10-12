@@ -25,23 +25,51 @@ export function autoPlace(layout: PropertyLayout, defIds: string[], existing: Pl
   return { placed, leftover };
 }
 
-/** Move into a property you own. Your furniture moves with you; what does not fit goes to the inventory. */
+/** The bed that goes into a new home: one the player already owns (stored or just moved out), else the cheapest sleeping item. */
+function pickBed(carried: PlacedItem[]): string {
+  const isBed = (id: string) => ['foam_mattress', 'bed', 'king_bed'].includes(id);
+  const own = carried.find((p) => isBed(p.defId))?.defId ?? Object.keys(useInventoryStore.getState().items).find(isBed);
+  return own ?? 'foam_mattress';
+}
+
+/**
+ * Move into a property you own.
+ *  - Everything in the home you are leaving goes to storage (your inventory); how it was laid out is remembered.
+ *  - A home you have not lived in since moving in gets only a bed (taken from storage; a basic mattress if you own none).
+ *  - Moving back to a home you left restores it exactly as it was: its furniture comes back out of storage.
+ */
 export function moveInto(propertyId: string) {
-  const store = usePropertyStore.getState();
+  const store = usePropertyStore.getState(), inv = useInventoryStore.getState();
   const prop = getProperty(propertyId), layout = prop && getLayout(prop.layoutId);
   if (!prop || !layout) return;
   const current = getActiveHome();
-  let carry: string[] = [];
-  if (current && current.property.id !== propertyId) {
-    carry = current.placed.map((p) => p.defId);
+  const leaving = current && current.property.id !== propertyId ? current.placed.filter((p) => !p.fixed) : null;
+  if (current && leaving) {
+    store.setStash(current.property.id, leaving);
     store.setFurniture(current.property.id, []);
+    leaving.forEach((p) => inv.add(p.defId));
   }
-  const target = store.furniture[propertyId] ?? [];
-  const { placed, leftover } = autoPlace(layout, carry, target);
-  leftover.forEach((id) => useInventoryStore.getState().add(id));
-  store.setFurniture(propertyId, placed);
+  const saved = usePropertyStore.getState().stash[propertyId];
+  if (saved?.length) {
+    // coming back: put everything back where it was (only what is still in storage can return)
+    const restored: PlacedItem[] = [];
+    for (const item of saved) {
+      const def = getFurniture(item.defId);
+      if (!def || inv.count(item.defId) < 1) continue;
+      if (!validatePlacement(def, layout, item, [...fixturesOf(layout), ...restored])) continue;
+      inv.remove(item.defId); restored.push(item);
+    }
+    store.setFurniture(propertyId, restored);
+    store.setStash(propertyId, null);
+  } else if (leaving) {
+    // new home: just a bed
+    const bedId = pickBed(leaving);
+    const { placed } = autoPlace(layout, [bedId], []);
+    if (placed.length) { if (inv.count(bedId) > 0) inv.remove(bedId); store.setFurniture(propertyId, placed); }
+    else store.setFurniture(propertyId, []);
+    if (leaving.length) toast(`Your furniture is in storage. Only a bed is set up in ${prop.name}.`);
+  }
   store.setActive(propertyId);
-  if (leftover.length) toast(`${leftover.length} item${leftover.length > 1 ? 's' : ''} did not fit and went to your inventory`);
 }
 
 /** Buy (or move into) a property. Pure data: works for any state's properties. */

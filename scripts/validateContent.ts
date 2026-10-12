@@ -1,3 +1,4 @@
+import { HOUSE_TIERS } from '../src/world/layoutBuilders';
 /**
  * Content integrity check. Run after editing any state pack: npm run validate:content
  * Checks ids and references, layout geometry (overlaps, fixtures, doors, windows, car slots)
@@ -70,6 +71,7 @@ for (const state of listStates()) {
     for (const c of layout.connections) {
       if (c.open) continue;
       if (!ids.has(c.a) || !ids.has(c.b)) { err(`${tag}: connection ${c.a}-${c.b} references unknown zone`); continue; }
+      if (c.b === 'entry' || c.a === 'entry') continue;
       if (!pieces.some((w) => w.doors.length && ((w.hi?.id === c.a && w.lo?.id === c.b) || (w.hi?.id === c.b && w.lo?.id === c.a)))) warn(`${tag}: connection ${c.a}-${c.b} produced no door (zones not adjacent?)`);
     }
     // windows must sit on a tall wall
@@ -108,6 +110,32 @@ for (const state of listStates()) {
     // square footprint, tiled exactly by indoor zones
     const bx0 = Math.min(...indoor.map((z) => z.x0)), bz0 = Math.min(...indoor.map((z) => z.z0)), bx1 = Math.max(...indoor.map((z) => z.x1)), bz1 = Math.max(...indoor.map((z) => z.z1));
     if (Math.abs((bx1 - bx0) - (bz1 - bz0)) > 1e-6) err(`${tag}: footprint ${(bx1 - bx0).toFixed(2)} x ${(bz1 - bz0).toFixed(2)} is not square`);
+    // size ladder, attached side carport
+    const tierOf = Object.values(HOUSE_TIERS).find((t) => Math.abs(t.size - (bx1 - bx0)) < 1e-6);
+    if (!tierOf) err(`${tag}: footprint ${(bx1 - bx0).toFixed(2)} is not one of the tier sizes 12/14/16/18/20`);
+    else {
+      if (slots.length !== 2) err(`${tag}: every home has a two-car carport, layout has ${slots.length} bays`);
+      if (tierOf.id === 1 && layout.windows.length !== 1) err(`${tag}: Lapo Baby homes must have exactly one window, has ${layout.windows.length}`);
+      console.log(`  ${tag}: ${tierOf.label} ${(bx1 - bx0).toFixed(2)} x ${(bz1 - bz0).toFixed(2)}, ${slots.length} bays, ${layout.windows.length} windows`);
+    }
+    const bayZones = layout.zones.filter((z) => z.kind === 'parking').sort((a, b) => a.x0 - b.x0);
+    if (bayZones.length) {
+      if (Math.abs(bayZones[0].x0 - bx1) > 1e-6) err(`${tag}: carport is not attached to the right side of the house`);
+      if (bayZones.some((z) => Math.abs(z.z1 - bz1) > 1e-6)) err(`${tag}: bays are not aligned with the front edge`);
+      for (let i = 1; i < bayZones.length; i++) if (Math.abs(bayZones[i].x0 - bayZones[i - 1].x1) > 1e-6) err(`${tag}: bays are not side by side`);
+      if (bayZones.some((z) => z.z0 < bz0 - 1e-6)) err(`${tag}: carport sticks out behind the house`);
+    }
+    // cutaway: no wall on the camera-facing sides (front z = bz1 and right x = bx1)
+    for (const pc of pieces) if ((pc.o === 'h' && Math.abs(pc.c - bz1) < 1e-6) || (pc.o === 'v' && Math.abs(pc.c - bx1) < 1e-6)) err(`${tag}: wall left on the camera-facing side (${pc.o}=${pc.c})`);
+    // every window is drawn exactly once, on the outer back (z = bz0) or left (x = bx0) wall, never on a partition or camera-facing wall
+    let drawn = 0;
+    for (const pc of pieces) {
+      const n = windowsOnPiece(layout, pc).length; drawn += n;
+      if (n && Math.abs(pc.c - (pc.o === 'h' ? bz0 : bx0)) > 1e-6) err(`${tag}: window drawn on a wall at ${pc.o}=${pc.c}, not the outer back/left wall`);
+    }
+    if (drawn !== layout.windows.length) err(`${tag}: ${layout.windows.length} windows defined but ${drawn} drawn`);
+    // the camera sees the front (+z) and right (+x) faces: windows exist only on the back and left walls
+    if (layout.windows.some((w) => w.wall !== 'back' && w.wall !== 'left')) err(`${tag}: window on a camera-facing wall`);
     const area = indoor.reduce((a, z) => a + (z.x1 - z.x0) * (z.z1 - z.z0), 0);
     if (Math.abs(area - (bx1 - bx0) * (bz1 - bz0)) > 1e-6) err(`${tag}: indoor zones leave gaps in the footprint`);
     // rooms

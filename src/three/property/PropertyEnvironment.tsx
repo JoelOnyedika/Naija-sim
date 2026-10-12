@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { BoxGeometry, MeshStandardMaterial } from 'three';
+import { Html } from '@react-three/drei';
+import { BoxGeometry, CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import { getVehicle } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import type { FloorKind, PropertyLayout, Zone } from '@/types/world';
-import { carSlots, type CarSlot } from '@/world/layoutGeometry';
+import { carSlots, carportBounds, parkingSignPos, type CarSlot } from '@/world/layoutGeometry';
 import { Vehicle } from '../models/vehicles';
 import { floorTexture, skylineTexture } from '../textures';
 import { Water } from '../world/Water';
@@ -49,6 +50,66 @@ function BayLines({ slot }: { slot: CarSlot }) {
   );
 }
 
+/**
+ * Simple framed carport over the bays: posts, a perimeter rail, and transparent glass for the roof and the two far sides
+ * (the house side and the front stay open). It is built from the bay zones only and knows nothing about the vehicles, so
+ * replacing the placeholder cars with GLB models never touches it.
+ */
+const FRAME_MAT = new MeshStandardMaterial({ color: '#1E3A5F', roughness: 0.6 });
+const GLASS_MAT = new MeshStandardMaterial({ color: '#A8D4EA', transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0.1, depthWrite: false });
+const BOX = new BoxGeometry(1, 1, 1);
+function Carport({ layout }: { layout: PropertyLayout }) {
+  const b = carportBounds(layout);
+  if (!b) return null;
+  const H = 2.5, t = 0.1, w = b.x1 - b.x0, d = b.z1 - b.z0, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+  const xs = [b.x0 + t / 2, ...layout.zones.filter((z) => z.kind === 'parking').slice(1).map((z) => z.x0), b.x1 - t / 2];
+  const bar = (key: string, pos: [number, number, number], size: [number, number, number], mat = FRAME_MAT) => (
+    <mesh key={key} geometry={BOX} material={mat} position={pos} scale={size} castShadow={mat === FRAME_MAT} />
+  );
+  return (
+    <group>
+      {xs.flatMap((x, i) => [b.z0 + t / 2, b.z1 - t / 2].map((z, j) => bar(`p${i}${j}`, [x, H / 2, z], [t, H, t])))}
+      {bar('rb', [cx, H, b.z0 + t / 2], [w, t, t])}{bar('rf', [cx, H, b.z1 - t / 2], [w, t, t])}
+      {bar('rl', [b.x0 + t / 2, H, cz], [t, t, d])}{bar('rr', [b.x1 - t / 2, H, cz], [t, t, d])}
+      {bar('roof', [cx, H + 0.02, cz], [w, 0.03, d], GLASS_MAT)}
+      {bar('gx', [b.x1 - t / 2, H / 2, cz], [0.02, H - 0.1, d - t], GLASS_MAT)}
+      {bar('gz', [cx, H / 2, b.z0 + t / 2], [w - t, H - 0.1, 0.02], GLASS_MAT)}
+    </group>
+  );
+}
+
+/** Blue "P" sign beside the parking extension. Shows how many owned cars did not fit in the bays. One small texture, shared. */
+let pTex: CanvasTexture | null = null;
+function parkingTexture() {
+  if (pTex) return pTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#1D4ED8'; g.fillRect(0, 0, 64, 64);
+  g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(3, 3, 58, 58);
+  g.fillStyle = '#fff'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 32, 36);
+  pTex = new CanvasTexture(c); pTex.colorSpace = SRGBColorSpace;
+  return pTex;
+}
+function ParkingSign({ layout }: { layout: PropertyLayout }) {
+  const pos = parkingSignPos(layout);
+  const owned = useVehicleStore((s) => s.owned.length);
+  const extra = Math.max(0, owned - carSlots(layout).length);
+  if (!pos) return null;
+  return (
+    <group position={[pos.x, 0, pos.z]}>
+      <mesh position={[0, 0.8, 0]}><boxGeometry args={[0.05, 1.6, 0.05]} /><meshStandardMaterial color="#6B7280" roughness={0.6} /></mesh>
+      <mesh position={[0, 1.75, 0]}><boxGeometry args={[0.5, 0.5, 0.05]} /><meshStandardMaterial map={parkingTexture()} roughness={0.7} /></mesh>
+      {extra > 0 && (
+        <Html position={[0.9, 1.75, 0]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ background: 'rgba(15,23,42,.88)', color: '#fff', font: '600 11px sans-serif', padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+            <span style={{ background: '#2563EB', borderRadius: 3, padding: '0 4px', marginRight: 5 }}>P</span>+{extra} in storage
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
 function Vehicles({ layout }: { layout: PropertyLayout }) {
   const owned = useVehicleStore((s) => s.owned);
   const slots = useMemo(() => carSlots(layout), [layout]);
@@ -80,6 +141,8 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       <Fence layout={layout} />
       {layout.decor.map((dec, i) => <DecorItem key={i} d={dec} />)}
       <Vehicles layout={layout} />
+      <Carport layout={layout} />
+      <ParkingSign layout={layout} />
       <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>
       <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>
     </group>
