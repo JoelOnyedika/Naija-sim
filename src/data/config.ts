@@ -1,7 +1,7 @@
 /** Tunable game numbers in one place. */
 export const CONFIG = {
   /** Chance that the Life Roulette lands on Nepo Baby. */
-  nepoChance: 0.06,
+  nepoChance: 1,
   /** In-game minutes that pass per real second. */
   gameMinutesPerSecond: 1,
   /** Stat loss per real minute. */
