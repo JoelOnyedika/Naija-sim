@@ -21,5 +21,12 @@
 - **Interactions**: the desk trains a Coding skill (XP on finish, level shown in the expanded stats); the speaker starts a party and the disco light only runs while it does.
 - Dock now steps aside during floor/wall previews (a hook-order bug introduced and caught by tests while doing this is fixed).
 
+## Map, billboards, banking, messaging
+- **Lagos map**: 9 -> 24 landmarks across 12 categories (markets, arts, shopping, food, clubs/entertainment, parks, recreation, banks, tech), spread over mainland and islands, each with its own 3D model, description, activities and visit effects. Data-driven (`content/lagos/landmarks.ts`); `validate:content` now checks ids, bounds, spacing and billboard clearance. Mobile map: pin labels only on the selected pin, info card above the pins.
+- **Billboards**: 8 fictional boards (`content/lagos/billboards.ts`), shared geometry/frame material and one small texture per distinct ad. `imageUrl`/`linkUrl`/`meta` are reserved fields; `setBillboardContent(id, ...)` swaps content at runtime. No ad service, marketplace or payments exist.
+- **Banking** (`game/bank.ts` holds all rules): custom amount, presets (10k/15k/20k/50k/100k) that only fill the box, optional description, recipient picker, balance + 50 billion validation with inline errors, a review/confirm step, exactly-once charging with duplicate-submit protection, full transaction records (status, sender, recipient, note) and history. Recipients are scripted characters without balances, so nothing is credited on their side.
+- **Messaging**: WhatsApp-style list (last message, time, unread badge) and chat (bubbles, timestamps, ticks, day separators), replies with quoted previews, emoji reactions (add/remove), and transaction cards that read the real banking record. Contact model supports `@username` player contacts (none exist yet: no multiplayer backend). Delayed NPC replies are discarded if the life was reset.
+- Known limitation: message and bank timestamps use the real clock, while the phone's status bar shows the in-game clock.
+
 ## Not done yet
-Lagos map expansion, billboards, GLB vehicle loader, banking/messaging/investment upgrades, remaining house layouts (flat/duplex proportions), free-angle furniture rotation.
+GLB vehicle loader, investment upgrades, remaining house layouts (flat/duplex proportions), free-angle furniture rotation.

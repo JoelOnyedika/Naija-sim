@@ -118,5 +118,49 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
   ok(levelOf(useSkillStore.getState().xp.coding) >= 2, 'coding XP raises the level');
 }
 
+
+// ── banking rules: validation, exactly-once charging, limits, honest records
+{
+  const { sendTransfer, validateTransfer, MAX_TRANSFER, TRANSFER_PRESETS } = await import('../src/game/bank');
+  const { usePhoneStore } = await import('../src/stores/phoneStore');
+  startNewLife('lapo');
+  useEconomyStore.getState().reset(1_000_000);
+  ok(TRANSFER_PRESETS.includes(10_000) && TRANSFER_PRESETS.includes(15_000) && TRANSFER_PRESETS.includes(20_000), 'presets include 10k, 15k, 20k');
+  ok(!!validateTransfer({ toId: 'mama', amount: 0 }), 'zero amount is invalid');
+  ok(!!validateTransfer({ toId: 'mama', amount: -5 }), 'negative amount is invalid');
+  ok(!!validateTransfer({ toId: 'mama', amount: 12.5 }), 'fractional amount is invalid');
+  ok(!!validateTransfer({ toId: 'nobody', amount: 100 }), 'unknown recipient is invalid');
+  ok(!!validateTransfer({ toId: 'eko-bank', amount: 100 }), 'businesses cannot receive transfers');
+  ok(!!validateTransfer({ toId: 'mama', amount: 2_000_000 }), 'more than the balance is invalid');
+  ok(!!validateTransfer({ toId: 'mama', amount: MAX_TRANSFER + 1 }, 1e15), 'over the 50 billion limit is invalid');
+  ok(validateTransfer({ toId: 'mama', amount: MAX_TRANSFER }, MAX_TRANSFER) === null, 'exactly 50 billion is allowed when affordable');
+  const before = useEconomyStore.getState().money;
+  ok(!sendTransfer({ toId: 'mama', amount: 5_000_000 }).ok && useEconomyStore.getState().money === before, 'failed transfer changes nothing');
+  const r1 = sendTransfer({ toId: 'mama', amount: 10_000, description: 'rent help' });
+  ok(r1.ok && useEconomyStore.getState().money === before - 10_000, 'valid transfer debits exactly once');
+  const r2 = sendTransfer({ toId: 'mama', amount: 10_000, description: 'rent help' });
+  ok(!r2.ok && useEconomyStore.getState().money === before - 10_000, 'immediate duplicate is ignored (no second charge)');
+  const tx = useEconomyStore.getState().transactions[0];
+  ok(tx.kind === 'transfer' && tx.amount === -10_000 && tx.status === 'completed' && tx.description === 'rent help' && tx.recipient === 'Mama', 'transaction record is complete and accurate');
+  const msg = usePhoneStore.getState().threads['mama'].find((m) => m.kind === 'transaction');
+  ok(!!msg && r1.ok && msg.txId === r1.txId && msg.txId === tx.id, 'chat card points at the real transaction record');
+  const big = 49_000_000_000; useEconomyStore.getState().reset(big + 123);
+  ok(sendTransfer({ toId: 'chioma', amount: big, description: 'big' }).ok && useEconomyStore.getState().money === 123, 'large transfer is exact (no precision loss)');
+}
+
+
+// ── billboards: data-driven and replaceable
+{
+  const { useBillboardStore, setBillboardContent } = await import('../src/stores/billboardStore');
+  const { getState } = await import('../src/world/registry');
+  const bb = getState('lagos')!.mapData.billboards ?? [];
+  ok(bb.length >= 6, `lagos has billboards (${bb.length})`);
+  ok(bb.every((b) => b.content.headline && b.content.advertiser && b.format), 'every billboard has replaceable content');
+  setBillboardContent(bb[0].id, { headline: 'Replaced!' });
+  ok(useBillboardStore.getState().overrides[bb[0].id]?.headline === 'Replaced!', 'billboard content can be replaced at runtime');
+  setBillboardContent(bb[0].id, null);
+  ok(!useBillboardStore.getState().overrides[bb[0].id], 'override can be cleared');
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nAll smoke checks passed');
 process.exit(fails ? 1 : 0);

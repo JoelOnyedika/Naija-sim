@@ -1,4 +1,14 @@
-export interface ContactDef { id: string; name: string; role: string; avatar: string; group: 'family' | 'friend' | 'business' | 'npc'; line: string }
+export interface ContactDef {
+  id: string; name: string; role: string; avatar: string; group: 'family' | 'friend' | 'business' | 'npc'; line: string;
+  /** 'npc' = scripted character; 'player' = a real player (none exist yet: there is no multiplayer backend). */
+  kind?: 'npc' | 'player';
+  /** Shown as @username for player contacts. */
+  username?: string;
+  /** Can receive bank transfers. NPCs have no account balance, so the money simply leaves the player's account. */
+  canReceiveMoney?: boolean;
+}
+/** How a contact is labelled in lists: players as @username, NPCs by name. */
+export const contactLabel = (c: ContactDef) => (c.kind === 'player' && c.username ? `@${c.username}` : c.name);
 export const CONTACTS: ContactDef[] = [
   { id: 'mama', name: 'Mama', role: 'Family', avatar: '👩🏾', group: 'family', line: 'Have you eaten? Do not skip meals.' },
   { id: 'daddy', name: 'Daddy', role: 'Family', avatar: '👨🏾‍🦳', group: 'family', line: 'Work hard. Respect your elders.' },

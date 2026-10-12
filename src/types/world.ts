@@ -120,7 +120,9 @@ export interface LandmarkDefinition {
   name: string;
   tagline: string;
   description: string;
-  category: 'club' | 'market' | 'park' | 'culture' | 'business' | 'food' | 'beach' | 'bank' | 'tech';
+  category: 'club' | 'market' | 'park' | 'culture' | 'business' | 'food' | 'beach' | 'bank' | 'tech' | 'shopping' | 'entertainment' | 'recreation';
+  /** Short list of things to do here (shown on the map card). */
+  activities?: string[];
   position: [number, number];
   /** Key into the state's scene model registry (see content/<state>/scene). */
   modelId: string;
@@ -129,8 +131,37 @@ export interface LandmarkDefinition {
   visit: { cost: number; seconds: number; effects: Partial<Record<string, number>>; taskEvent?: string };
 }
 
+/**
+ * A replaceable advertising board in the world. Content is plain data so it can later come from anywhere
+ * (a CMS, a purchase flow): `imageUrl` and `linkUrl` are reserved for that and are not used yet. Only the
+ * text-and-colour layout renders today. There is no ad service behind this.
+ */
+export interface BillboardDefinition {
+  id: string;
+  stateId: string;
+  areaId?: string;
+  /** World position on the map (x, z) and the angle it faces. */
+  position: [number, number];
+  rotationY: number;
+  /** 'wide' = 3:1 roadside board, 'standard' = 2:1. */
+  format: 'wide' | 'standard';
+  content: BillboardContent;
+}
+export interface BillboardContent {
+  advertiser: string;
+  headline: string;
+  subline?: string;
+  bg: string; fg: string; accent: string;
+  /** Reserved for future ad content: a texture and a destination. Not loaded today. */
+  imageUrl?: string;
+  linkUrl?: string;
+  /** Free-form metadata for a future ad system (campaign id, dates, ...). */
+  meta?: Record<string, string>;
+}
+
 export interface StateMapData {
   center: [number, number];
+  billboards?: BillboardDefinition[];
   /** Half-size of the playable map, used for camera limits. */
   bounds: number;
   landmarks: LandmarkDefinition[];

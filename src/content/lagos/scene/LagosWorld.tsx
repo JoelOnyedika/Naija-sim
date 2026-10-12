@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { Color, InstancedMesh, Object3D, type Group } from 'three';
 import { B, Cyl } from '@/three/models/primitives';
+import { Billboards } from '@/three/world/Billboards';
 import { Water } from '@/three/world/Water';
 import type { StateDefinition } from '@/types/world';
 import { LANDMARK_MODELS } from './landmarks';
@@ -115,6 +116,7 @@ export function LagosWorld({ state }: { state: StateDefinition }) {
           <circleGeometry args={[a.mapData.radius, 40]} /><meshBasicMaterial color={a.mapData.color} transparent opacity={0.28} depthWrite={false} />
         </mesh>
       ))}
+      <Billboards list={state.mapData.billboards ?? []} />
       {landmarks.map((l) => {
         const Model = LANDMARK_MODELS[l.modelId];
         return (

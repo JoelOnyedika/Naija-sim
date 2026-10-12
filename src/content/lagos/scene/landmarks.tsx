@@ -160,7 +160,10 @@ function Beach() {
   );
 }
 
+import { LANDMARK_MODELS_2 } from './landmarks2';
+
 export const LANDMARK_MODELS: Record<string, ComponentType> = {
+  ...LANDMARK_MODELS_2,
   quilox: Quilox, balogun: Balogun, freedomPark: FreedomPark, nationalTheatre: NationalTheatre, ekoAtlantic: EkoAtlantic,
   computerVillage: ComputerVillage, mamaPut: MamaPut, bank: Bank, beach: Beach,
 };

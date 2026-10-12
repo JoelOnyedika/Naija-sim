@@ -70,8 +70,8 @@ function Markers({ stateId, selected, onSelectLandmark, onSelectArea, showAreas 
               style={{ animation: `bob 2.4s ease-in-out ${i * 0.2}s infinite` }}
               aria-label={l.name}
             >
-              <span className={`flex h-10 w-10 items-center justify-center rounded-full text-xl shadow-glass ring-2 ${sel ? 'bg-danfo ring-white' : 'bg-night/80 ring-danfo/80'} backdrop-blur`}>{l.icon}</span>
-              <span className="mt-1 whitespace-nowrap rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">{l.name}</span>
+              <span className={`flex h-8 w-8 items-center justify-center rounded-full text-base shadow-glass sm:h-10 sm:w-10 sm:text-xl ring-2 ${sel ? 'bg-danfo ring-white' : 'bg-night/80 ring-danfo/80'} backdrop-blur`}>{l.icon}</span>
+              <span className={`mt-1 whitespace-nowrap rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur ${sel ? 'block' : 'hidden sm:block'}`}>{l.name}</span>
               <span className={`-mt-0.5 h-2 w-2 rotate-45 ${sel ? 'bg-danfo' : 'bg-danfo/80'}`} style={{ marginTop: -2 }} />
             </button>
           </Html>

@@ -1,4 +1,4 @@
-import { CONTACTS } from '@/data/contacts';
+import { CONTACTS, contactLabel } from '@/data/contacts';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { Btn, Card, Row, Title } from '../ui';
 
@@ -12,7 +12,7 @@ export function ContactsApp() {
           <Title>{label}</Title>
           <div className="space-y-2">
             {CONTACTS.filter((c) => c.group === g).map((c) => (
-              <Card key={c.id}><Row glyph={c.avatar} title={c.name} sub={c.role} right={<Btn tone="light" onClick={() => { usePhoneStore.getState().setChatWith(c.id); usePhoneStore.getState().openApp('messages'); }}>Message</Btn>} /></Card>
+              <Card key={c.id}><Row glyph={c.avatar} title={contactLabel(c)} sub={c.kind === 'player' ? 'Player' : `${c.role} · character`} right={<Btn tone="light" onClick={() => { usePhoneStore.getState().setChatWith(c.id); usePhoneStore.getState().openApp('messages'); }}>Message</Btn>} /></Card>
             ))}
           </div>
         </div>

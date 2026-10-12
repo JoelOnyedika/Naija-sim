@@ -1,0 +1,63 @@
+from lib import *
+fails=[]
+def check(n,c,e=""):
+    print(("PASS " if c else "FAIL ")+n,e)
+    if not c: fails.append(n)
+with sync_playwright() as p:
+    b,pg,logs=boot(p); seed(pg)
+    ev=pg.evaluate
+    money=lambda: ev("""async()=>{const M=await import('/src/stores/economyStore.ts');return M.useEconomyStore.getState().money}""")
+    txs=lambda: ev("""async()=>{const M=await import('/src/stores/economyStore.ts');return M.useEconomyStore.getState().transactions.filter(t=>t.kind==='transfer').length}""")
+    ev("""async()=>{const M=await import('/src/stores/economyStore.ts');M.useEconomyStore.setState({money:500000});const P=await import('/src/stores/phoneStore.ts');P.usePhoneStore.getState().openPhone();P.usePhoneStore.getState().openApp('bank');}""")
+    pg.wait_for_timeout(1500)
+    amt=pg.locator("input[placeholder='₦0']")
+    pg.locator("[aria-label='Preset amounts'] >> text=₦10,000").click(); pg.wait_for_timeout(300)
+    check("preset fills the amount, sends nothing", amt.input_value()=="10000" and money()==500000 and txs()==0, amt.input_value())
+    amt.fill("900000"); pg.wait_for_timeout(300)
+    check("over-balance shows an error and blocks review", pg.locator("[role=alert]").count()>0 and pg.locator("button:has-text('Review transfer')").is_disabled(), pg.locator("[role=alert]").first.inner_text() if pg.locator("[role=alert]").count() else "")
+    pg.locator("[aria-label='Preset amounts'] >> text=₦15,000").click()
+    pg.locator("input[placeholder='What is it for?']").fill("Data and food")
+    pg.click("button:has-text('Review transfer')"); pg.wait_for_timeout(400)
+    check("review dialog shows details", pg.locator("[aria-label='Confirm transfer']").is_visible() and "Data and food" in pg.locator("[aria-label='Confirm transfer']").inner_text())
+    pg.click("[aria-label='Confirm transfer'] >> text=Cancel"); pg.wait_for_timeout(300)
+    check("cancel: nothing charged or recorded", money()==500000 and txs()==0)
+    pg.click("button:has-text('Review transfer')"); pg.wait_for_timeout(300)
+    pg.locator("[aria-label='Confirm transfer'] button:has-text('Send')").dblclick(); pg.wait_for_timeout(900)
+    check("double-confirm charges exactly once", money()==485000 and txs()==1,(money(),txs()))
+    check("success banner + history entry", pg.locator("[role=status]").count()>0 and pg.locator("text=Transfer to Mama").count()>0 and pg.locator("text=Completed").count()>0)
+    pg.screenshot(path="/tmp/bank_ui.png")
+    # big value limit message
+    ev("""async()=>{const M=await import('/src/stores/economyStore.ts');M.useEconomyStore.setState({money:90000000000})}""")
+    amt.fill("50000000001"); pg.wait_for_timeout(300)
+    check("limit message mentions the 50 billion cap", "50,000,000,000" in pg.locator("[role=alert]").first.inner_text(), pg.locator("[role=alert]").first.inner_text())
+    ev("""async()=>{const M=await import('/src/stores/economyStore.ts');M.useEconomyStore.setState({money:485000})}""")
+    # chat
+    pg.click("text=View in chat") if pg.locator("text=View in chat").count() else None
+    ev("""async()=>{const P=await import('/src/stores/phoneStore.ts');P.usePhoneStore.getState().setChatWith('mama');P.usePhoneStore.getState().openApp('messages')}""")
+    pg.wait_for_timeout(2500)
+    card=pg.locator("text=Transfer sent")
+    check("chat shows the transaction card from the real record", card.count()>0 and "₦15,000" in pg.locator("main, body").inner_text() and "Data and food" in pg.locator("body").inner_text())
+    ev("""async()=>{const P=await import('/src/stores/phoneStore.ts');const s=P.usePhoneStore.getState();s.say('mama','them','Have you eaten?');}""")
+    pg.wait_for_timeout(500)
+    # react
+    bubble=pg.locator("button[aria-label^='Message, from']").last
+    bubble.click(); pg.wait_for_timeout(300)
+    check("tapping a message shows options (blue ring)", pg.locator("[role=toolbar]").is_visible() and "ring-accent" in (bubble.get_attribute("class") or ""))
+    pg.click("[aria-label='React 🔥']"); pg.wait_for_timeout(300)
+    check("reaction added", pg.locator("span:has-text('🔥')").count()>0)
+    bubble.click(); pg.click("[aria-label='React 🔥']"); pg.wait_for_timeout(300)
+    gone=ev("""async()=>{const P=await import('/src/stores/phoneStore.ts');return !(P.usePhoneStore.getState().threads['mama'].at(-1).reactions||{})['🔥']}""")
+    check("tapping the same reaction removes it", gone)
+    # reply
+    bubble.click(); pg.click("button:has-text('Reply')"); pg.wait_for_timeout(300)
+    check("reply bar shows the quoted message", pg.locator("text=Replying to").count()>0)
+    pg.fill("input[placeholder='Type a message']","Yes Mama, I ate"); pg.click("[aria-label='Send message']"); pg.wait_for_timeout(500)
+    quoted=ev("""async()=>{const P=await import('/src/stores/phoneStore.ts');const t=P.usePhoneStore.getState().threads['mama'];const m=t.filter(x=>x.from==='me'&&x.text==='Yes Mama, I ate')[0];return !!m&&t.find(x=>x.id===m.replyTo)?.text==='Have you eaten?'}""")
+    check("reply stores a link to the quoted message", quoted)
+    check("quoted preview renders in the bubble", pg.locator("text=You").count()>=0 and pg.locator("span.line-clamp-2:has-text('Have you eaten?')").count()>0)
+    pg.screenshot(path="/tmp/chat_ui.png")
+    pg.click("[aria-label='Back to chats']"); pg.wait_for_timeout(400)
+    check("conversation list shows the thread", pg.locator("text=Mama").count()>0)
+    check("no page errors",not [l for l in logs if l[0]=="PAGEERROR"],[l for l in logs if l[0]=="PAGEERROR"])
+    b.close()
+print("FAILS:",fails)

@@ -30,6 +30,23 @@ for (const state of listStates()) {
     // A district with no listing is fine as long as the map gives it a reason to exist (a landmark).
     if (!a.propertyIds.length && !state.mapData.landmarks.some((l) => l.areaId === a.id)) warn(`area ${a.id} has no properties and no landmarks`);
   }
+  // Map quality: unique ids, inside the playable bounds, not stacked on each other, billboards clear of landmarks.
+  {
+    const lm = state.mapData.landmarks, bb = state.mapData.billboards ?? [], b = state.mapData.bounds;
+    const dup = (ids: string[]) => ids.filter((x, i) => ids.indexOf(x) !== i);
+    dup(lm.map((l) => l.id)).forEach((id) => err(`duplicate landmark id ${id}`));
+    dup(bb.map((x) => x.id)).forEach((id) => err(`duplicate billboard id ${id}`));
+    for (const l of lm) {
+      if (Math.abs(l.position[0] - state.mapData.center[0]) > b || Math.abs(l.position[1] - state.mapData.center[1]) > b) err(`landmark ${l.id} is outside the map bounds`);
+      if (!l.visit.effects || !Object.keys(l.visit.effects).length) warn(`landmark ${l.id} has no visit effects`);
+    }
+    for (let a = 0; a < lm.length; a++) for (let c = a + 1; c < lm.length; c++) {
+      const d = Math.hypot(lm[a].position[0] - lm[c].position[0], lm[a].position[1] - lm[c].position[1]);
+      if (d < 2.6) err(`landmarks ${lm[a].id} and ${lm[c].id} overlap (${d.toFixed(1)} apart)`);
+    }
+    for (const x of bb) for (const l of lm) if (Math.hypot(x.position[0] - l.position[0], x.position[1] - l.position[1]) < 2.2) err(`billboard ${x.id} sits on landmark ${l.id}`);
+    console.log(`  map: ${lm.length} landmarks across ${new Set(lm.map((l) => l.category)).size} categories, ${bb.length} billboards`);
+  }
   for (const l of state.mapData.landmarks) if (l.areaId && !areaIds.has(l.areaId)) err(`landmark ${l.id} references unknown area ${l.areaId}`);
   for (const t of ['lapo', 'nepo'] as const) for (const pid of state.startingProperties[t]) if (!propIds.has(pid)) err(`startingProperties.${t}: unknown ${pid}`);
 
