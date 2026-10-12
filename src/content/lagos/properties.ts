@@ -26,7 +26,7 @@ function entry(id: string, areaId: string, name: string, category: PropertyCateg
 export const ENTRIES: Entry[] = [
   // tier 1 · Lapo Baby: one studio room, no parking
   entry(L('face-me-i-face-you'), L('mushin'), 'Face-Me-I-Face-You', 'starter', 500_000, 1, 1, 'Basic one-room accommodation.',
-    { floor: 'cement', finish: 'rough', windowStyle: 'burglar', palette: pal('#CDBB8C', '#7A5C2E', '#D8344A'), wallHeight: 2.6, ground: 'dirt', publicPower: false }),
+    { floor: 'cement', finish: 'rough', windowStyle: 'burglar', palette: pal('#CDBB8C', '#7A5C2E', '#D8344A'), wallHeight: 2.6, publicPower: false }),
   entry(L('self-contain-mushin'), L('mushin'), 'Self Contain', 'starter', 1_500_000, 2, 2, 'Your own studio with bathroom and kitchenette behind one door.',
     { floor: 'cement', finish: 'painted', windowStyle: 'sash', palette: pal('#BFD8B0', '#4C7A4A', '#FFC21A'), wallHeight: 2.7, kitchenette: true }),
   // tier 2 · Starter Plus: bedroom + living room, 1 parking bay

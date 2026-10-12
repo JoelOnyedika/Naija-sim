@@ -1,10 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import type { PerspectiveCamera } from 'three';
 import { DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
-import { houseBounds } from '@/world/layoutGeometry';
+import { carportBounds, houseBounds } from '@/world/layoutGeometry';
 
 const SWIPE_RAD_PER_PX = 0.006;
 
@@ -17,14 +16,15 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const { camera, size, gl } = useThree();
   const cur = useRef(DEFAULT_AZ);
   const aspect = size.width / Math.max(size.height, 1);
-  const { tx, tz, fit } = useMemo(() => {
-    const h = houseBounds(layout), p = layout.plot;
-    // bounding circle around the house centre that contains the whole plot (house + carport), so every angle stays in frame
-    const radius = Math.max(...[[p.x0, p.z0], [p.x1, p.z0], [p.x0, p.z1], [p.x1, p.z1]].map(([x, z]) => Math.hypot(x - h.cx, z - h.cz)));
-    const vHalf = ((camera as PerspectiveCamera).fov * Math.PI) / 360;
-    const half = Math.min(vHalf, Math.atan(Math.tan(vHalf) * aspect));
-    return { tx: h.cx, tz: h.cz, fit: (radius * 1.12) / Math.tan(half) + 1 };
-  }, [layout, aspect, camera]);
+  // MVP framing, applied to every home: distance grows with the house side, tighter on big houses, pulled back a little on
+  // portrait screens. Only the house (plus a sliver of the carport beside it) is framed, never the whole plot.
+  const { tx, ty, tz, fit } = useMemo(() => {
+    const h = houseBounds(layout), c = carportBounds(layout);
+    const span = Math.max(h.w, h.d) + (c ? (c.x1 - c.x0) * 0.7 : 0);
+    // aim a little toward the carport so the pad stays on screen; the turn still pivots around this one fixed point
+    const bx = c ? ((c.x0 + c.x1) / 2 - h.cx) * 0.4 : 0, bz = c ? ((c.z0 + c.z1) / 2 - h.cz) * 0.4 : 0;
+    return { tx: h.cx + bx, ty: layout.wallHeight * 0.3, tz: h.cz + bz, fit: (span * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 1.5 : 1) };
+  }, [layout, aspect]);
 
   // New home: back to the default orientation, instantly.
   useEffect(() => {
@@ -61,8 +61,8 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     // short eased turn; snaps exactly onto the goal so a button press always ends precisely on a 90-degree side
     cur.current = Math.abs(diff) < 1e-4 ? goal : cur.current + diff * (1 - Math.exp(-Math.min(dt, 0.1) * 10));
     const r = fit * st.zoom, sp = Math.sin(DEFAULT_POLAR), a = cur.current;
-    camera.position.set(tx + r * sp * Math.sin(a), 0.5 + r * Math.cos(DEFAULT_POLAR), tz + r * sp * Math.cos(a));
-    camera.lookAt(tx, 0.5, tz);
+    camera.position.set(tx + r * sp * Math.sin(a), ty + r * Math.cos(DEFAULT_POLAR), tz + r * sp * Math.cos(a));
+    camera.lookAt(tx, ty, tz);
     const ed = useEditorStore.getState(), na = Math.atan2(Math.sin(a), Math.cos(a));
     if (Math.abs(ed.cameraAzimuth - na) > 1e-3) ed.setCameraAzimuth(na);
   });

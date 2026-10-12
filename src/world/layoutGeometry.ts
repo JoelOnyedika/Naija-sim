@@ -97,11 +97,11 @@ export function carSlots(layout: PropertyLayout): CarSlot[] {
     .map((z) => ({ id: z.id, x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, rotation: 0, width: Math.min(BAY_WIDTH, z.x1 - z.x0), length: Math.min(BAY_LENGTH, z.z1 - z.z0), zoneId: z.id, covered: true }));
 }
 
-/** Where the parking sign stands: just outside the left end of the parking extension, near its far end. Null if no bays. */
+/** Where the parking sign stands: behind the cars at the outer rear corner of the pad. Null if no bays. */
 export function parkingSignPos(layout: PropertyLayout): { x: number; z: number } | null {
   const bays = layout.zones.filter((z) => z.kind === 'parking');
   if (!bays.length) return null;
-  return { x: Math.max(...bays.map((b) => b.x1)) + 0.4, z: Math.max(...bays.map((b) => b.z1)) - 0.3 };
+  return { x: Math.max(...bays.map((b) => b.x1)) + 0.25, z: Math.min(...bays.map((b) => b.z0)) + 0.3 };
 }
 
 /** Square main building bounds (indoor zones only) and its centre: the camera always looks at this centre. */

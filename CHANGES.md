@@ -39,5 +39,9 @@
 - Camera: `stores/cameraStore.ts` is the single source (button steps + swipe offset); `CameraRig.tsx` follows it. Fixed 45 degree elevation, 45 degree default azimuth, distance fitted to house + carport. Swipe is horizontal only, clamped to +-90 degrees of the current button orientation; pinch/wheel zoom 0.7-1.3. `RotateButton` (top right, under the HUD) adds exactly 90 degrees per press, resets the swipe offset, rapid presses queue.
 - Moving house: old furniture goes to storage and is remembered; a new home gets only a bed; moving back restores it.
 
+## MVP-style camera and parking pad (supersedes the glass carport and far camera above)
+- Camera copied from the MVP (`lagos-life-3d`): azimuth 0.62, polar 1.0, distance `(span * 1.15 + 3.2)` with a wider factor on portrait screens, target at 30% of wall height. Same for every home. Swipe limits and the 90 degree button are unchanged.
+- Parking is a small low pad (tan border, green inset) beside the house with the placeholder cars on it and a P sign behind; no canopy, no paved plot. Ground is a soft grass island; the open front/right edges get a thin trim rim instead of walls.
+
 ## Not done yet
 GLB vehicle loader, investment upgrades, free-angle furniture rotation.

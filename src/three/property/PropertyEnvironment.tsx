@@ -3,8 +3,8 @@ import { Html } from '@react-three/drei';
 import { BoxGeometry, CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import { getVehicle } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
-import type { FloorKind, PropertyLayout, Zone } from '@/types/world';
-import { carSlots, carportBounds, parkingSignPos, type CarSlot } from '@/world/layoutGeometry';
+import type { PropertyLayout, Zone } from '@/types/world';
+import { carSlots, carportBounds, houseBounds, parkingSignPos } from '@/world/layoutGeometry';
 import { Vehicle } from '../models/vehicles';
 import { floorTexture, skylineTexture } from '../textures';
 import { Water } from '../world/Water';
@@ -12,8 +12,6 @@ import { DecorItem } from './Decor';
 import { Fence } from './Fence';
 import { Walls } from './Walls';
 import { isFinishable, useHomeFinishes } from './useHomeFinishes';
-
-const OUTER: Partial<Record<FloorKind, string>> = { dirt: '#8A7A60', paving: '#A9A59A', grass: '#7FA27A', concrete: '#9B9B96' };
 
 function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
   const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0;
@@ -25,6 +23,7 @@ function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
     const t = floorTexture(kind).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t;
   }, [kind, w, d]);
   const cx = (zone.x0 + zone.x1) / 2, cz = (zone.z0 + zone.z1) / 2;
+  if (zone.kind === 'parking') return null; // drawn by ParkingPad
   if (zone.floor === 'water') return <Water size={[w, d]} position={[cx, -0.12, cz]} />;
   return (
     <group>
@@ -37,43 +36,35 @@ function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
   );
 }
 
-/** Bay boundary: two side lines and a far-end line, inset so neighbouring bays keep their own lines. One shared geometry and material. */
-const LINE_GEO = new BoxGeometry(1, 0.01, 1);
-const LINE_MAT = new MeshStandardMaterial({ color: '#F4F1EA', roughness: 0.9 });
-function BayLines({ slot }: { slot: CarSlot }) {
-  const t = 0.07, i = 0.06, hw = slot.width / 2 - i, hl = slot.length / 2 - i;
-  const lines: [number, number, number, number][] = [[-hw, 0, t, 2 * hl], [hw, 0, t, 2 * hl], [0, hl, 2 * hw, t]];
+const BOX = new BoxGeometry(1, 1, 1);
+
+/**
+ * Compact parking pad beside the house (MVP look): a low tan slab with a green inset, one pad for all bays, flush with the
+ * house side. Built from the bay zones only and knows nothing about vehicles, so swapping the placeholder cars for GLB
+ * models never touches it.
+ */
+const PAD_BORDER = new MeshStandardMaterial({ color: '#A89A84', roughness: 0.95 });
+const PAD_INSET = new MeshStandardMaterial({ color: '#8FB08C', roughness: 0.95 });
+const PAD_H = 0.1;
+function ParkingPad({ layout }: { layout: PropertyLayout }) {
+  const b = carportBounds(layout);
+  if (!b) return null;
+  const w = b.x1 - b.x0, d = b.z1 - b.z0, e = 0.22;
   return (
-    <group position={[slot.x, 0.012, slot.z]}>
-      {lines.map(([x, z, w, d], k) => <mesh key={k} geometry={LINE_GEO} material={LINE_MAT} position={[x, 0, z]} scale={[w, 1, d]} />)}
+    <group>
+      <mesh geometry={BOX} material={PAD_BORDER} position={[b.x0 + (w + e) / 2, PAD_H / 2, (b.z0 + b.z1) / 2]} scale={[w + e, PAD_H, d + 2 * e]} receiveShadow />
+      <mesh geometry={BOX} material={PAD_INSET} position={[b.x0 + w / 2, PAD_H + 0.004, (b.z0 + b.z1) / 2]} scale={[w - 0.1, 0.01, d]} receiveShadow />
     </group>
   );
 }
 
-/**
- * Simple framed carport over the bays: posts, a perimeter rail, and transparent glass for the roof and the two far sides
- * (the house side and the front stay open). It is built from the bay zones only and knows nothing about the vehicles, so
- * replacing the placeholder cars with GLB models never touches it.
- */
-const FRAME_MAT = new MeshStandardMaterial({ color: '#1E3A5F', roughness: 0.6 });
-const GLASS_MAT = new MeshStandardMaterial({ color: '#A8D4EA', transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0.1, depthWrite: false });
-const BOX = new BoxGeometry(1, 1, 1);
-function Carport({ layout }: { layout: PropertyLayout }) {
-  const b = carportBounds(layout);
-  if (!b) return null;
-  const H = 2.5, t = 0.1, w = b.x1 - b.x0, d = b.z1 - b.z0, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-  const xs = [b.x0 + t / 2, ...layout.zones.filter((z) => z.kind === 'parking').slice(1).map((z) => z.x0), b.x1 - t / 2];
-  const bar = (key: string, pos: [number, number, number], size: [number, number, number], mat = FRAME_MAT) => (
-    <mesh key={key} geometry={BOX} material={mat} position={pos} scale={size} castShadow={mat === FRAME_MAT} />
-  );
+/** Thin trim rim along the open front and right edges of the house (like the MVP floor edge): shows where the house ends without blocking the view. */
+function Rim({ layout }: { layout: PropertyLayout }) {
+  const h = houseBounds(layout), t = 0.16, hh = 0.14;
   return (
     <group>
-      {xs.flatMap((x, i) => [b.z0 + t / 2, b.z1 - t / 2].map((z, j) => bar(`p${i}${j}`, [x, H / 2, z], [t, H, t])))}
-      {bar('rb', [cx, H, b.z0 + t / 2], [w, t, t])}{bar('rf', [cx, H, b.z1 - t / 2], [w, t, t])}
-      {bar('rl', [b.x0 + t / 2, H, cz], [t, t, d])}{bar('rr', [b.x1 - t / 2, H, cz], [t, t, d])}
-      {bar('roof', [cx, H + 0.02, cz], [w, 0.03, d], GLASS_MAT)}
-      {bar('gx', [b.x1 - t / 2, H / 2, cz], [0.02, H - 0.1, d - t], GLASS_MAT)}
-      {bar('gz', [cx, H / 2, b.z0 + t / 2], [w - t, H - 0.1, 0.02], GLASS_MAT)}
+      <mesh geometry={BOX} position={[h.cx, hh / 2, h.z1 + t / 2]} scale={[h.w + t, hh, t]} receiveShadow><meshStandardMaterial color={layout.palette.trim} roughness={0.7} /></mesh>
+      <mesh geometry={BOX} position={[h.x1 + t / 2, hh / 2, h.cz]} scale={[t, hh, h.d]} receiveShadow><meshStandardMaterial color={layout.palette.trim} roughness={0.7} /></mesh>
     </group>
   );
 }
@@ -118,7 +109,7 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
       {owned.slice(0, slots.length).map((id, i) => {
         const v = getVehicle(id); const s = slots[i];
         if (!v) return null;
-        return <group key={id} position={[s.x, 0, s.z]} rotation={[0, s.rotation, 0]}><Vehicle body={v.type} color={v.color} /></group>;
+        return <group key={id} position={[s.x, PAD_H, s.z]} rotation={[0, s.rotation, 0]}><Vehicle body={v.type} color={v.color} /></group>;
       })}
     </group>
   );
@@ -127,21 +118,21 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
 /** Renders a whole property from its layout data. Works for any state's layouts. */
 export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
   const { plot } = layout;
-  const w = plot.x1 - plot.x0, d = plot.z1 - plot.z0;
-  const groundTex = useMemo(() => { const t = floorTexture(plot.ground === 'water' ? 'concrete' : plot.ground).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t; }, [plot.ground, w, d]);
   const sky = useMemo(() => skylineTexture(), []);
   const cx = (plot.x0 + plot.x1) / 2, cz = (plot.z0 + plot.z1) / 2;
+  const hb = houseBounds(layout), island = hb.w * 0.95 + 8;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.2, cz]} receiveShadow><planeGeometry args={[220, 220]} /><meshStandardMaterial color={OUTER[plot.ground] ?? '#9A9484'} roughness={1} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.01, cz]} receiveShadow><planeGeometry args={[w, d]} /><meshStandardMaterial map={groundTex} roughness={0.95} /></mesh>
+      {/* grass island like the MVP: a soft disc around the house, the sky colour beyond it */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.22, hb.cz]} receiveShadow><circleGeometry args={[island * 1.35, 72]} /><meshStandardMaterial color="#C6D3AB" roughness={1} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.2, hb.cz]} receiveShadow><circleGeometry args={[island, 72]} /><meshStandardMaterial color="#B2C796" roughness={1} /></mesh>
       {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} propertyId={layout.id} />)}
-      {carSlots(layout).map((sl) => <BayLines key={sl.id} slot={sl} />)}
+      <ParkingPad layout={layout} />
+      <Rim layout={layout} />
       <Walls layout={layout} />
       <Fence layout={layout} />
       {layout.decor.map((dec, i) => <DecorItem key={i} d={dec} />)}
       <Vehicles layout={layout} />
-      <Carport layout={layout} />
       <ParkingSign layout={layout} />
       <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>
       <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>

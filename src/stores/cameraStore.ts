@@ -2,8 +2,8 @@ import { create } from 'zustand';
 
 /** One authoritative source of camera rotation. The rig only reads this; the button and swipes only write it. */
 export const STEP = Math.PI / 2;          // one button press
-export const DEFAULT_AZ = Math.PI / 4;    // diagonal from the front-right corner (the open sides)
-export const DEFAULT_POLAR = Math.PI / 4; // 45 degrees above the horizon (polar = from straight up); never changed by input
+export const DEFAULT_AZ = 0.62;           // MVP camera: radians off +z, shows the back and left walls from the open front-right
+export const DEFAULT_POLAR = 1.0;         // MVP camera: radians from straight up; never changed by input
 export const ZOOM_MIN = 0.7, ZOOM_MAX = 1.3;
 
 interface CameraState {

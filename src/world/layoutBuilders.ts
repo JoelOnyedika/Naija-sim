@@ -170,10 +170,10 @@ export function house(c: HomeCfg): PropertyLayout {
   // Open front: a shallow paved walkway along the front edge; the two-car carport is attached to the RIGHT side of the
   // house, flush against it and aligned with the front edge, so the bays sit side by side and face the front (+z).
   const n = tier.parkingBays, ext = n * BAY_WIDTH;
-  const zones = [...p.zones, zone('entry', 'compound', 'Entrance', 0, S, S, S + ENTRY_DEPTH, 'concrete', false, false)];
+  const zones = [...p.zones, zone('entry', 'compound', 'Entrance', 0, S, S, S + ENTRY_DEPTH, 'grass', false, false)];
   const connections = [...p.connections, { a: p.entry, b: 'entry' }];
   for (let i = 0; i < n; i++) zones.push(zone(`bay${i + 1}`, 'parking', `Parking ${i + 1}`, S + i * BAY_WIDTH, S - BAY_LENGTH, S + (i + 1) * BAY_WIDTH, S, 'paving', false, false));
-  const plot = { x0: -MARGIN, z0: -MARGIN, x1: S + ext + MARGIN, z1: S + ENTRY_DEPTH + MARGIN, ground: c.ground ?? 'paving', fence: c.fence ?? ('none' as FenceKind) };
+  const plot = { x0: -MARGIN, z0: -MARGIN, x1: S + ext + MARGIN, z1: S + ENTRY_DEPTH + MARGIN, ground: c.ground ?? 'grass', fence: c.fence ?? ('none' as FenceKind) };
   return {
     id: c.id, plot, zones, connections, windows: p.windows, fixtures: p.fixtures, decor: [],
     palette: c.palette, finish: c.finish, wallHeight: c.wallHeight ?? 2.8, publicPower: c.publicPower ?? true,
