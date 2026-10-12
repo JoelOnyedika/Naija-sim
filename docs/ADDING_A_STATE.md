@@ -37,38 +37,31 @@ Each entry pairs a listing with a layout builder. Reuse the generic builders in 
 
 ```ts
 // content/abuja/properties.ts
-import { residence, selfContain } from '@/world/layoutBuilders';
+import { HOUSE_TIERS, house } from '@/world/layoutBuilders';
 import type { Palette, PropertyDefinition, PropertyLayout } from '@/types/world';
 
 interface Entry { property: Omit<PropertyDefinition, 'stateId' | 'layoutId'>; layout: (id: string) => PropertyLayout }
 const pal = (wall: string, trim: string, accent: string): Palette => ({ wall, trim, accent });
+const t = HOUSE_TIERS[3]; // Middle-tier: 2 bedrooms + living room, 2 parking bays
 
 export const ENTRIES: Entry[] = [
   {
     property: {
-      id: 'abuja.self-contain-gwagwalada', areaId: 'abuja.gwagwalada', name: 'Self Contain', category: 'starter',
-      price: 1_200_000, unit: 'rooms', rooms: 1, bedrooms: 1, bathrooms: 1, garageBays: 0, parkingSpaces: 0,
-      description: 'Compact self-contained unit.', cta: 'move_in', luxuryLevel: 2,
+      id: 'abuja.2-bedroom-flat-wuse', areaId: 'abuja.wuse', name: '2 Bedroom Flat', category: 'midLevel',
+      price: 18_000_000, unit: 'bedrooms', rooms: t.mainRooms, bedrooms: t.bedrooms, bathrooms: t.bathrooms,
+      garageBays: 0, parkingSpaces: t.parkingBays, description: 'Two bedrooms, a living room and two parking bays.', cta: 'buy', luxuryLevel: 5,
     },
-    layout: (id) => selfContain({ id, palette: pal('#CFE0C3', '#4C7A4A', '#FFC21A') }),
-  },
-  {
-    property: {
-      id: 'abuja.4-bedroom-duplex-maitama', areaId: 'abuja.maitama', name: '4 Bedroom Detached Duplex', category: 'upperClass',
-      price: 190_000_000, unit: 'bedrooms', rooms: 5, bedrooms: 4, bathrooms: 5, garageBays: 3, parkingSpaces: 0,
-      description: 'Quiet, leafy and well secured.', cta: 'buy', luxuryLevel: 8,
-    },
-    layout: (id) => residence({ id, beds: 4, baths: 5, floor: 'marble', bedFloor: 'wood', finish: 'render', windowStyle: 'glass',
-      palette: pal('#F6F1E7', '#FFFFFF', '#B8892F'), stairs: true, garageBays: 3, terrace: true, pillars: true, garden: 3.8,
-      fence: 'ironbar', ground: 'paving', trees: 4, wallHeight: 3.2, grand: 0.6 }),
+    layout: (id) => house({ id, tier: 3, floor: 'tile', finish: 'painted', windowStyle: 'sash', palette: pal('#F4EFE4', '#FFFFFF', '#19A388') }),
   },
 ];
 ```
 
+Pick one of the five tiers (1 to 5) per property; the tier decides rooms, bathrooms and parking, so the listing numbers are read from `HOUSE_TIERS`.
+
 Rules the validator enforces:
 
 - Every `areaId` exists; every `layoutId` resolves (the template sets `layoutId = property.id`).
-- `garageBays + parkingSpaces` ≤ car slots in the layout; bathroom/bedroom counts match the listing.
+- `garageBays` is 0 and `parkingSpaces` equals the number of open 2.8 x 5.5 m bays; main-room, bathroom and bedroom counts match the listing; the footprint is square and tiled without gaps; no fixture blocks a doorway; every room is reachable from the entrance.
 - Zones do not overlap and stay inside the plot; fixtures sit inside zones; connections produce doorways.
 - Windows land on tall walls.
 

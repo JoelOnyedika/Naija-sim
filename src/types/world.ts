@@ -24,7 +24,11 @@ export interface Zone {
 }
 
 /** A doorway between two zones. Door position is computed from their shared edge. */
-export interface Connection { a: string; b: string }
+export interface Connection {
+  a: string; b: string;
+  /** Open-plan: no wall between the two indoor zones (they read as one room). */
+  open?: boolean;
+}
 
 export type WindowStyle = 'louvre' | 'burglar' | 'sash' | 'glass' | 'panoramic';
 export interface WindowSpec {

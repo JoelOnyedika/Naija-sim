@@ -6,7 +6,8 @@
 import { LIFE_TYPES } from '../src/data/lifeTypes';
 import { getFurniture } from '../src/data/items';
 import { registerContent } from '../src/content';
-import { carSlots, wallPieces, windowsOnPiece } from '../src/world/layoutGeometry';
+import { carSlots, doorClearances, mainRoomCount, wallPieces, windowsOnPiece } from '../src/world/layoutGeometry';
+import { BAY_LENGTH, BAY_WIDTH } from '../src/world/garage';
 import { findFreeSpot, fixturesOf, validatePlacement } from '../src/world/placement';
 import { getLayout, getProperty, listStates } from '../src/world/registry';
 import type { PlacedItem } from '../src/types/game';
@@ -67,6 +68,7 @@ for (const state of listStates()) {
     // connections → doors
     const pieces = wallPieces(layout);
     for (const c of layout.connections) {
+      if (c.open) continue;
       if (!ids.has(c.a) || !ids.has(c.b)) { err(`${tag}: connection ${c.a}-${c.b} references unknown zone`); continue; }
       if (!pieces.some((w) => w.doors.length && ((w.hi?.id === c.a && w.lo?.id === c.b) || (w.hi?.id === c.b && w.lo?.id === c.a)))) warn(`${tag}: connection ${c.a}-${c.b} produced no door (zones not adjacent?)`);
     }
@@ -80,21 +82,51 @@ for (const state of listStates()) {
     fx.forEach((f, i) => {
       const def = getFurniture(f.defId);
       if (!def) { err(`${tag}: fixture ${f.defId} unknown`); return; }
-      const inside = layout.zones.some((z) => f.x - def.footprint.w / 2 >= z.x0 - 1e-3 && f.x + def.footprint.w / 2 <= z.x1 + 1e-3 && f.z - def.footprint.d / 2 >= z.z0 - 1e-3 && f.z + def.footprint.d / 2 <= z.z1 + 1e-3);
+      const fw = (f.rotation % 2 ? def.footprint.d : def.footprint.w) / 2, fd = (f.rotation % 2 ? def.footprint.w : def.footprint.d) / 2;
+      const inside = layout.zones.some((z) => f.x - fw >= z.x0 - 1e-3 && f.x + fw <= z.x1 + 1e-3 && f.z - fd >= z.z0 - 1e-3 && f.z + fd <= z.z1 + 1e-3);
       if (!inside) err(`${tag}: fixture ${f.defId} at (${f.x.toFixed(2)}, ${f.z.toFixed(2)}) is not inside a zone`);
       for (let j = 0; j < i; j++) {
         const o = fx[j], od = getFurniture(o.defId)!;
-        if (Math.abs(f.x - o.x) < (def.footprint.w + od.footprint.w) / 2 && Math.abs(f.z - o.z) < (def.footprint.d + od.footprint.d) / 2) err(`${tag}: fixtures ${f.defId} and ${o.defId} overlap`);
+        const ow = (o.rotation % 2 ? od.footprint.d : od.footprint.w) / 2, odp = (o.rotation % 2 ? od.footprint.w : od.footprint.d) / 2;
+        if (Math.abs(f.x - o.x) < fw + ow && Math.abs(f.z - o.z) < fd + odp) err(`${tag}: fixtures ${f.defId} and ${o.defId} overlap`);
       }
     });
-    // parking matches the listing
-    const slots = carSlots(layout).length;
-    if (slots < p.garageBays + p.parkingSpaces) err(`${tag}: listing promises ${p.garageBays + p.parkingSpaces} car spaces but layout has ${slots}`);
-    if (p.garageBays === 0 && p.parkingSpaces === 0 && slots > 0) warn(`${tag}: layout has parking but listing says none`);
-    // bathrooms in listing vs layout
+    // parking: the listing, the layout and the geometry must agree
+    const slots = carSlots(layout);
+    if (slots.length !== p.garageBays + p.parkingSpaces) err(`${tag}: listing says ${p.garageBays + p.parkingSpaces} car spaces but layout has ${slots.length}`);
+    if (p.garageBays !== 0) err(`${tag}: garageBays must be 0 (bays are open, not garage buildings)`);
+    if (layout.zones.some((z) => z.kind === 'garage')) err(`${tag}: has an enclosed garage zone`);
+    const indoor = layout.zones.filter((z) => z.indoor);
+    for (const s of slots) {
+      const z = layout.zones.find((q) => q.id === s.zoneId)!;
+      if (Math.abs(z.x1 - z.x0 - BAY_WIDTH) > 1e-6 || Math.abs(z.z1 - z.z0 - BAY_LENGTH) > 1e-6) err(`${tag}: bay ${s.id} is not ${BAY_WIDTH} x ${BAY_LENGTH} m`);
+      if (indoor.some((q) => overlap(q, z))) err(`${tag}: bay ${s.id} overlaps the house`);
+    }
+    for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
+      if (Math.abs(slots[i].x - slots[j].x) < BAY_WIDTH - 1e-6 && Math.abs(slots[i].z - slots[j].z) < BAY_LENGTH - 1e-6) err(`${tag}: bays ${slots[i].id} and ${slots[j].id} overlap`);
+    }
+    // square footprint, tiled exactly by indoor zones
+    const bx0 = Math.min(...indoor.map((z) => z.x0)), bz0 = Math.min(...indoor.map((z) => z.z0)), bx1 = Math.max(...indoor.map((z) => z.x1)), bz1 = Math.max(...indoor.map((z) => z.z1));
+    if (Math.abs((bx1 - bx0) - (bz1 - bz0)) > 1e-6) err(`${tag}: footprint ${(bx1 - bx0).toFixed(2)} x ${(bz1 - bz0).toFixed(2)} is not square`);
+    const area = indoor.reduce((a, z) => a + (z.x1 - z.x0) * (z.z1 - z.z0), 0);
+    if (Math.abs(area - (bx1 - bx0) * (bz1 - bz0)) > 1e-6) err(`${tag}: indoor zones leave gaps in the footprint`);
+    // rooms
+    const main = mainRoomCount(layout);
+    const beds = layout.zones.filter((z) => z.kind === 'bedroom').length;
     const baths = layout.zones.filter((z) => z.kind === 'bathroom').length;
-    if (p.unit === 'bedrooms' && baths !== p.bathrooms) warn(`${tag}: listing says ${p.bathrooms} bathrooms, layout has ${baths}`);
-    if (p.unit === 'bedrooms' && layout.zones.filter((z) => z.kind === 'bedroom').length !== p.bedrooms) warn(`${tag}: bedroom count mismatch`);
+    if (main !== p.rooms) err(`${tag}: listing says ${p.rooms} main rooms, layout has ${main}`);
+    if (p.unit === 'bedrooms' && beds !== p.bedrooms) err(`${tag}: listing says ${p.bedrooms} bedrooms, layout has ${beds}`);
+    if (baths !== p.bathrooms) err(`${tag}: listing says ${p.bathrooms} bathrooms, layout has ${baths}`);
+    // fixtures must not stand in a doorway
+    for (const f of fx) {
+      const def = getFurniture(f.defId)!, hw = (f.rotation % 2 ? def.footprint.d : def.footprint.w) / 2, hd = (f.rotation % 2 ? def.footprint.w : def.footprint.d) / 2;
+      if (doorClearances(layout).some((r) => f.x + hw > r.x0 && f.x - hw < r.x1 && f.z + hd > r.z0 && f.z - hd < r.z1)) err(`${tag}: fixture ${f.defId} blocks a doorway`);
+    }
+    // every room is reachable from the entrance
+    const reach = new Set<string>(['entry']), queue = ['entry'];
+    while (queue.length) { const a = queue.shift()!; for (const c of layout.connections) { const o = c.a === a ? c.b : c.b === a ? c.a : null; if (o && !reach.has(o)) { reach.add(o); queue.push(o); } } }
+    for (const z of indoor) if (!reach.has(z.id)) err(`${tag}: ${z.id} cannot be reached from the entrance`);
+    if (layout.plot.fence !== 'none' || layout.decor.length) warn(`${tag}: has fence or decor geometry`);
   }
 
   // starting homes: every life type's furniture must fit in every candidate home

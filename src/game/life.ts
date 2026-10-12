@@ -24,7 +24,7 @@ import { autoPlace } from './housing';
 /** Decide the roulette result. Odds live in CONFIG.nepoChance. */
 export const rollLifeType = (): LifeTypeId => (Math.random() < CONFIG.nepoChance ? 'nepo' : 'lapo');
 
-// const between = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 500) * 500;
+const between = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 500) * 500;
 
 /** Create a brand-new life from the roulette result. Seeds every store. */
 export function startNewLife(type: LifeTypeId) {
@@ -34,8 +34,7 @@ export function startNewLife(type: LifeTypeId) {
   const propertyId = pool[Math.floor(Math.random() * pool.length)];
   const property = getProperty(propertyId)!;
   const layout = getLayout(property.layoutId)!;
-  // const money = between(def.moneyRange[0], def.moneyRange[1]);
-  const money = 50000000;
+  const money = between(def.moneyRange[0], def.moneyRange[1]);
 
   useEconomyStore.getState().reset(money);
   useStatsStore.getState().reset();

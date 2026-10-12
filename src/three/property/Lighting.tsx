@@ -22,7 +22,7 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
       <ambientLight intensity={0.1 + day * 0.15} />
       <directionalLight
         position={[8, 12, 9]} intensity={0.25 + day * 1.7} color={dusk > 0.2 ? '#FFB06B' : '#FFF1D6'} castShadow={q.shadows}
-        shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}
+        shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-camera-left={-22} shadow-camera-right={22} shadow-camera-top={22} shadow-camera-bottom={-22} shadow-camera-near={1} shadow-camera-far={50}
       />
       {night > 0.15 && q.nightLights && lamps.map((z) => <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 2.3, (z.z0 + z.z1) / 2]} intensity={night * 14} distance={7} decay={1.6} color="#FFC987" />)}
     </>

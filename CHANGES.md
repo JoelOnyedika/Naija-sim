@@ -28,5 +28,9 @@
 - **Messaging**: WhatsApp-style list (last message, time, unread badge) and chat (bubbles, timestamps, ticks, day separators), replies with quoted previews, emoji reactions (add/remove), and transaction cards that read the real banking record. Contact model supports `@username` player contacts (none exist yet: no multiplayer backend). Delayed NPC replies are discarded if the life was reset.
 - Known limitation: message and bank timestamps use the real clock, while the phone's status bar shows the in-game clock.
 
+## House tiers and parking bays
+- Six homes now use five square-footprint tiers (`HOUSE_TIERS`): Lapo Baby (1 studio, 0 bays; Face-Me-I-Face-You and Self Contain), Starter Plus (bedroom + living, 1 bay; Room & Parlour), Middle-tier (2 beds + living, 2 bays; 3 Bedroom Flat), Premium (2 beds + living + kitchen/dining, 3 bays; 4 Bedroom Detached Duplex), Luxury (3 beds + living + kitchen/dining, 3 bays; Luxury 4 Bedroom Duplex). Names, prices and ids are unchanged.
+- Open 2.8 x 5.5 m paved bays (no garage buildings), `fitModelToBay` for a future GLB car, fences/gardens/trees/yards removed, door-clearance rule for furniture, saved furniture that no longer fits goes to the inventory.
+
 ## Not done yet
-GLB vehicle loader, investment upgrades, remaining house layouts (flat/duplex proportions), free-angle furniture rotation.
+GLB vehicle loader, investment upgrades, free-angle furniture rotation.

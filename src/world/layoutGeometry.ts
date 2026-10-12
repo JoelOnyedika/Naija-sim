@@ -1,4 +1,5 @@
 import type { PropertyLayout, WindowSpec, Zone } from '@/types/world';
+import { BAY_LENGTH, BAY_WIDTH } from './garage';
 
 const EPS = 1e-3;
 export const WALL_T = 0.14;
@@ -42,8 +43,8 @@ export function wallPieces(layout: PropertyLayout): WallPiece[] {
     const k = `${e.o}:${e.c.toFixed(3)}`;
     (groups.get(k) ?? groups.set(k, []).get(k)!).push(e);
   }
-  const connected = (a?: Zone, b?: Zone) =>
-    !!a && !!b && layout.connections.some((c) => (c.a === a.id && c.b === b.id) || (c.a === b.id && c.b === a.id));
+  const link = (a?: Zone, b?: Zone) =>
+    a && b ? layout.connections.find((c) => (c.a === a.id && c.b === b.id) || (c.a === b.id && c.b === a.id)) : undefined;
 
   const pieces: WallPiece[] = [];
   for (const group of groups.values()) {
@@ -56,11 +57,13 @@ export function wallPieces(layout: PropertyLayout): WallPiece[] {
       const lo = group.find((e) => e.side === -1 && cover(e, m))?.zone;
       const hiIn = !!hi?.indoor, loIn = !!lo?.indoor;
       if (!hiIn && !loIn) continue;
+      const conn = link(hi, lo);
+      if (hiIn && loIn && conn?.open) continue; // open-plan: one room, no wall
       let height: number, tall = false;
       if (hiIn && !loIn) { height = layout.wallHeight; tall = true; }
       else if (loIn && !hiIn) height = CURB_WALL;
       else height = LOW_WALL;
-      const doors = connected(hi, lo) && b - a >= 1.1 ? [m] : [];
+      const doors = conn && !conn.open && b - a >= 1.1 ? [m] : [];
       pieces.push({ o: group[0].o, c: group[0].c, a, b, height, tall, doors, hi, lo });
     }
   }
@@ -75,19 +78,41 @@ export function windowsOnPiece(layout: PropertyLayout, p: WallPiece): WindowSpec
   return layout.windows.filter((w) => w.wall === wall && w.along - w.width / 2 >= p.a - EPS && w.along + w.width / 2 <= p.b + EPS);
 }
 
-export interface CarSlot { x: number; z: number; rotation: number; zoneId: string; covered: boolean }
+/**
+ * One open parking bay. `x`/`z` is the bay CENTRE on the ground plane (y = 0, world metres: x east, z south).
+ * `rotation` is the yaw (radians about +y) the car's NOSE should point along: 0 = +z (south, towards the camera).
+ * `width` is across the car, `length` along it. Use garage.ts `fitModelToBay` to place a GLB in a slot.
+ */
+export interface CarSlot { id: string; x: number; z: number; rotation: number; width: number; length: number; zoneId: string; covered: false }
 
-/** Parking positions: garage bays first, then open parking. */
+/** Parking positions: one slot per open bay zone, in the order the layout lists them (left to right). */
 export function carSlots(layout: PropertyLayout): CarSlot[] {
-  const out: CarSlot[] = [];
-  for (const kind of ['garage', 'parking'] as const) {
-    for (const z of layout.zones.filter((q) => q.kind === kind)) {
-      const w = z.x1 - z.x0;
-      const n = Math.max(1, Math.floor(w / 3));
-      for (let i = 0; i < n; i++) out.push({ x: z.x0 + ((i + 0.5) * w) / n, z: (z.z0 + z.z1) / 2, rotation: 0, zoneId: z.id, covered: kind === 'garage' });
-    }
+  return layout.zones
+    .filter((z) => z.kind === 'parking')
+    .map((z) => ({ id: z.id, x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, rotation: 0, width: Math.min(BAY_WIDTH, z.x1 - z.x0), length: Math.min(BAY_LENGTH, z.z1 - z.z0), zoneId: z.id, covered: false as const }));
+}
+
+export interface DoorRect { x0: number; z0: number; x1: number; z1: number }
+const doorCache = new WeakMap<PropertyLayout, DoorRect[]>();
+/** Floor areas that must stay clear so a doorway is never blocked: the door width plus 0.55 m each side of the wall. */
+export function doorClearances(layout: PropertyLayout): DoorRect[] {
+  let out = doorCache.get(layout);
+  if (!out) {
+    out = wallPieces(layout).flatMap((p) => p.doors.map((d) => (p.o === 'h'
+      ? { x0: d - 0.6, x1: d + 0.6, z0: p.c - 0.55, z1: p.c + 0.55 }
+      : { x0: p.c - 0.55, x1: p.c + 0.55, z0: d - 0.6, z1: d + 0.6 })));
+    doorCache.set(layout, out);
   }
   return out;
+}
+
+/** Main functional rooms: bedrooms, living, parlour and kitchen zones, with open-plan zones counted once. */
+export function mainRoomCount(layout: PropertyLayout): number {
+  const main = layout.zones.filter((z) => ['bedroom', 'living', 'parlour', 'kitchen'].includes(z.kind));
+  const parent = new Map(main.map((z) => [z.id, z.id]));
+  const find = (id: string): string => { const p = parent.get(id)!; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
+  for (const c of layout.connections) if (c.open && parent.has(c.a) && parent.has(c.b)) parent.set(find(c.a), find(c.b));
+  return new Set(main.map((z) => find(z.id))).size;
 }
 
 /** Total furnishable floor area in square metres. */

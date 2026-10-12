@@ -3,7 +3,7 @@ import type { FurnitureDef } from '@/data/items';
 import { getFurniture } from '@/data/items';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout, Zone } from '@/types/world';
-import { tallWalls, windowsOnPiece, type WallPiece } from './layoutGeometry';
+import { doorClearances, tallWalls, windowsOnPiece, type WallPiece } from './layoutGeometry';
 
 const STEP = 0.05;
 const M = 0.1; // margin from walls
@@ -101,6 +101,7 @@ export function validatePlacement(def: FurnitureDef, layout: PropertyLayout, pos
   );
   if (!inside) return false;
   if (!def.placement.collides) return true;
+  for (const r of doorClearances(layout)) if (pose.x + hw > r.x0 && pose.x - hw < r.x1 && pose.z + hd > r.z0 && pose.z - hd < r.z1) return false;
   for (const o of others) {
     const od = getFurniture(o.defId);
     if (!od || od.placement.surface !== 'floor' || !od.placement.collides) continue;

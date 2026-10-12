@@ -91,17 +91,36 @@ A `PropertyLayout` describes a building and plot as rectangles on the ground. Co
 - **Doors** come from `connections: [{a, b}]`. A doorway is cut at the midpoint of the shared edge (needs ≥ 1.1 m of shared wall). The validator warns if a connection produces no door.
 - **Windows** (`WindowSpec`): `wall: 'back'|'left'`, `along` (x for back, z for left), `width/height/sill`, `style`: louvre, burglar, sash, glass, panoramic.
 - **Fixtures** are furniture built into the property (toilet, shower, cooker, cabinet). They are real `PlacedItem`s (`fixed: true`) so they collide and can be used, but they are never saved or moved.
-- **Decor** (`DecorKind`): trees, palms, drums, clothesline, gate, pillars, awning (corrugated zinc), hedge, planter, stairs, balcony rail, generator house, jetty, boat, lamppost. Rendered in `three/property/Decor.tsx`.
-- **Plot**: ground kind + `fence` kind (zinc, brick, ironbar). Back/left fences are tall; front/right are low so the view stays open; a gate gap is cut where the `gate` decor sits.
-- **Car slots** (`carSlots`): garage zones then parking zones, one slot per 3 m of width. Owned vehicles (`vehicleStore`) are drawn in slot order. The validator checks `garageBays + parkingSpaces ≤ slots`.
+- **Decor** (`DecorKind`): trees, palms, drums, clothesline, gate, pillars, awning, hedge, planter, stairs, rail, generator house, jetty, boat, lamppost (`three/property/Decor.tsx`). The tier builder uses none of them: homes stay compact.
+- **Plot**: ground kind + `fence` kind. The tier builder sets `fence: 'none'` and a 0.6 m margin around the house and bays, so the camera frames the real bounds.
+- **Open-plan connections** (`Connection.open`): no wall between the two zones; they count as one room (`mainRoomCount`). Tier 1 uses this to wrap the studio around its bathroom corner.
+- **Doorway clearance** (`doorClearances`): `validatePlacement` rejects floor furniture standing in a doorway.
 
-### Builders
+### House tiers and parking bays
 
-`world/layoutBuilders.ts` has generic builders so you do not hand-write every zone:
+`world/layoutBuilders.ts` has one builder, `house({ id, tier, ... })`, and `HOUSE_TIERS`, the single source of truth for rooms, bathrooms and parking. `content/lagos/properties.ts` reads the listing numbers from it, the builder reads the layout from it, and `npm run validate:content` checks they agree.
 
-- `faceMeIFaceYou()` shared compound: your room, neighbours' rooms, shared bathroom, veranda with zinc awning, communal yard, zinc fence, drums, clothesline.
-- `selfContain()`, `roomAndParlour()` compact units behind a gate.
-- `residence({ beds, baths, floor, finish, windowStyle, balcony, terrace, garden, stairs, parkingSpaces, garageBays, waterfront, grand, ... })` for flats, duplexes, mansions: a bedroom row (with ensuites), a living/hall/kitchen row, optional balcony/terrace/garden, garage or parking to the right, optional lagoon waterfront with jetty and boat.
+| Tier | Name | Main rooms | Parking bays | Side |
+| --- | --- | --- | --- | --- |
+| 1 | Lapo Baby | 1 studio | 0 | 5.4 m (Self Contain: 6.0 m) |
+| 2 | Starter Plus | bedroom + living | 1 | 7.0 m |
+| 3 | Middle-tier | 2 bedrooms + living | 2 | 8.4 m |
+| 4 | Premium | 2 bedrooms + living + kitchen/dining | 3 | 10.2 m |
+| 5 | Luxury | 3 bedrooms + living + kitchen/dining | 3 | 12.0 m |
+
+Every house is a square tiled exactly by rectangular zones, plus a 1.4 m entrance forecourt along the front. Bays are open, paved, 2.8 x 5.5 m (`BAY_WIDTH`/`BAY_LENGTH` in `world/garage.ts`), in one row below the forecourt, centred on the house. There are no garage walls, doors, roofs, fences or gardens.
+
+### Placing a GLB car in a bay (not loaded yet)
+
+`carSlots(layout)` returns one `CarSlot` per bay: `x, z` = bay centre on the ground (y = 0), `rotation` = yaw of the car's nose (0 = +z, towards the camera), `width`, `length`. To place a model:
+
+```ts
+const box = new Box3().setFromObject(gltf.scene);               // model's own bounds, any origin
+const pose = fitModelToBay(slot, { min: box.min.toArray(), max: box.max.toArray() }, { nose: '+z', unitScale: 1 });
+// <primitive object={gltf.scene} position={pose.position} rotation={[0, pose.rotationY, 0]} scale={pose.scale} />
+```
+
+`fitModelToBay` centres the bounding box on the bay, drops the lowest point to y = 0, rotates so the nose faces the slot direction, and only ever scales down (to stay 0.15 m inside the lines). `unitScale` converts the asset's units to metres. The primitive cars in `three/models/vehicles.tsx` (origin at the bottom centre, nose +z) keep drawing owned cars until a GLB replaces them.
 
 You can also write a `PropertyLayout` object by hand for a landmark property.
 

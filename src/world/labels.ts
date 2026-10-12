@@ -11,7 +11,8 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 /** The three spec lines shown on a listing: rooms/bedrooms, bathrooms, parking. */
 export function listingLines(p: PropertyDefinition): string[] {
   const first = p.unit === 'rooms' ? plural(p.rooms, 'Room') : plural(p.bedrooms, 'Bedroom');
-  const parking = p.garageBays > 0 ? `${p.garageBays}-Car Garage` : p.parkingSpaces > 0 ? 'Parking Available' : 'No Garage';
+  const bays = p.garageBays + p.parkingSpaces;
+  const parking = bays > 0 ? `${bays}-Car Parking` : 'No Parking';
   return [first, plural(p.bathrooms, 'Bathroom'), parking];
 }
 export const ctaLabel = (p: PropertyDefinition) => (p.cta === 'move_in' ? 'MOVE IN' : 'BUY');

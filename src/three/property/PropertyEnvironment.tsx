@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import { BoxGeometry, MeshStandardMaterial } from 'three';
 import { getVehicle } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import type { FloorKind, PropertyLayout, Zone } from '@/types/world';
-import { carSlots } from '@/world/layoutGeometry';
+import { carSlots, type CarSlot } from '@/world/layoutGeometry';
 import { Vehicle } from '../models/vehicles';
-import { B } from '../models/primitives';
 import { floorTexture, skylineTexture } from '../textures';
 import { Water } from '../world/Water';
 import { DecorItem } from './Decor';
@@ -36,12 +36,15 @@ function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
   );
 }
 
-function ParkingLines({ zone }: { zone: Zone }) {
-  const n = Math.max(1, Math.floor((zone.x1 - zone.x0) / 3));
-  const w = (zone.x1 - zone.x0) / n;
+/** Bay boundary: two side lines and a far-end line, inset so neighbouring bays keep their own lines. One shared geometry and material. */
+const LINE_GEO = new BoxGeometry(1, 0.01, 1);
+const LINE_MAT = new MeshStandardMaterial({ color: '#F4F1EA', roughness: 0.9 });
+function BayLines({ slot }: { slot: CarSlot }) {
+  const t = 0.07, i = 0.06, hw = slot.width / 2 - i, hl = slot.length / 2 - i;
+  const lines: [number, number, number, number][] = [[-hw, 0, t, 2 * hl], [hw, 0, t, 2 * hl], [0, hl, 2 * hw, t]];
   return (
-    <group>
-      {Array.from({ length: n + 1 }, (_, i) => <B key={i} size={[0.07, 0.01, zone.z1 - zone.z0 - 0.5]} pos={[zone.x0 + i * w, 0.012, (zone.z0 + zone.z1) / 2]} color="#F4F1EA" rough={0.9} radius={0.002} shadow={false} />)}
+    <group position={[slot.x, 0.012, slot.z]}>
+      {lines.map(([x, z, w, d], k) => <mesh key={k} geometry={LINE_GEO} material={LINE_MAT} position={[x, 0, z]} scale={[w, 1, d]} />)}
     </group>
   );
 }
@@ -72,7 +75,7 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.2, cz]} receiveShadow><planeGeometry args={[220, 220]} /><meshStandardMaterial color={OUTER[plot.ground] ?? '#9A9484'} roughness={1} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.01, cz]} receiveShadow><planeGeometry args={[w, d]} /><meshStandardMaterial map={groundTex} roughness={0.95} /></mesh>
       {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} propertyId={layout.id} />)}
-      {layout.zones.filter((z) => z.kind === 'garage' || z.kind === 'parking').map((z) => <ParkingLines key={`l${z.id}`} zone={z} />)}
+      {carSlots(layout).map((sl) => <BayLines key={sl.id} slot={sl} />)}
       <Walls layout={layout} />
       <Fence layout={layout} />
       {layout.decor.map((dec, i) => <DecorItem key={i} d={dec} />)}

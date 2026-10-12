@@ -24,7 +24,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const vHalf = ((camera as PerspectiveCamera).fov * Math.PI) / 360;
   const half = Math.min(vHalf, Math.atan(Math.tan(vHalf) * aspect));
   const radius = Math.hypot(c.w, c.d) / 2;
-  const fit = (radius * 1.08) / Math.tan(half) + 1;
+  const fit = (radius * 1.0) / Math.tan(half) + 1;
   const tx = c.x, tz = c.z + 0.4, ty = 0.5;
 
   const POLAR = aspect < 0.8 ? 0.72 : 0.95; // portrait phones: look more from above to use the height
