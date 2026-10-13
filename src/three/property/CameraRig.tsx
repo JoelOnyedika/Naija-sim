@@ -1,10 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { useVehicleStore } from '@/stores/vehicleStore';
 import { DEFAULT_AZ, DEFAULT_POLAR, PAN_RANGE, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
-import { carportBounds, houseBounds } from '@/world/layoutGeometry';
+import { houseBounds } from '@/world/layoutGeometry';
 
 const SWIPE_RAD_PER_PX = 0.006;
 const PAN_PER_PX = 0.0025;
@@ -18,16 +17,12 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const { camera, size, gl } = useThree();
   const cur = useRef(DEFAULT_AZ);
   const aspect = size.width / Math.max(size.height, 1);
-  const owned = useVehicleStore((s) => s.owned.length);
-  // MVP framing, applied to every home: distance grows with the house side, tighter on big houses, pulled back a little on
-  // portrait screens. Only the house (plus a sliver of the carport beside it) is framed, never the whole plot.
+  // MVP framing, applied to every home: distance grows with the house side, pulled back a little on portrait screens.
+  // Only the house is framed and centred; the parking pad is separate and may run off screen.
   const { tx, ty, tz, fit } = useMemo(() => {
-    const h = houseBounds(layout), c = carportBounds(layout, owned);
-    const span = Math.max(h.w, h.d) + (c ? (c.x1 - c.x0) * 0.7 : 0);
-    // aim a little toward the carport so the pad stays on screen; the turn still pivots around this one fixed point
-    const bx = c ? ((c.x0 + c.x1) / 2 - h.cx) * 0.4 : 0, bz = c ? ((c.z0 + c.z1) / 2 - h.cz) * 0.4 : 0;
-    return { tx: h.cx + bx, ty: layout.wallHeight * 0.3, tz: h.cz + bz, fit: (span * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 1.5 : 1) };
-  }, [layout, aspect, owned]);
+    const h = houseBounds(layout), span = Math.max(h.w, h.d) + 3.2; // fixed margin, so every home is framed alike
+    return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (span * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
+  }, [layout, aspect]);
 
   // New home: back to the default orientation, instantly.
   useEffect(() => {
@@ -52,7 +47,8 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
       else if (pts.size === 2) { const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * (pinch / d)); pinch = d; }
     };
     const up = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
-    const wheel = (e: WheelEvent) => { if (!ready) return; e.preventDefault(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * (1 + e.deltaY * 0.001)); };
+    // mouse wheel slides the view up/down a little; ctrl + wheel (or pinch) zooms
+    const wheel = (e: WheelEvent) => { if (!ready) return; e.preventDefault(); const c = useCameraStore.getState(); if (e.ctrlKey) c.setZoom(c.zoom * (1 + e.deltaY * 0.01)); else c.panBy(-e.deltaY * 0.002); };
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     el.addEventListener('wheel', wheel, { passive: false });
     return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); };

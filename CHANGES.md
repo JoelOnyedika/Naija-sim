@@ -53,5 +53,10 @@
 - Homes 3-6 are one design scaled to their square footprint, copied from the reference screenshot: a rear room over a big pale room on the left; the right half split at different heights into a spacious back room, a small middle room and a front room (T-junctions, not rows). Brown wood bedrooms, beige right-hand room, white ceramic kitchen, pale diamond-tile bathrooms. Home 3: kitchen + WC + living; 4: 2 bedrooms + WC; 5: 2 bedrooms + kitchen + WC; 6: 3 bedrooms, kitchen, 2 bathrooms (one en suite).
 - Homes 1 and 2: unchanged interiors and no parking at all. Home 3: one bay; homes 4-6: two bays (only drawn when a car is owned).
 
+## Rectangular rooms, lighting, camera centring
+- Homes 3-6 redrawn again: every room is a plain rectangle, rectangles tile the square exactly (all walls meet), one living room acts as the hub and most rooms have a door onto it, plus doors between neighbouring rooms. One WC per home, always on the front or right outer wall; no pockets or L-shaped living areas. The WC accepts furniture like any room (`furnishable`), and all homes have exactly one bathroom (home 6 dropped from two to one).
+- Lighting: every room has its own warm ceiling point light (soft by day, bright at night; 5 lights max, the two smallest neighbours share one in a 6-room home), and floor lamps carry their own light. Quality tiers low and up keep them; only `minimal` drops them.
+- Camera: framed and centred on the house only (fixed margin, wider on portrait phones). The parking pad is separate and may run off screen. Vertical swipe or the mouse wheel slides the view a little (ctrl + wheel zooms).
+
 ## Not done yet
 GLB vehicle loader, investment upgrades, free-angle furniture rotation.

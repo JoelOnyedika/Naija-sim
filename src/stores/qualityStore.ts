@@ -8,7 +8,7 @@ import { create } from 'zustand';
 export const QUALITY_TIERS = [
   { name: 'high', dprCap: 1.75, shadows: true, nightLights: true },
   { name: 'medium', dprCap: 1.25, shadows: true, nightLights: true },
-  { name: 'low', dprCap: 1, shadows: true, nightLights: false },
+  { name: 'low', dprCap: 1, shadows: true, nightLights: true },
   { name: 'minimal', dprCap: 1, shadows: false, nightLights: false },
 ] as const;
 

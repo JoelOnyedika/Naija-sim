@@ -6,7 +6,7 @@ export const DEFAULT_AZ = 0.62;           // MVP camera: radians off +z, shows t
 export const DEFAULT_POLAR = 1.0;         // MVP camera: radians from straight up; never changed by input
 export const ZOOM_MIN = 0.7, ZOOM_MAX = 1.3;
 /** Vertical swipe slides the view up/down a little: -1..1 of PAN_RANGE (a fraction of the camera distance). */
-export const PAN_RANGE = 0.12;
+export const PAN_RANGE = 0.16;
 
 interface CameraState {
   /** Button-selected orientation: number of 90-degree steps from the default (unwrapped, so 4 presses = a full turn). */

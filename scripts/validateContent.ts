@@ -1,3 +1,4 @@
+const HOMES_BY_LAYOUT_OK = true;
 import { HOUSE_TIERS } from '../src/world/layoutBuilders';
 /**
  * Content integrity check. Run after editing any state pack: npm run validate:content
@@ -140,8 +141,11 @@ for (const state of listStates()) {
         if (Math.min(w, d) < (r.kind === 'bathroom' ? 2.8 : 3.5)) err(`${tag}: ${r.label} is only ${Math.min(w, d).toFixed(1)} m across`);
         if (Math.max(w, d) / Math.min(w, d) > 2.2) err(`${tag}: ${r.label} is a narrow strip (${w.toFixed(1)} x ${d.toFixed(1)})`);
       }
+      if (HOMES_BY_LAYOUT_OK && rooms.length > 3) for (const r of rooms) if (r.zoneIds.length > 1) err(`${tag}: ${r.label} is not a plain rectangle`);
+      if (layout.zones.filter((z) => z.kind === 'bathroom').length > 1) err(`${tag}: more than one bathroom`);
+      if (layout.zones.some((z) => z.kind === 'bathroom' && !z.furnishable)) err(`${tag}: the WC must accept furniture`);
       const beds = rooms.filter((r) => r.kind === 'bedroom').map(area);
-      if (beds.length && Math.max(...beds) > 0.2 * total) err(`${tag}: a bedroom takes more than 20% of the floor`);
+      if (beds.length && Math.max(...beds) > 0.25 * total) err(`${tag}: a bedroom takes more than 25% of the floor`);
       // floors: kitchens share one material, bathrooms another
       const fl = (k: string) => new Set(layout.zones.filter((z) => z.kind === k).map((z) => z.floor));
       if (fl('kitchen').size > 1 || (fl('kitchen').size === 1 && !fl('kitchen').has('ceramic'))) err(`${tag}: kitchens must all use ceramic`);

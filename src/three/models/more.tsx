@@ -1,3 +1,4 @@
+import { QUALITY_TIERS, useQualityStore } from '@/stores/qualityStore';
 import { B, Cyl, Mat } from './primitives';
 
 export function KingBed() {
@@ -130,8 +131,10 @@ export function Piano() {
 }
 
 export function Lamp() {
+  const lit = useQualityStore((s) => QUALITY_TIERS[s.tier].nightLights);
   return (
     <group>
+      {lit && <pointLight position={[0, 1.55, 0]} intensity={6} distance={5.5} decay={1.7} color="#FFCF8A" />}
       <Cyl r={0.14} h={0.03} pos={[0, 0.015, 0]} color="#2B2F32" metal={0.5} />
       <Cyl r={0.015} h={1.35} pos={[0, 0.7, 0]} color="#D8C48A" metal={0.8} rough={0.3} seg={8} />
       <Cyl r={0.18} r2={0.12} h={0.28} pos={[0, 1.5, 0]} color="#FFF3D6" emissive="#FFD27A" emissiveIntensity={0.9} rough={0.9} />

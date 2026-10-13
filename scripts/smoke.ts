@@ -206,5 +206,17 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
   useFinishStore.getState().setFloorRoom('all');
 }
 
+// ── the WC accepts furniture like any other room
+{
+  startNewLife('nepo');
+  const home = getActiveHome()!, wcZone = home.layout.zones.find((z) => z.kind === 'bathroom')!;
+  const { validatePlacement, fixturesOf } = await import('../src/world/placement');
+  const { getFurniture } = await import('../src/data/items');
+  const def = getFurniture('plant')!;
+  let okSpot = false;
+  for (let x = wcZone.x0 + 0.5; x < wcZone.x1 && !okSpot; x += 0.5) for (let z = wcZone.z0 + 0.5; z < wcZone.z1 && !okSpot; z += 0.5) okSpot = validatePlacement(def, home.layout, { x, z, rotation: 0 } as never, fixturesOf(home.layout));
+  ok(okSpot, 'a plant can be placed inside the WC');
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nAll smoke checks passed');
 process.exit(fails ? 1 : 0);
