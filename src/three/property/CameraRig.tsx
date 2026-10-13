@@ -21,7 +21,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   // Only the house is framed and centred; the parking pad is separate and may run off screen.
   const { tx, ty, tz, fit } = useMemo(() => {
     const h = houseBounds(layout), span = Math.max(h.w, h.d) + 3.2; // fixed margin, so every home is framed alike
-    return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (span * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
+    return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (span * 0.95 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
   }, [layout, aspect]);
 
   // New home: back to the default orientation, instantly.
