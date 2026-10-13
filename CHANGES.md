@@ -49,5 +49,9 @@
 - Parking: homes 1-3 have one bay, 4-6 two. The pad, cars and P sign only exist while the player owns a car (one pad bay per car, up to the bays); no car = no pad. Bays are 2.0 x 3.6 and the placeholder cars are drawn at 0.6 scale.
 - Camera: a vertical swipe now slides the view up or down a little (clamped, `PAN_RANGE` in `cameraStore`); elevation is still fixed.
 
+## Reference floor plan (homes 3-6)
+- Homes 3-6 are one design scaled to their square footprint, copied from the reference screenshot: a rear room over a big pale room on the left; the right half split at different heights into a spacious back room, a small middle room and a front room (T-junctions, not rows). Brown wood bedrooms, beige right-hand room, white ceramic kitchen, pale diamond-tile bathrooms. Home 3: kitchen + WC + living; 4: 2 bedrooms + WC; 5: 2 bedrooms + kitchen + WC; 6: 3 bedrooms, kitchen, 2 bathrooms (one en suite).
+- Homes 1 and 2: unchanged interiors and no parking at all. Home 3: one bay; homes 4-6: two bays (only drawn when a car is owned).
+
 ## Not done yet
 GLB vehicle loader, investment upgrades, free-angle furniture rotation.

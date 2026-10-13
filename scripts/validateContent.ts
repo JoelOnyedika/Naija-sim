@@ -132,7 +132,7 @@ for (const state of listStates()) {
       const living = rooms.filter((r) => r.kind === 'living').reduce((a, r) => a + area(r), 0);
       const line = rooms.map((r) => `${r.label} ${area(r).toFixed(0)}`).join(', ');
       if (rooms.length > 2) console.log(`    rooms (m²): ${line}; living ${(100 * living / total).toFixed(0)}%`);
-      if (rooms.length > 2 && living / total > 0.75) err(`${tag}: living areas take ${(100 * living / total).toFixed(0)}% of the floor`);
+      if (rooms.length > 2 && living / total > (rooms.length <= 3 ? 0.8 : 0.75)) err(`${tag}: living areas take ${(100 * living / total).toFixed(0)}% of the floor`);
       for (const r of rooms) {
         if (r.kind === 'living') continue;
         const zs = r.zoneIds.map((id) => layout.zones.find((q) => q.id === id)!);

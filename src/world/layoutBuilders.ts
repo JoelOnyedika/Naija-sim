@@ -16,11 +16,11 @@ export interface HouseTier {
   id: TierId; label: string;
   /** Outer side length (width = depth) of the square main building, in world units (1 unit = 1 m). */
   size: number;
-  /** Parking bays on the pad beside the house (the pad only appears once the player owns a car). Homes 1-3: one bay; larger homes: two. */
+  /** Parking bays on the pad beside the house (the pad only appears once the player owns a car). Homes 1-2: none; home 3: one bay; larger homes: two. */
   parkingBays: number;
 }
 export const HOUSE_TIERS: Record<TierId, HouseTier> = {
-  1: { id: 1, label: 'Lapo Baby', size: 12, parkingBays: 1 },
+  1: { id: 1, label: 'Lapo Baby', size: 12, parkingBays: 0 },
   2: { id: 2, label: 'Starter Plus', size: 14, parkingBays: 1 },
   3: { id: 3, label: 'Middle-tier', size: 16, parkingBays: 2 },
   4: { id: 4, label: 'Premium', size: 18, parkingBays: 2 },
@@ -47,11 +47,12 @@ const MARGIN = 0.6;             // ground kept around the house and carport
 const zone = (id: string, kind: ZoneKind, label: string, x0: number, z0: number, x1: number, z1: number, floor: FloorKind, indoor = true, furnishable = true): Zone =>
   ({ id, kind, label, x0, z0, x1, z1, floor, indoor, furnishable });
 
-type Door = 'front' | 'left' | 'right';
+type Door = 'front' | 'left' | 'right' | 'back';
 /** Toilet and shower tucked away from the door so the doorway stays clear. */
 function bathSet(b: Zone, door: Door, tub = false): FixtureSpec[] {
   const out: FixtureSpec[] =
     door === 'front' ? [{ defId: 'toilet', x: b.x0 + 0.55, z: b.z0 + 0.55, rotation: 0 }, { defId: 'shower', x: b.x1 - 0.6, z: b.z0 + 0.65, rotation: 0 }]
+    : door === 'back' ? [{ defId: 'toilet', x: b.x0 + 0.55, z: b.z1 - 0.55, rotation: 2 }, { defId: 'shower', x: b.x1 - 0.6, z: b.z1 - 0.65, rotation: 0 }]
     : door === 'right' ? [{ defId: 'toilet', x: b.x0 + 0.4, z: b.z0 + 0.5, rotation: 0 }, { defId: 'shower', x: b.x0 + 0.6, z: b.z1 - 0.6, rotation: 0 }]
     : [{ defId: 'toilet', x: b.x1 - 0.4, z: b.z0 + 0.5, rotation: 0 }, { defId: 'shower', x: b.x1 - 0.6, z: b.z1 - 0.6, rotation: 0 }];
   if (tub) out.push({ defId: 'bathtub', x: b.x0 + 2.1, z: b.z1 - 0.5, rotation: 1 });
@@ -69,7 +70,7 @@ export interface HomeCfg {
 }
 
 export function house(c: HomeCfg): PropertyLayout {
-  const spec = HOMES[c.home], tier = HOUSE_TIERS[spec.tier], S = tier.size, bedFloor = c.bedFloor ?? c.floor;
+  const spec = HOMES[c.home], tier = HOUSE_TIERS[spec.tier], S = tier.size;
   const win = (wall: 'back' | 'left', along: number, width = 1.4, height = 1.2, sill = 0.95, style: WindowStyle = c.windowStyle): WindowSpec => ({ wall, along, width, height, sill, style });
   const cooker = (x: number, z: number): FixtureSpec => ({ defId: 'cooker', x, z, rotation: 0 });
   const cabinet = (x: number, z: number): FixtureSpec => ({ defId: 'cabinet', x, z, rotation: 1 });
@@ -98,80 +99,96 @@ export function house(c: HomeCfg): PropertyLayout {
       windows: [win('back', (S - b) / 2, 0.9, 0.9, 1.1)],
       fixtures: [...bathSet(zones[2], 'front'), ...(c.kitchenette ? [cooker(0.5, 0.5)] : [])],
     };
-  } else if (c.home === 3) {
-    // Living area (L-shaped, wrapping round) with a defined kitchen top-right and a WC in the front-left corner.
-    const kx = 7.5, kd = 6.5, wx = 3.6, wy = 9.8;
-    const zones = [
-      zone('livA', 'living', 'Living room', 0, 0, kx, wy, c.floor),
-      zone('livB', 'living', 'Living room', kx, kd, S, S, c.floor),
-      zone('livC', 'living', 'Living room', wx, wy, kx, S, c.floor),
-      zone('kitchen', 'kitchen', 'Kitchen', kx, 0, S, kd, kitchenFloor),
-      zone('bath', 'bathroom', 'WC', 0, wy, wx, S, bathFloor, true, false),
-    ];
-    p = {
-      zones, entry: 'livB',
-      connections: [O('livA', 'livB'), O('livA', 'livC'), O('livB', 'livC'), D('kitchen', 'livA'), D('bath', 'livC')],
-      windows: [win('back', kx / 2), win('back', kx + (S - kx) / 2), win('left', wy / 2)],
-      fixtures: [...bathSet(zones[4], 'right'), cooker(kx + 0.5, 0.6)],
-    };
-  } else if (c.home === 4) {
-    // Two bedrooms at opposite corners (top-left, bottom-right) round an L-shaped living area, WC in the middle of the back.
-    const b1w = 7, b1d = 6.5, ww = 3, wd = 3.4, rx = 10, bz = 9.5;
-    const zones = [
-      zone('bed1', 'bedroom', 'Bedroom 1', 0, 0, b1w, b1d, bedFloor),
-      zone('bath', 'bathroom', 'WC', b1w, 0, rx, wd, bathFloor, true, false),
-      zone('livMid', 'living', 'Living room', b1w, wd, rx, b1d, c.floor),
-      zone('livTR', 'living', 'Living room', rx, 0, S, bz, c.floor),
-      zone('bed2', 'bedroom', 'Bedroom 2', rx, bz, S, S, bedFloor),
-      zone('livL', 'living', 'Living room', 0, b1d, rx, S, c.floor),
-    ];
-    void ww;
-    p = {
-      zones, entry: 'livL',
-      connections: [O('livMid', 'livL'), O('livMid', 'livTR'), O('livTR', 'livL'), D('bed1', 'livL'), D('bed2', 'livL'), D('bath', 'livMid')],
-      windows: [win('back', b1w / 2), win('back', rx + (S - rx) / 2), win('left', b1d / 2), win('left', (b1d + S) / 2)],
-      fixtures: [...bathSet(zones[1], 'front'), cooker(0.45, b1d + 0.6), cabinet(0.4, b1d + 1.9)],
-    };
-  } else if (c.home === 5) {
-    // Bedroom top-left, kitchen top-right, WC between them, a big living room below and a second bedroom bottom-right.
-    const d = 7, b1w = 6.5, wx = 11, wd = 3.8, lw = 12, ry = 11.8;
-    const zones = [
-      zone('bed1', 'bedroom', 'Bedroom 1', 0, 0, b1w, d, bedFloor),
-      zone('bath', 'bathroom', 'WC', b1w, 0, wx, wd, bathFloor, true, false),
-      zone('livMid', 'living', 'Living room', b1w, wd, wx, d, c.floor),
-      zone('kitchen', 'kitchen', 'Kitchen and dining', wx, 0, S, d, kitchenFloor),
-      zone('livMain', 'living', 'Living room', 0, d, lw, S, c.floor),
-      zone('livR', 'living', 'Living room', lw, d, S, ry, c.floor),
-      zone('bed2', 'bedroom', 'Bedroom 2', lw, ry, S, S, bedFloor),
-    ];
-    p = {
-      zones, entry: 'livMain',
-      connections: [O('livMid', 'livMain'), O('livR', 'livMain'), D('bed1', 'livMain'), D('bath', 'livMid'), D('kitchen', 'livMid'), D('bed2', 'livR')],
-      windows: [win('back', b1w / 2), win('back', wx + (S - wx) / 2), win('left', d / 2), win('left', (d + S) / 2, 1.8, 1.2, 0.9)],
-      fixtures: [...bathSet(zones[1], 'front'), cooker(wx + 0.5, 0.6), cabinet(S - 0.45, 2.0)],
-    };
   } else {
-    // Largest home: master and second bedroom on the left either side of the living area, kitchen and two bathrooms at the
-    // back, third bedroom on the right; living space wraps round the middle.
-    const lx = 7, d1 = 7, d2 = 13, kx = 13.5, kd = 6.5, bwA = 16.5, bth = 3.5, ry = 9, ry2 = 16;
-    const zones = [
-      zone('bed1', 'bedroom', 'Master bedroom', 0, 0, lx, d1, bedFloor),
-      zone('livL', 'living', 'Living room', 0, d1, lx, d2, c.floor),
-      zone('bed2', 'bedroom', 'Bedroom 2', 0, d2, lx, S, bedFloor),
-      zone('kitchen', 'kitchen', 'Kitchen and dining', lx, 0, kx, kd, kitchenFloor),
-      zone('livMain', 'living', 'Living room', lx, kd, kx, S, c.floor),
-      zone('bathA', 'bathroom', 'Bathroom', kx, 0, bwA, bth, bathFloor, true, false),
-      zone('bathB', 'bathroom', 'Bathroom', bwA, 0, S, bth, bathFloor, true, false),
-      zone('livR', 'living', 'Living room', kx, bth, S, ry, c.floor),
-      zone('bed3', 'bedroom', 'Bedroom 3', kx, ry, S, ry2, bedFloor),
-      zone('livBR', 'living', 'Living room', kx, ry2, S, S, c.floor),
-    ];
-    p = {
-      zones, entry: 'livMain',
-      connections: [O('livL', 'livMain'), O('livR', 'livMain'), O('livBR', 'livMain'), D('bed1', 'livL'), D('bed2', 'livL'), D('kitchen', 'livMain'), D('bathA', 'livR'), D('bathB', 'livR'), D('bed3', 'livR')],
-      windows: [win('back', lx / 2), win('back', lx + (kx - lx) / 2, 1.8, 1.2, 0.9), win('left', d1 / 2), win('left', (d1 + d2) / 2, 1.8, 1.2, 0.9), win('left', (d2 + S) / 2)],
-      fixtures: [...bathSet(zones[5], 'front'), ...bathSet(zones[6], 'front'), cooker(lx + 0.5, 0.6), cabinet(kx - 0.45, 2.0)],
-    };
+    // Homes 3-6 share ONE floor-plan design (the reference screenshot), scaled to the footprint. The left half is a rear
+    // room over one big pale room; the right half is split three ways (back / small middle room / front room) at different
+    // heights, so the walls form T-junctions instead of rows of boxes:
+    //
+    //   +-----------+---------------+      xm = half width        zL = left split (0.30)
+    //   | rear room |  right-back   |      right column splits at  zA (0.50) and zB (0.72)
+    //   +--- door --+   (spacious)   |      the small middle room sits at the right edge
+    //   |           |------+--------|      the front-right room is the second brown-floored room
+    //   | big pale  |  small room   |
+    //   |   room    |---------------|
+    //   |           |  front-right  |
+    //   +-----------+---------------+
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const bedFloor = 'wood' as FloorKind;                       // brown-floored bedrooms, as in the reference
+    const extFloor: FloorKind = c.floor === 'tile' ? 'marble' : 'tile'; // beige floor for the spacious right-hand room
+    const xm = r2(S * 0.5), zL = r2(S * 0.3), zA = r2(S * 0.5), zB = r2(S * 0.72);
+    if (c.home === 3) {
+      // living + kitchen + WC: the rear room is the kitchen, the small middle room is the WC; everything else is living.
+      const wx = r2(xm + S * 0.32);
+      const zones = [
+        zone('livL', 'living', 'Living room', 0, zL, xm, S, c.floor),
+        zone('livTR', 'living', 'Living room', xm, 0, S, zA, extFloor),
+        zone('livMR', 'living', 'Living room', wx, zA, S, zB, extFloor),
+        zone('livBR', 'living', 'Living room', xm, zB, S, S, extFloor),
+        zone('kitchen', 'kitchen', 'Kitchen', 0, 0, xm, zL, kitchenFloor),
+        zone('bath', 'bathroom', 'WC', xm, zA, wx, zB, bathFloor, true, false),
+      ];
+      p = {
+        zones, entry: 'livL',
+        connections: [O('livTR', 'livL'), O('livTR', 'livMR'), O('livBR', 'livL'), O('livBR', 'livMR'), D('kitchen', 'livL'), D('bath', 'livL')],
+        windows: [win('back', xm / 2), win('back', xm + (S - xm) / 2, 1.8, 1.2, 0.9), win('left', (zL + S) / 2)],
+        fixtures: [...bathSet(zones[5], 'left'), cooker(0.5, 0.6)],
+      };
+    } else if (c.home === 4) {
+      // living + 2 bedrooms (rear-left and front-right) + WC; the spacious right-back room is a living extension.
+      const wx = r2(xm + S * 0.3);
+      const zones = [
+        zone('bed1', 'bedroom', 'Bedroom 1', 0, 0, xm, zL, bedFloor),
+        zone('livL', 'living', 'Living room', 0, zL, xm, S, c.floor),
+        zone('livTR', 'living', 'Living room', xm, 0, S, zA, extFloor),
+        zone('livMR', 'living', 'Living room', wx, zA, S, zB, extFloor),
+        zone('bed2', 'bedroom', 'Bedroom 2', xm, zB, S, S, bedFloor),
+        zone('bath', 'bathroom', 'WC', xm, zA, wx, zB, bathFloor, true, false),
+      ];
+      p = {
+        zones, entry: 'livL',
+        connections: [O('livTR', 'livL'), O('livTR', 'livMR'), D('bed1', 'livL'), D('bed2', 'livL'), D('bath', 'livL')],
+        windows: [win('back', xm / 2), win('back', xm + (S - xm) / 2, 1.8, 1.2, 0.9), win('left', zL / 2), win('left', (zL + S) / 2, 1.8, 1.2, 0.9)],
+        fixtures: [...bathSet(zones[5], 'left'), cooker(0.45, zL + 0.6), cabinet(0.4, zL + 1.9)],
+      };
+    } else if (c.home === 5) {
+      // living + 2 bedrooms + kitchen + WC: kitchen at the back right, living extension below it.
+      const zK = r2(S * 0.25), wx = r2(xm + S * 0.3);
+      const zones = [
+        zone('bed1', 'bedroom', 'Bedroom 1', 0, 0, xm, zL, bedFloor),
+        zone('livL', 'living', 'Living room', 0, zL, xm, S, c.floor),
+        zone('livTR', 'living', 'Living room', xm, zK, S, zA, extFloor),
+        zone('livMR', 'living', 'Living room', wx, zA, S, zB, extFloor),
+        zone('kitchen', 'kitchen', 'Kitchen and dining', xm, 0, S, zK, kitchenFloor),
+        zone('bed2', 'bedroom', 'Bedroom 2', xm, zB, S, S, bedFloor),
+        zone('bath', 'bathroom', 'WC', xm, zA, wx, zB, bathFloor, true, false),
+      ];
+      p = {
+        zones, entry: 'livL',
+        connections: [O('livTR', 'livL'), O('livTR', 'livMR'), D('bed1', 'livL'), D('bed2', 'livL'), D('bath', 'livL'), D('kitchen', 'livTR')],
+        windows: [win('back', xm / 2), win('back', xm + (S - xm) / 2), win('left', zL / 2), win('left', (zL + S) / 2, 1.8, 1.2, 0.9)],
+        fixtures: [...bathSet(zones[6], 'left'), cooker(xm + 0.5, 0.6), cabinet(S - 0.45, 2.0)],
+      };
+    } else {
+      // largest home: 3 bedrooms (rear-left, right-back, front-right), kitchen in the front-left corner, 2 bathrooms in the
+      // small middle room (one off the living room, one en suite to bedroom 3), living area in the big left room.
+      const zA6 = r2(S * 0.4), zB6 = r2(zA6 + S * 0.225), zF = r2(S * 0.775), kx = r2(S * 0.3), bx = r2(xm + S * 0.25);
+      const zones = [
+        zone('bed1', 'bedroom', 'Master bedroom', 0, 0, xm, zL, bedFloor),
+        zone('livL', 'living', 'Living room', 0, zL, xm, zF, c.floor),
+        zone('livF', 'living', 'Living room', kx, zF, xm, S, c.floor),
+        zone('kitchen', 'kitchen', 'Kitchen and dining', 0, zF, kx, S, kitchenFloor),
+        zone('bed3', 'bedroom', 'Bedroom 3', xm, 0, S, zA6, bedFloor),
+        zone('bathA', 'bathroom', 'Bathroom', xm, zA6, bx, zB6, bathFloor, true, false),
+        zone('bathB', 'bathroom', 'Bathroom', bx, zA6, S, zB6, bathFloor, true, false),
+        zone('bed2', 'bedroom', 'Bedroom 2', xm, zB6, S, S, bedFloor),
+      ];
+      p = {
+        zones, entry: 'livL',
+        connections: [O('livF', 'livL'), D('bed1', 'livL'), D('kitchen', 'livL'), D('bed3', 'livL'), D('bathA', 'livL'), D('bathB', 'bed3'), D('bed2', 'livF')],
+        windows: [win('back', xm / 2), win('back', xm + (S - xm) / 2, 1.8, 1.2, 0.9), win('left', zL / 2), win('left', (zL + zF) / 2, 1.8, 1.2, 0.9), win('left', (zF + S) / 2)],
+        fixtures: [...bathSet(zones[5], 'left'), ...bathSet(zones[6], 'back'), cooker(0.6, zF + 0.6), cabinet(kx - 0.45, zF + 2.0)],
+      };
+    }
   }
 
   // Open front: a shallow paved walkway along the front edge; the two-car carport is attached to the RIGHT side of the
