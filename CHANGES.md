@@ -60,3 +60,9 @@
 
 ## Not done yet
 GLB vehicle loader, investment upgrades, free-angle furniture rotation.
+
+## Bug fixes: lighting, camera tilt, round ground
+- **Interior lighting no longer fades.** Cause: `PerfGovernor` steps the graphics tier down on slower phones and the lowest tier (`minimal`) turned the room lights off, so the interior went flat a few seconds after loading. Lights are now on in every tier; tiers only lower resolution (and the last one drops shadow maps). Verified by forcing the lowest tier: brightness 137.5 -> 139.8 (was dull before).
+- **Camera tilt.** The vertical drag no longer slides the view. It now tilts the camera around the house between `POLAR_MIN` 0.7 (more top-down) and `POLAR_MAX` 1.2 (lower), default unchanged at 1.0; finger down looks more from above. Rotation, zoom and the rotate button are unchanged. Tuning constants are documented in `docs/DEVELOPER.md` section 12.
+- **Round ground.** The square grass strip in front of the house was the `entry` zone drawn as a rectangle. Open-air grass zones are no longer drawn; a `GroundDisc` (grass disc, lighter ring, thickness) sized from the plot replaces the old oversized island. Navigation zones are untouched.
+- New test: `tests-browser/test_lighting_camera.py`.

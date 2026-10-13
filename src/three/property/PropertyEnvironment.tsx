@@ -23,6 +23,7 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
   }, [kind, w, d]);
   const cx = (zone.x0 + zone.x1) / 2, cz = (zone.z0 + zone.z1) / 2;
   if (zone.kind === 'parking') return null; // drawn by ParkingPad
+  if (!zone.indoor && zone.floor === 'grass') return null; // open-air grass is the round ground disc (GroundDisc), never a square patch
   if (zone.floor === 'water') return <Water size={[w, d]} position={[cx, -0.12, cz]} />;
   return (
     <group>
@@ -36,6 +37,29 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
 }
 
 const BOX = new BoxGeometry(1, 1, 1);
+
+/**
+ * The round ground the home sits on: a grass disc with a lighter outer ring and a little thickness, centred on the house.
+ * Radius comes from the farthest corner of the plot (house + entrance + parking bays) plus a margin, so every home and every
+ * parking layout stays on the grass while the edge stays visible as a circle. Zones only describe where things are; the
+ * ground itself is not drawn from them.
+ */
+function GroundDisc({ layout }: { layout: PropertyLayout }) {
+  const hb = houseBounds(layout), p = layout.plot;
+  const radius = useMemo(() => {
+    let far = 0;
+    for (const x of [p.x0, p.x1]) for (const z of [p.z0, p.z1]) far = Math.max(far, Math.hypot(x - hb.cx, z - hb.cz));
+    return far + 3;
+  }, [p.x0, p.x1, p.z0, p.z1, hb.cx, hb.cz]);
+  const grass = useMemo(() => { const t = floorTexture('grass').clone(); t.repeat.set(radius / 3, radius / 3); t.needsUpdate = true; return t; }, [radius]);
+  return (
+    <group position={[hb.cx, 0, hb.cz]}>
+      <mesh position={[0, -0.3, 0]} receiveShadow><cylinderGeometry args={[radius + 0.9, radius + 0.9, 0.5, 96]} /><meshStandardMaterial color="#8C8268" roughness={1} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow><circleGeometry args={[radius + 0.9, 96]} /><meshStandardMaterial color="#B9CC9C" roughness={1} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow><circleGeometry args={[radius, 96]} /><meshStandardMaterial map={grass} color="#E4F0D2" roughness={1} /></mesh>
+    </group>
+  );
+}
 
 /**
  * Compact parking pad beside the house (MVP look): a low tan slab with a green inset, one pad for all bays, flush with the
@@ -121,12 +145,9 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
   const { plot } = layout;
   const sky = useMemo(() => skylineTexture(), []);
   const cx = (plot.x0 + plot.x1) / 2, cz = (plot.z0 + plot.z1) / 2;
-  const hb = houseBounds(layout), island = hb.w * 0.95 + 8;
   return (
     <group>
-      {/* grass island like the MVP: a soft disc around the house, the sky colour beyond it */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.22, hb.cz]} receiveShadow><circleGeometry args={[island * 1.35, 72]} /><meshStandardMaterial color="#C6D3AB" roughness={1} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.2, hb.cz]} receiveShadow><circleGeometry args={[island, 72]} /><meshStandardMaterial color="#B2C796" roughness={1} /></mesh>
+      <GroundDisc layout={layout} />
       {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} layout={layout} />)}
       <ParkingPad layout={layout} />
       <Rim layout={layout} />

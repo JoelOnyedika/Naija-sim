@@ -197,6 +197,28 @@ A state scene is a React component `({ state }) => JSX`. Lagos's is `content/lag
 - Performance: building blocks on the map are one `InstancedMesh`; textures are cached and cloned only to set repeat; the property canvas runs `frameloop: 'demand'` while the map is open; shadow map 1024; DPR capped at 1.75. Water is a tiny shader.
 - Dispose: R3F disposes geometries/materials on unmount. Cached canvas textures are intentionally long-lived.
 
+### Graphics tiers and lighting (`stores/qualityStore.ts`, `three/property/PerfGovernor.tsx`, `Lighting.tsx`)
+
+`PerfGovernor` measures real frame times and steps the tier down (and, after a long stable stretch, back up). A tier may only change **resolution and shadows** (`dprCap`, `shadows`). **Room lights and lamp glow are never tier-dependent**: `nightLights` is `true` in every tier. History: the old `minimal` tier switched the room point lights off, so on slower phones the interior looked great for a few seconds and then went flat once the governor reached that tier. If you add a tier, keep `nightLights: true`; if a device is too slow for the lights, reduce `MAX_ROOM_LIGHTS` in `Lighting.tsx` instead, not the look. The test that guards this is in section 17.
+
+### Property camera: rotate, tilt, zoom (`stores/cameraStore.ts`, `three/property/CameraRig.tsx`)
+
+The camera orbits a **fixed look-at point** (the house centre); it never slides. `cameraStore` is the single source of truth and the rig only follows it.
+
+| Input | Effect | Limits |
+| --- | --- | --- |
+| Horizontal drag / swipe | Rotates around the house | +-90 degrees of the current button orientation |
+| Rotate button | Adds exactly 90 degrees, resets the swipe offset | none (unwrapped steps) |
+| **Vertical drag / swipe** | **Tilts the camera**: finger down = more top-down, finger up = lower, more side-on | `POLAR_MIN` 0.7 .. `POLAR_MAX` 1.2 rad from straight up |
+| Mouse wheel | Same tilt, smaller steps | same |
+| Pinch / ctrl + wheel | Zoom | `ZOOM_MIN` 0.7 .. `ZOOM_MAX` 1.3 |
+
+Tweaking: the tilt range is `POLAR_MIN` / `POLAR_MAX` and the default elevation is `DEFAULT_POLAR` (all in `cameraStore.ts`); drag sensitivity is `TILT_RAD_PER_PX` in `CameraRig.tsx` (wheel: the `0.0008` factor); easing speed is the `12` in the `curPolar` line. A new home calls `reset()`, so tilt returns to the default. The current elevation is mirrored into `editorStore.cameraPolar` every frame (build mode and the roof-hiding check read it). `PAN_RANGE` / `panBy` no longer exist; the earlier "slide the view up and down" behaviour was removed on request.
+
+### Ground (`three/property/PropertyEnvironment.tsx`, `GroundDisc`)
+
+The home sits on a **round** grass disc (a lighter outer ring and a little thickness under it), centred on the house. Its radius is the distance to the farthest plot corner (house, entrance, parking bays) plus 3 m, so every layout and parking arrangement stays on grass and the edge is visible as a circle. Open-air grass zones (the `entry` compound zone) are **not drawn as rectangles**: zones still describe where things are and what is walkable, but the ground is only ever drawn by `GroundDisc`. Do not add square ground meshes.
+
 ## 13. Audio
 
 `audio/sfx.ts` synthesises every sound (click, pop, open/close, notify, purchase, error, tick, reward, phone open/close, spin, win, lose, coin) with WebAudio; `audio/music.ts` plays a small generative loop. Browsers require a user gesture before audio, so music starts after the first tap (`hooks/useMusicSync.ts`). Both respect `settingsStore`. To use real files, keep the same function names and play an `HTMLAudioElement`/`AudioBuffer` inside.
@@ -229,3 +251,7 @@ Replace these seams, nothing else needs to change:
 - Wall-mounted items only attach to the back/left tall walls.
 - Mock systems: betting, family bonds (screen-local), staff effects, company income, police, investments.
 - Bundle is ~1.3 MB (three.js). Split with dynamic `import()` for the map scene if load time matters.
+
+## 17. Tests
+
+`tests-browser/test_lighting_camera.py` (run with `./run.sh test_lighting_camera.py`) guards three things: every graphics tier keeps `nightLights: true` and the scene is not duller at the lowest tier; a vertical drag tilts the camera to exactly `POLAR_MIN` / `POLAR_MAX` and no further; no page errors. Software rendering cannot reproduce a real phone's frame rate, so the test forces the lowest tier directly instead of waiting for the governor.
