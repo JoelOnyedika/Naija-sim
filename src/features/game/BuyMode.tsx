@@ -8,6 +8,7 @@ import { FURNITURE, ITEM_CATEGORIES, RARITY_COLOR, getFurniture, type ItemCatego
 import { FINISH_TABS, FLOORS, WALLS, getFinish, type FinishDef } from '@/data/finishes';
 import { useFinishStore } from '@/stores/finishStore';
 import { applyFinish, cancelFinishPreview, finishCost, previewFinish } from '@/game/finishes';
+import { roomsOf } from '@/world/layoutGeometry';
 import { getActiveHome } from '@/game/active';
 import { beginPlace, cancelDraft, confirmDraft, exitBuild, nudgeDraft, rotateDraft, sellItem, storeItem } from '@/game/buy';
 import { useEconomyStore } from '@/stores/economyStore';
@@ -106,13 +107,25 @@ function FinishGrid({ tab }: { tab: 'floors' | 'walls' }) {
   const money = useEconomyStore((s) => s.money);
   const home = getActiveHome();
   const kind = tab === 'floors' ? 'floor' : 'wall';
-  const current = home ? applied[home.property.id]?.[kind] : undefined;
+  const room = useFinishStore((s) => s.floorRoom);
+  const rooms = home ? roomsOf(home.layout) : [];
+  const ap = home ? applied[home.property.id] : undefined;
+  const current = tab === 'floors' ? (room === 'all' ? ap?.floor : ap?.rooms?.[room]) : ap?.wall;
   const items: FinishDef[] = tab === 'floors' ? FLOORS : WALLS;
+  const chip = (id: string, label: string) => (
+    <button key={id} onClick={() => useFinishStore.getState().setFloorRoom(id)} aria-pressed={room === id} className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ${room === id ? 'bg-accent text-white ring-accent' : 'bg-white/[0.08] text-white/80 ring-white/10'}`}>{label}</button>
+  );
   return (
     <>
-      <p className="col-span-full -mb-0.5 text-[11.5px] text-white/55">{tab === 'floors' ? 'Applies to every interior floor in this home.' : 'Applies to every interior wall in this home. Outside walls stay as they are.'}</p>
+      {tab === 'floors' && (
+        <div className="col-span-full -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {chip('all', 'Living & bedrooms')}
+          {rooms.map((r) => chip(r.id, r.label + (rooms.filter((q) => q.label === r.label).length > 1 ? ` ${rooms.filter((q) => q.label === r.label).indexOf(r) + 1}` : '')))}
+        </div>
+      )}
+      <p className="col-span-full -mb-0.5 text-[11.5px] text-white/55">{tab === 'floors' ? (room === 'all' ? 'Applies to the living areas and bedrooms. Kitchen and bathroom floors stay as they are.' : 'Applies to the chosen room only.') : 'Applies to every interior wall in this home. Outside walls stay as they are.'}</p>
       {items.map((f) => {
-        const isOwned = owned.includes(f.id) || f.price === 0, on = preview[kind] === f.id, worn = (current ?? (tab === 'floors' ? 'floor_cement' : undefined)) === f.id;
+        const isOwned = owned.includes(f.id) || f.price === 0, on = preview[kind] === f.id, worn = current === f.id;
         return (
           <button key={f.id} onClick={() => previewFinish(f.id)} aria-pressed={on} className={`panel-solid relative flex flex-col items-center rounded-lg border-t-2 p-2 text-center active:scale-95 ${on ? 'border-accent ring-2 ring-accent' : 'border-white/10'}`}>
             <span className="h-9 w-full rounded-md ring-1 ring-white/15" style={{ background: f.swatch }} />
@@ -130,7 +143,9 @@ function FinishGrid({ tab }: { tab: 'floors' | 'walls' }) {
 function FinishBar({ id }: { id: string }) {
   const def = getFinish(id);
   const money = useEconomyStore((s) => s.money);
-  const homeName = getActiveHome()?.property.name ?? 'this home';
+  const home = getActiveHome(), homeName = home?.property.name ?? 'this home';
+  const scope = useFinishStore((s) => s.preview.floorRoom ?? 'all');
+  const floorScope = scope === 'all' ? 'Living areas & bedrooms' : home ? roomsOf(home.layout).find((r) => r.id === scope)?.label ?? 'One room' : 'One room';
   if (!def) return null;
   const cost = finishCost(id);
   const afford = money >= cost;
@@ -141,7 +156,7 @@ function FinishBar({ id }: { id: string }) {
           <span className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/20" style={{ background: def.swatch }} />
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-[15px] font-bold leading-tight">{def.name}</div>
-            <div className="text-[11.5px] text-white/60">{def.kind === 'floor' ? 'All interior floors' : 'All interior walls'} · {homeName}</div>
+            <div className="text-[11.5px] text-white/60">{def.kind === 'floor' ? floorScope : 'All interior walls'} · {homeName}</div>
           </div>
           <div className={`font-display text-[15px] font-extrabold ${cost === 0 ? 'text-accent-glow' : afford ? 'text-danfo' : 'text-rose-300'}`}>{cost === 0 ? 'Free' : formatNaira(cost)}</div>
         </div>

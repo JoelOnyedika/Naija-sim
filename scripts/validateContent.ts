@@ -7,7 +7,7 @@ import { HOUSE_TIERS } from '../src/world/layoutBuilders';
 import { LIFE_TYPES } from '../src/data/lifeTypes';
 import { getFurniture } from '../src/data/items';
 import { registerContent } from '../src/content';
-import { carSlots, doorClearances, mainRoomCount, wallPieces, windowsOnPiece } from '../src/world/layoutGeometry';
+import { carSlots, doorClearances, mainRoomCount, roomsOf, wallPieces, windowsOnPiece } from '../src/world/layoutGeometry';
 import { BAY_LENGTH, BAY_WIDTH } from '../src/world/garage';
 import { findFreeSpot, fixturesOf, validatePlacement } from '../src/world/placement';
 import { getLayout, getProperty, listStates } from '../src/world/registry';
@@ -114,7 +114,7 @@ for (const state of listStates()) {
     const tierOf = Object.values(HOUSE_TIERS).find((t) => Math.abs(t.size - (bx1 - bx0)) < 1e-6);
     if (!tierOf) err(`${tag}: footprint ${(bx1 - bx0).toFixed(2)} is not one of the tier sizes 12/14/16/18/20`);
     else {
-      if (slots.length !== 2) err(`${tag}: every home has a two-car carport, layout has ${slots.length} bays`);
+      if (slots.length !== tierOf.parkingBays) err(`${tag}: ${tierOf.label} needs ${tierOf.parkingBays} bay(s), layout has ${slots.length}`);
       if (tierOf.id === 1 && layout.windows.length !== 1) err(`${tag}: Lapo Baby homes must have exactly one window, has ${layout.windows.length}`);
       console.log(`  ${tag}: ${tierOf.label} ${(bx1 - bx0).toFixed(2)} x ${(bz1 - bz0).toFixed(2)}, ${slots.length} bays, ${layout.windows.length} windows`);
     }
@@ -124,6 +124,28 @@ for (const state of listStates()) {
       if (bayZones.some((z) => Math.abs(z.z1 - bz1) > 1e-6)) err(`${tag}: bays are not aligned with the front edge`);
       for (let i = 1; i < bayZones.length; i++) if (Math.abs(bayZones[i].x0 - bayZones[i - 1].x1) > 1e-6) err(`${tag}: bays are not side by side`);
       if (bayZones.some((z) => z.z0 < bz0 - 1e-6)) err(`${tag}: carport sticks out behind the house`);
+    }
+    // floor-plan balance: rooms keep sensible proportions and living space does not swallow the house
+    {
+      const rooms = roomsOf(layout), area = (r: { zoneIds: string[] }) => r.zoneIds.reduce((a, id) => { const z = layout.zones.find((q) => q.id === id)!; return a + (z.x1 - z.x0) * (z.z1 - z.z0); }, 0);
+      const total = (bx1 - bx0) * (bz1 - bz0);
+      const living = rooms.filter((r) => r.kind === 'living').reduce((a, r) => a + area(r), 0);
+      const line = rooms.map((r) => `${r.label} ${area(r).toFixed(0)}`).join(', ');
+      if (rooms.length > 2) console.log(`    rooms (m²): ${line}; living ${(100 * living / total).toFixed(0)}%`);
+      if (rooms.length > 2 && living / total > 0.75) err(`${tag}: living areas take ${(100 * living / total).toFixed(0)}% of the floor`);
+      for (const r of rooms) {
+        if (r.kind === 'living') continue;
+        const zs = r.zoneIds.map((id) => layout.zones.find((q) => q.id === id)!);
+        const w = Math.max(...zs.map((z) => z.x1 - z.x0)), d = Math.max(...zs.map((z) => z.z1 - z.z0));
+        if (Math.min(w, d) < (r.kind === 'bathroom' ? 2.8 : 3.5)) err(`${tag}: ${r.label} is only ${Math.min(w, d).toFixed(1)} m across`);
+        if (Math.max(w, d) / Math.min(w, d) > 2.2) err(`${tag}: ${r.label} is a narrow strip (${w.toFixed(1)} x ${d.toFixed(1)})`);
+      }
+      const beds = rooms.filter((r) => r.kind === 'bedroom').map(area);
+      if (beds.length && Math.max(...beds) > 0.2 * total) err(`${tag}: a bedroom takes more than 20% of the floor`);
+      // floors: kitchens share one material, bathrooms another
+      const fl = (k: string) => new Set(layout.zones.filter((z) => z.kind === k).map((z) => z.floor));
+      if (fl('kitchen').size > 1 || (fl('kitchen').size === 1 && !fl('kitchen').has('ceramic'))) err(`${tag}: kitchens must all use ceramic`);
+      if (fl('bathroom').size > 1 || (fl('bathroom').size === 1 && !fl('bathroom').has('diamond'))) err(`${tag}: bathrooms must all use diamond tile`);
     }
     // cutaway: no wall on the camera-facing sides (front z = bz1 and right x = bx1)
     for (const pc of pieces) if ((pc.o === 'h' && Math.abs(pc.c - bz1) < 1e-6) || (pc.o === 'v' && Math.abs(pc.c - bx1) < 1e-6)) err(`${tag}: wall left on the camera-facing side (${pc.o}=${pc.c})`);

@@ -11,12 +11,11 @@ import { Water } from '../world/Water';
 import { DecorItem } from './Decor';
 import { Fence } from './Fence';
 import { Walls } from './Walls';
-import { isFinishable, useHomeFinishes } from './useHomeFinishes';
+import { useZoneFloor } from './useHomeFinishes';
 
-function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
+function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
   const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0;
-  const fin = useHomeFinishes(propertyId).floor;
-  const finish = isFinishable(zone) ? fin : undefined;
+  const finish = useZoneFloor(layout, zone);
   const kind = finish?.floor ?? zone.floor;
   const tex = useMemo(() => {
     if (kind === 'water') return null;
@@ -30,7 +29,7 @@ function ZoneFloor({ zone, propertyId }: { zone: Zone; propertyId: string }) {
       {zone.indoor && <mesh position={[cx, -0.08, cz]} receiveShadow><boxGeometry args={[w, 0.16, d]} /><meshStandardMaterial color="#B9AD94" roughness={1} /></mesh>}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.003, cz]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial map={tex ?? undefined} color={finish?.tint ?? '#ffffff'} roughness={finish?.rough ?? (kind === 'marble' ? 0.25 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
+        <meshStandardMaterial map={tex ?? undefined} color={finish?.tint ?? '#ffffff'} roughness={finish?.rough ?? (kind === 'marble' ? 0.25 : kind === 'ceramic' || kind === 'diamond' ? 0.3 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
       </mesh>
     </group>
   );
@@ -46,8 +45,10 @@ const BOX = new BoxGeometry(1, 1, 1);
 const PAD_BORDER = new MeshStandardMaterial({ color: '#A89A84', roughness: 0.95 });
 const PAD_INSET = new MeshStandardMaterial({ color: '#8FB08C', roughness: 0.95 });
 const PAD_H = 0.1;
+const CAR_SCALE = 0.6; // placeholder cars are drawn small so they fit the compact bays
 function ParkingPad({ layout }: { layout: PropertyLayout }) {
-  const b = carportBounds(layout);
+  const owned = useVehicleStore((s) => s.owned.length);
+  const b = carportBounds(layout, owned); // only the bays that hold a car; no car, no pad
   if (!b) return null;
   const w = b.x1 - b.x0, d = b.z1 - b.z0, e = 0.22;
   return (
@@ -82,8 +83,8 @@ function parkingTexture() {
   return pTex;
 }
 function ParkingSign({ layout }: { layout: PropertyLayout }) {
-  const pos = parkingSignPos(layout);
   const owned = useVehicleStore((s) => s.owned.length);
+  const pos = owned > 0 ? parkingSignPos(layout, owned) : null;
   const extra = Math.max(0, owned - carSlots(layout).length);
   if (!pos) return null;
   return (
@@ -109,7 +110,7 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
       {owned.slice(0, slots.length).map((id, i) => {
         const v = getVehicle(id); const s = slots[i];
         if (!v) return null;
-        return <group key={id} position={[s.x, PAD_H, s.z]} rotation={[0, s.rotation, 0]}><Vehicle body={v.type} color={v.color} /></group>;
+        return <group key={id} position={[s.x, PAD_H, s.z]} rotation={[0, s.rotation, 0]} scale={CAR_SCALE}><Vehicle body={v.type} color={v.color} /></group>;
       })}
     </group>
   );
@@ -126,7 +127,7 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       {/* grass island like the MVP: a soft disc around the house, the sky colour beyond it */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.22, hb.cz]} receiveShadow><circleGeometry args={[island * 1.35, 72]} /><meshStandardMaterial color="#C6D3AB" roughness={1} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hb.cx, -0.2, hb.cz]} receiveShadow><circleGeometry args={[island, 72]} /><meshStandardMaterial color="#B2C796" roughness={1} /></mesh>
-      {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} propertyId={layout.id} />)}
+      {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} layout={layout} />)}
       <ParkingPad layout={layout} />
       <Rim layout={layout} />
       <Walls layout={layout} />

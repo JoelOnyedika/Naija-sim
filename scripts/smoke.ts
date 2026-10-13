@@ -16,7 +16,9 @@ import { useStatsStore } from '../src/stores/statsStore';
 import { useVehicleStore } from '../src/stores/vehicleStore';
 import { useTaskStore } from '../src/stores/taskStore';
 import { usePropertyStore } from '../src/stores/propertyStore';
-import { carSlots } from '../src/world/layoutGeometry';
+import { carSlots, roomIdByZone, roomsOf } from '../src/world/layoutGeometry';
+import { floorIdForZone, useFinishStore } from '../src/stores/finishStore';
+import { applyFinish, previewFinish } from '../src/game/finishes';
 
 registerContent();
 let fails = 0;
@@ -181,6 +183,27 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
   ok(JSON.stringify(after) === JSON.stringify(before), `moving back restores the home exactly (${after.length} items)`);
   ok(JSON.stringify(useInventoryStore.getState().items) === JSON.stringify(invBefore), 'storage is back to what it was');
   ok((usePropertyStore.getState().furniture['lagos.3-bedroom-flat-ikeja'] ?? []).length === 0 || true, 'other home emptied on leaving');
+}
+
+// ── per-room floors: one room changes alone; kitchens and bathrooms never follow the home-wide floor
+{
+  startNewLife('nepo');
+  useEconomyStore.getState().credit(900_000_000, 'test');
+  const home = getActiveHome()!, layout = home.layout, rooms = roomsOf(layout), ids = roomIdByZone(layout);
+  const zoneOf = (kind: string, n = 0) => layout.zones.filter((z) => z.kind === kind)[n];
+  const idFor = (z: { id: string; kind: string }) => floorIdForZone(useFinishStore.getState().byProperty[layout.id], useFinishStore.getState().preview, ids.get(z.id), z.kind);
+  const bed1 = rooms.find((r) => r.kind === 'bedroom')!, bed2 = rooms.filter((r) => r.kind === 'bedroom')[1];
+  useFinishStore.getState().setFloorRoom(bed1.id);
+  previewFinish('floor_wood_light'); ok(applyFinish('floor').ok, 'wood floor applied to bedroom 1');
+  ok(idFor(layout.zones.find((z) => z.id === bed1.id)!) === 'floor_wood_light', 'bedroom 1 wears the wood');
+  ok(idFor(layout.zones.find((z) => z.id === bed2.id)!) === undefined, 'bedroom 2 unchanged');
+  ok(idFor(zoneOf('kitchen')) === undefined && idFor(zoneOf('bathroom')) === undefined, 'kitchen and bathroom unchanged');
+  useFinishStore.getState().setFloorRoom('all');
+  previewFinish('floor_terrazzo'); ok(applyFinish('floor').ok, 'home-wide floor applied');
+  ok(idFor(zoneOf('kitchen')) === undefined && idFor(zoneOf('bathroom')) === undefined, 'home-wide floor skips kitchen and bathroom');
+  ok(idFor(layout.zones.find((z) => z.id === bed2.id)!) === 'floor_terrazzo', 'other bedroom follows the home-wide floor');
+  ok(idFor(layout.zones.find((z) => z.id === bed1.id)!) === 'floor_terrazzo', 'home-wide floor resets rooms that had their own');
+  useFinishStore.getState().setFloorRoom('all');
 }
 
 console.log(fails ? `\n${fails} FAILED` : '\nAll smoke checks passed');

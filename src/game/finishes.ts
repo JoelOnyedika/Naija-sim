@@ -3,6 +3,7 @@ import { getFinish, type FinishKind } from '@/data/finishes';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useFinishStore } from '@/stores/finishStore';
 import { toast, useUiStore } from '@/stores/uiStore';
+import { roomsOf } from '@/world/layoutGeometry';
 import { getActiveHome } from './active';
 
 /** Try a finish on the active home. Free, reversible, never saved. */
@@ -27,12 +28,18 @@ export function applyFinish(kind: FinishKind): { ok: boolean; error?: string } {
   const id = useFinishStore.getState().preview[kind];
   const def = id ? getFinish(id) : undefined;
   if (!home || !id || !def || def.kind !== kind) return { ok: false, error: 'Nothing selected.' };
-  if (useFinishStore.getState().byProperty[home.property.id]?.[kind] === id) { useFinishStore.getState().clearPreview(); return { ok: true }; }
+  const scope = kind === 'floor' ? (useFinishStore.getState().preview.floorRoom ?? 'all') : 'all';
+  const cur = useFinishStore.getState().byProperty[home.property.id];
+  const same = kind === 'floor' && scope !== 'all' ? cur?.rooms?.[scope] === id : cur?.[kind] === id;
+  if (same) { useFinishStore.getState().clearPreview(); return { ok: true }; }
   const cost = finishCost(id);
   if (cost > 0 && !useEconomyStore.getState().debit(cost, def.name, 'purchase')) { sfx.error(); toast('Your money no reach for that finish.', 'bad'); return { ok: false, error: 'Not enough money.' }; }
   if (cost > 0) useUiStore.getState().addSpent(cost);
-  useFinishStore.getState().commit(home.property.id, kind, id);
+  // 'all' = living areas and bedrooms; the rooms that had their own floor go back to following it
+  const sharedRooms = roomsOf(home.layout).filter((r) => r.kind !== 'kitchen' && r.kind !== 'bathroom').map((r) => r.id);
+  useFinishStore.getState().commit(home.property.id, kind, id, scope, sharedRooms);
   sfx.purchase();
-  toast(`${def.name} applied to ${home.property.name}.`, 'good');
+  const roomLabel = scope === 'all' ? home.property.name : roomsOf(home.layout).find((r) => r.id === scope)?.label ?? home.property.name;
+  toast(`${def.name} applied to ${roomLabel}.`, 'good');
   return { ok: true };
 }

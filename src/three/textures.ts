@@ -50,6 +50,22 @@ export function floorTexture(kind: FloorKind): CanvasTexture {
       for (let v = 0; v < 14; v++) { ctx.strokeStyle = `rgba(110,112,120,${0.07 + r() * 0.16})`; ctx.lineWidth = 0.6 + r() * 1.8; ctx.beginPath(); let x = r() * n, y = -10; ctx.moveTo(x, y); while (y < n + 10) { x += (r() - 0.5) * 70; y += 20 + r() * 30; ctx.lineTo(x, y); } ctx.stroke(); }
       ctx.strokeStyle = 'rgba(165,150,115,0.5)'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, n, n);
       ctx.beginPath(); ctx.moveTo(n / 2, 0); ctx.lineTo(n / 2, n); ctx.moveTo(0, n / 2); ctx.lineTo(n, n / 2); ctx.stroke();
+    } else if (kind === 'ceramic') {
+      // consistent white ceramic tiles (kitchens)
+      const t = n / 4;
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { ctx.fillStyle = `hsl(210, 8%, ${95 + r() * 2}%)`; ctx.fillRect(i * t, j * t, t, t); }
+      ctx.strokeStyle = '#CDD2D6'; ctx.lineWidth = 3;
+      for (let i = 0; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(i * t, 0); ctx.lineTo(i * t, n); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, i * t); ctx.lineTo(n, i * t); ctx.stroke(); }
+    } else if (kind === 'diamond') {
+      // pale glossy diamond-patterned tile (bathrooms)
+      ctx.fillStyle = '#D9E8EE'; ctx.fillRect(0, 0, n, n);
+      const t = n / 4;
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        const cx = i * t + t / 2, cy = j * t + t / 2;
+        ctx.fillStyle = (i + j) % 2 ? '#C4DCE6' : '#E9F3F6';
+        ctx.beginPath(); ctx.moveTo(cx, cy - t / 2); ctx.lineTo(cx + t / 2, cy); ctx.lineTo(cx, cy + t / 2); ctx.lineTo(cx - t / 2, cy); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#A9C3CF'; ctx.lineWidth = 2; ctx.stroke();
+      }
     } else if (kind === 'terrazzo') {
       ctx.fillStyle = '#D8D2C4'; ctx.fillRect(0, 0, n, n);
       const cols = ['#B8862F', '#6F8F7A', '#A24A3A', '#F2EEE6', '#3B3F44'];

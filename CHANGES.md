@@ -43,5 +43,11 @@
 - Camera copied from the MVP (`lagos-life-3d`): azimuth 0.62, polar 1.0, distance `(span * 1.15 + 3.2)` with a wider factor on portrait screens, target at 30% of wall height. Same for every home. Swipe limits and the 90 degree button are unchanged.
 - Parking is a small low pad (tan border, green inset) beside the house with the placeholder cars on it and a P sign behind; no canopy, no paved plot. Ground is a soft grass island; the open front/right edges get a thin trim rim instead of walls.
 
+## Final pass: floor plans, per-room floors, small parking pad, camera pan
+- Homes 3-6 redrawn so rooms no longer sit in rows: bedrooms at offset corners, WC/kitchen tucked in, living areas wrap round as L-shapes (open-plan zones merge into one room). Home 1 stays one open room; home 2 keeps only its WC corner. Footprints unchanged. `validate:content` now prints room areas and fails on a strip-like room, a bedroom over 20% of the floor, or living over 75%.
+- Floors: kitchens are always white ceramic, bathrooms/WCs pale diamond tile. The Floors picker has a room chip row: "Living & bedrooms" (home-wide, skips kitchen and bathrooms) or any single room. Stored per room in `finishStore` (`rooms`), resolved per zone by `floorIdForZone`.
+- Parking: homes 1-3 have one bay, 4-6 two. The pad, cars and P sign only exist while the player owns a car (one pad bay per car, up to the bays); no car = no pad. Bays are 2.0 x 3.6 and the placeholder cars are drawn at 0.6 scale.
+- Camera: a vertical swipe now slides the view up or down a little (clamped, `PAN_RANGE` in `cameraStore`); elevation is still fixed.
+
 ## Not done yet
 GLB vehicle loader, investment upgrades, free-angle furniture rotation.

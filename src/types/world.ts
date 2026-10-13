@@ -8,7 +8,7 @@ export type ZoneKind =
   | 'balcony' | 'terrace' | 'garage' | 'parking' | 'compound' | 'garden'
   | 'waterfront' | 'neighbour' | 'security';
 
-export type FloorKind = 'cement' | 'tile' | 'wood' | 'marble' | 'terrazzo' | 'paving' | 'grass' | 'concrete' | 'water' | 'dirt';
+export type FloorKind = 'cement' | 'tile' | 'wood' | 'marble' | 'terrazzo' | 'paving' | 'grass' | 'concrete' | 'water' | 'dirt' | 'ceramic' | 'diamond';
 
 /** A rectangular area of a property (a room, a yard, a garage bay row...). x = east, z = south. */
 export interface Zone {

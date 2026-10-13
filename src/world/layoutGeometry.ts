@@ -90,6 +90,29 @@ export function windowsOnPiece(layout: PropertyLayout, p: WallPiece): WindowSpec
  */
 export interface CarSlot { id: string; x: number; z: number; rotation: number; width: number; length: number; zoneId: string; covered: boolean }
 
+/** A room as the player sees it: open-plan zones of the same kind merged. `id` (the first zone's id) keys its floor finish. */
+export interface Room { id: string; label: string; kind: Zone['kind']; zoneIds: string[] }
+export function roomsOf(layout: PropertyLayout): Room[] {
+  const ind = layout.zones.filter((z) => z.indoor);
+  const parent = new Map(ind.map((z) => [z.id, z.id]));
+  const find = (id: string): string => { const p = parent.get(id)!; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
+  const kindOf = new Map(ind.map((z) => [z.id, z.kind]));
+  for (const c of layout.connections) if (c.open && parent.has(c.a) && parent.has(c.b) && kindOf.get(c.a) === kindOf.get(c.b)) parent.set(find(c.b), find(c.a));
+  const rooms = new Map<string, Room>();
+  for (const z of ind) {
+    const root = find(z.id);
+    const r = rooms.get(root) ?? rooms.set(root, { id: z.id, label: z.label, kind: z.kind, zoneIds: [] }).get(root)!;
+    r.zoneIds.push(z.id);
+  }
+  return [...rooms.values()];
+}
+/** Room id (first zone id of its room) for every indoor zone id. */
+export function roomIdByZone(layout: PropertyLayout): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const r of roomsOf(layout)) for (const id of r.zoneIds) m.set(id, r.id);
+  return m;
+}
+
 /** Parking positions: one slot per open bay zone, in the order the layout lists them (left to right). */
 export function carSlots(layout: PropertyLayout): CarSlot[] {
   return layout.zones
@@ -98,8 +121,8 @@ export function carSlots(layout: PropertyLayout): CarSlot[] {
 }
 
 /** Where the parking sign stands: behind the cars at the outer rear corner of the pad. Null if no bays. */
-export function parkingSignPos(layout: PropertyLayout): { x: number; z: number } | null {
-  const bays = layout.zones.filter((z) => z.kind === 'parking');
+export function parkingSignPos(layout: PropertyLayout, count = Infinity): { x: number; z: number } | null {
+  const bays = layout.zones.filter((z) => z.kind === 'parking').sort((p, q) => p.x0 - q.x0).slice(0, count);
   if (!bays.length) return null;
   return { x: Math.max(...bays.map((b) => b.x1)) + 0.25, z: Math.min(...bays.map((b) => b.z0)) + 0.3 };
 }
@@ -111,9 +134,9 @@ export function houseBounds(layout: PropertyLayout) {
   const z0 = Math.min(...ind.map((z) => z.z0)), z1 = Math.max(...ind.map((z) => z.z1));
   return { x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0 };
 }
-/** Axis-aligned box of the carport (all parking bays), or null. */
-export function carportBounds(layout: PropertyLayout) {
-  const b = layout.zones.filter((z) => z.kind === 'parking');
+/** Axis-aligned box of the first `bays` parking bays (default all), or null. The pad is only drawn for bays that hold a car. */
+export function carportBounds(layout: PropertyLayout, bays = Infinity) {
+  const b = layout.zones.filter((z) => z.kind === 'parking').sort((p, q) => p.x0 - q.x0).slice(0, bays);
   if (!b.length) return null;
   return { x0: Math.min(...b.map((z) => z.x0)), x1: Math.max(...b.map((z) => z.x1)), z0: Math.min(...b.map((z) => z.z0)), z1: Math.max(...b.map((z) => z.z1)) };
 }

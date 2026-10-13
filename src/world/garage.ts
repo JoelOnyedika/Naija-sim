@@ -8,8 +8,8 @@ import type { CarSlot } from './layoutGeometry';
  * model's own bounding box, so a GLB whose origin is at its centre, a wheel or a corner still ends up centred in the
  * bay, standing on the ground and inside the bay lines.
  */
-export const BAY_WIDTH = 2.8;   // across the car (m)
-export const BAY_LENGTH = 5.5;  // along the car (m)
+export const BAY_WIDTH = 2.0;   // across the car (m)
+export const BAY_LENGTH = 3.6;  // along the car (m)
 export const BAY_MARGIN = 0.15; // clearance kept between a shrunk model and the bay lines (m)
 
 /** Local-space bounding box of a model at scale 1, e.g. from `new Box3().setFromObject(gltf.scene)`. */
