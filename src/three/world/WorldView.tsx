@@ -9,7 +9,7 @@ import { getScene } from './sceneRegistry';
 interface Props {
   stateId: string;
   mode: 'landing' | 'map';
-  selected?: { type: 'landmark' | 'area'; id: string } | null;
+  selected?: { type: 'landmark' | 'area'; id: string } | { type: 'point'; x: number; z: number } | null;
   onSelectLandmark?: (id: string) => void;
   onSelectArea?: (id: string) => void;
   /** Dim and slow down (used behind login/signup). */
@@ -25,7 +25,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
 
   useEffect(() => {
     const c = state.mapData.center;
-    const r = mode === 'landing' ? 52 : 46;
+    const r = mode === 'landing' ? 72 : 66;
     camera.position.set(c[0] + r * 0.55, r * 0.7, c[1] + r * 0.75);
     focus.current.set(c[0], 0, c[1]);
     controls.current?.target.copy(focus.current);
@@ -34,9 +34,10 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
 
   useEffect(() => {
     if (!selected) { focus.current.set(state.mapData.center[0], 0, state.mapData.center[1]); return; }
-    const pos = selected.type === 'landmark'
-      ? state.mapData.landmarks.find((l) => l.id === selected.id)?.position
-      : state.areas.find((a) => a.id === selected.id)?.mapData.position;
+    const pos = selected.type === 'point' ? ([selected.x, selected.z] as [number, number])
+      : selected.type === 'landmark'
+        ? state.mapData.landmarks.find((l) => l.id === selected.id)?.position
+        : state.areas.find((a) => a.id === selected.id)?.mapData.position;
     if (pos) focus.current.set(pos[0], 0, pos[1]);
   }, [selected, state]);
 
@@ -51,7 +52,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
       ref={controls} makeDefault enableDamping dampingFactor={0.1}
       autoRotate={mode === 'landing'} autoRotateSpeed={calm ? 0.25 : 0.45}
       enableZoom={mode === 'map'} enablePan={mode === 'map'} enableRotate
-      minDistance={14} maxDistance={70} minPolarAngle={0.5} maxPolarAngle={1.22}
+      minDistance={14} maxDistance={130} minPolarAngle={0.5} maxPolarAngle={1.22}
     />
   );
 }
@@ -77,6 +78,11 @@ function Markers({ stateId, selected, onSelectLandmark, onSelectArea, showAreas 
           </Html>
         );
       })}
+      {showAreas && (state.mapData.layout?.slabs ?? []).filter((s) => s.label).map((s) => (
+        <Html key={s.id} position={[s.cx, 0.4, s.cz]} center zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}>
+          <span className="whitespace-nowrap rounded-full bg-night/70 px-2 py-0.5 text-[10px] font-bold text-white/85 backdrop-blur">{s.label}</span>
+        </Html>
+      ))}
       {showAreas && state.areas.map((a) => (
         <Html key={a.id} position={[a.mapData.position[0], 0.6, a.mapData.position[1]]} center zIndexRange={[10, 0]}>
           <button onClick={(e) => { e.stopPropagation(); onSelectArea?.(a.id); }} className={`rounded-full px-2.5 py-1 text-[11px] font-bold shadow-glass backdrop-blur ${selected?.type === 'area' && selected.id === a.id ? 'bg-white text-night' : 'text-white'}`} style={{ background: selected?.type === 'area' && selected.id === a.id ? undefined : `${a.mapData.color}CC` }}>
@@ -95,9 +101,9 @@ export function WorldView(props: Props) {
   if (!state) return null;
   const { skyTop, skyBottom } = state.visualData;
   return (
-    <Canvas dpr={[1, 1.6]} camera={{ fov: 42, near: 0.5, far: 400 }} gl={{ antialias: true }}>
+    <Canvas dpr={[1, 1.6]} camera={{ fov: 42, near: 0.5, far: 520 }} gl={{ antialias: true }}>
       <color attach="background" args={[skyBottom]} />
-      <fog attach="fog" args={[skyBottom, 70, 170]} />
+      <fog attach="fog" args={[skyBottom, 120, 300]} />
       <hemisphereLight args={[skyTop, '#C9B58A', 0.9]} />
       <directionalLight position={[30, 40, 20]} intensity={1.6} color="#FFE7B8" />
       <Suspense fallback={null}>{Scene && <Scene state={state} />}</Suspense>

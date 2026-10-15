@@ -18,6 +18,9 @@ Node 18+.
 
 Landing page with a live 3D Lagos (landmarks, danfo buses, online counter) → mock sign up / login → character creation (3D avatar) → **Life Roulette** (Lapo Baby common, Nepo Baby rare) → life summary → your 3D home with HUD, tasks, stats, **Buy mode** (catalog + ghost placement), a **phone** (iOS-style for Nepo, Android-style for Lapo) with 22 apps, a **map**, and a Nigerian **property catalogue** (29 listings from Face-Me-I-Face-You to a Waterfront Mansion).
 
+## Latest update (map, ads, walking)
+Bigger connected Lagos (airport, port, Eko Atlantic, Lekki, roads), a city selector (only Lagos playable), Ads / Government / Sea tabs, billboards and floating Sea Ads with a simulated checkout and 3-day expiry, click-to-walk with pathfinding, activity poses, AFK cosmetics, round ground, tilt camera. Full details, limits and production requirements: [`docs/ADS_AND_MAP.md`](docs/ADS_AND_MAP.md). Tests: `npm run test:nav`, `npm run test:ads`, plus `tests-browser/`.
+
 ## Read next
 
 - [`docs/DEVELOPER.md`](docs/DEVELOPER.md): architecture, systems, how to extend anything.

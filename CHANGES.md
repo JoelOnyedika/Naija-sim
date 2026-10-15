@@ -66,3 +66,16 @@ GLB vehicle loader, investment upgrades, free-angle furniture rotation.
 - **Camera tilt.** The vertical drag no longer slides the view. It now tilts the camera around the house between `POLAR_MIN` 0.7 (more top-down) and `POLAR_MAX` 1.2 (lower), default unchanged at 1.0; finger down looks more from above. Rotation, zoom and the rotate button are unchanged. Tuning constants are documented in `docs/DEVELOPER.md` section 12.
 - **Round ground.** The square grass strip in front of the house was the `entry` zone drawn as a rectangle. Open-air grass zones are no longer drawn; a `GroundDisc` (grass disc, lighter ring, thickness) sized from the plot replaces the old oversized island. Navigation zones are untouched.
 - New test: `tests-browser/test_lighting_camera.py`.
+
+## Houses, walking, animations, AFK, expanded Lagos map, ads
+- **Green "Entrance" strip removed** from all six homes at the shared source (`layoutBuilders.ts`); doors, walls, parking and furniture untouched. Validator updated (it used that zone as its start room).
+- **Walking:** `world/navigation.ts` (grid + A*, doors respected, furniture avoided), `actorStore` intent, rewritten `AvatarWalker`: tap floor to walk; tap furniture to walk there, face it, then start. Cost is charged on arrival. Sleeping no longer hovers (back meets the mattress). Poses/animations for eat, drink, cook, type, piano, read, wash, shower, dance, push-up, TV; blue cover while bathing; clean exit from seats/beds/tubs.
+- **AFK:** new closed-list cosmetic system (`game/afk.ts`), 15 s, never touches needs or money.
+- **Lagos map:** data-driven layout (13 districts, road graph with major/secondary/local + bridges), airport with animated flights, Apapa port, Eko Atlantic, Eko Hotel, government landmarks, 10 more billboards.
+- **Selector and tabs:** Lagos / Abuja / Port Harcourt / Edo State (only Lagos playable), Ads / Government / Sea.
+- **Ads:** billboard inventory and sheet, Sea Ads on the real water with picker, simulated checkout, Draft/Pending/Active/Rejected/Expired, 3-day timestamp expiry, browser-local persistence, dev moderation. See `docs/ADS_AND_MAP.md` for limits.
+- Tests added: `scripts/navTest.ts`, `scripts/adsTest.ts`, `tests-browser/test_ads_flow.py`, `test_navigation.py`. Existing smoke test updated for walk-then-start.
+
+## Billboard locations and gym mat
+- Billboards now show where they are in words (airport, "Near Eko Hotel and Suites", named road) in the inventory, wizard, review and sheet. Board id `lagos.bb.oshodi` was renamed `lagos.bb.ikorodu-road` and two boards were nudged so their labels are accurate.
+- New procedural **Gym mat** item (Fun, ₦45,000) with push-ups, new `exclusive` placement flag, and AFK push-ups now work. `test_interact.py` updated for walk-then-start.

@@ -4,7 +4,8 @@ import { registerContent } from '../src/content';
 import { advance } from '../src/game/loop';
 import { acquireProperty } from '../src/game/housing';
 import { beginPlace, confirmDraft, moveDraft, sellItem } from '../src/game/buy';
-import { interactWith } from '../src/game/interactions';
+import { interactWith, startUse } from '../src/game/interactions';
+import { useActorStore } from '../src/stores/actorStore';
 import { startNewLife } from '../src/game/life';
 import { startShift } from '../src/game/jobs';
 import { getActiveHome } from '../src/game/active';
@@ -35,7 +36,10 @@ ok(useVehicleStore.getState().owned.length === 0, 'lapo has no cars');
 useStatsStore.setState({ stats: { ...useStatsStore.getState().stats, energy: 30 } });
 const bed = home.placed.find((p) => p.defId === 'foam_mattress')!;
 interactWith(bed);
-ok(!!useStatsStore.getState().activity, 'tapping mattress starts sleep');
+// tapping now sends the avatar to the bed; nothing starts (or is charged) until it has arrived
+ok(useActorStore.getState().order?.kind === 'use' && !useStatsStore.getState().activity, 'tapping mattress orders a walk and does not start sleep yet');
+startUse(bed); // what AvatarWalker calls on arrival
+ok(!!useStatsStore.getState().activity, 'arriving at the mattress starts sleep');
 advance(1);
 const mid = useStatsStore.getState().stats.energy;
 advance(200);

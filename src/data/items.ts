@@ -43,6 +43,11 @@ export interface FurnitureDef {
   sleepRate?: number;
   comfort?: number;
   use?: UseDef;
+  /**
+   * Needs clear floor to be placed or used (e.g. the gym mat) but does not block walking: nothing solid can be put on it and it
+   * cannot be put on anything solid. Rugs, which may go under furniture, do not set this.
+   */
+  exclusive?: boolean;
 }
 
 const floor = { surface: 'floor', collides: true, rotatable: true } as const;
@@ -88,6 +93,7 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'jacuzzi', name: 'Jacuzzi', description: 'Round, bubbling and completely unnecessary.', price: 1400000, category: 'bathroom', rarity: 'epic', glyph: '♨️', model: 'jacuzzi', footprint: { w: 1.9, d: 1.9 }, height: 0.65, placement: floor, style: 9, use: { label: 'Soak in the jacuzzi', seconds: 10, effects: { hygiene: 100, happiness: 25, energy: 8 }, pose: 'stand', event: 'use:bathe' } },
   { id: 'bedside_table', name: 'Bedside table', description: 'Two drawers for the small things.', price: 45000, category: 'sleep', rarity: 'common', glyph: '🕯️', model: 'bedside_table', footprint: { w: 0.48, d: 0.42 }, height: 0.5, placement: floor, style: 2 },
   { id: 'coffee_table', name: 'Coffee table', description: 'Low wooden table with a lower shelf.', price: 85000, category: 'comfort', rarity: 'uncommon', glyph: '☕', model: 'coffee_table', footprint: { w: 1.05, d: 0.6 }, height: 0.45, placement: floor, style: 3 },
+  { id: 'gym_rug', name: 'Gym mat', description: 'Thick foam mat. Room to do push-ups on, and your character will do a few when idle.', price: 45000, category: 'fun', rarity: 'common', glyph: '🏋️', model: 'gym_rug', footprint: { w: 0.9, d: 1.9 }, height: 0.05, placement: { surface: 'floor', collides: false, rotatable: true }, exclusive: true, style: 1, use: { label: 'Do push-ups', seconds: 10, effects: { energy: -8, happiness: 4, hunger: -4, thirst: -5 }, pose: 'stand', event: 'use:workout' } },
   { id: 'speaker', name: 'Tower speaker', description: 'Loud enough for the whole compound. Starts a house party.', price: 150000, category: 'fun', rarity: 'rare', glyph: '🔊', model: 'speaker', footprint: { w: 0.4, d: 0.36 }, height: 1.0, placement: floor, style: 4, use: { label: 'Start a party', seconds: 14, effects: { happiness: 20, social: 6, energy: -4 }, pose: 'stand', party: true, event: 'use:party' } },
   { id: 'wall_shelf', name: 'Wall shelf', description: 'A shelf for books and one tasteful pot.', price: 35000, category: 'storage', rarity: 'common', glyph: '📚', model: 'wall_shelf', footprint: { w: 1.0, d: 0.24 }, height: 0.3, placement: { surface: 'wall', collides: true, rotatable: false, mountHeight: 1.4 }, style: 2 },
   { id: 'disco_light', name: 'Disco light', description: 'Spins colour across the room. Only when there is a party.', price: 120000, category: 'fun', rarity: 'rare', glyph: '🪩', model: 'disco_light', footprint: { w: 0.4, d: 0.4 }, height: 1.4, placement: floor, style: 4 },

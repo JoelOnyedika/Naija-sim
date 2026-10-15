@@ -161,9 +161,11 @@ function Beach() {
 }
 
 import { LANDMARK_MODELS_2 } from './landmarks2';
+import { LANDMARK_MODELS_3 } from './landmarks3';
 
 export const LANDMARK_MODELS: Record<string, ComponentType> = {
   ...LANDMARK_MODELS_2,
+  ...LANDMARK_MODELS_3,
   quilox: Quilox, balogun: Balogun, freedomPark: FreedomPark, nationalTheatre: NationalTheatre, ekoAtlantic: EkoAtlantic,
   computerVillage: ComputerVillage, mamaPut: MamaPut, bank: Bank, beach: Beach,
 };

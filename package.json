@@ -9,7 +9,9 @@
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "validate:content": "tsx scripts/validateContent.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "test:ads": "tsx scripts/adsTest.ts",
+    "test:nav": "tsx scripts/navTest.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",

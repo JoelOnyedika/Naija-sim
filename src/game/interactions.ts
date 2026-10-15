@@ -3,6 +3,7 @@ import { copy } from '@/data/copy';
 import { getFood } from '@/data/foods';
 import { getFurniture } from '@/data/items';
 import type { PlacedItem } from '@/types/game';
+import { useActorStore } from '@/stores/actorStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useStatsStore } from '@/stores/statsStore';
@@ -19,14 +20,36 @@ const comfort = () => {
 /** Foods the player is carrying. */
 export const carriedFood = () => FOODS.filter((f) => useInventoryStore.getState().count(f.id) > 0);
 
-/** Tap furniture (outside Buy mode): run its `use` definition as a timed activity. */
+/**
+ * Tap furniture (outside Buy mode). Cheap checks run now so the player gets instant feedback; the avatar then walks to the
+ * object and `startUse` runs when it has ARRIVED and is facing it (see AvatarWalker). Nothing is charged before that.
+ */
 export function interactWith(item: PlacedItem) {
   const def = getFurniture(item.defId);
   if (!def?.use) { toast(def?.name ?? 'Nothing to do here'); return; }
   const stats = useStatsStore.getState();
   if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }
   const u = def.use;
+  if (u.needsFood && !carriedFood().length) { sfx.error(); toast('Nothing to eat. Order food on your phone.', 'bad'); return; }
+  if (u.sleep && 100 - stats.stats.energy < 8) { toast('You are not tired yet.'); return; }
+  if (u.cost && useEconomyStore.getState().money < u.cost) { sfx.error(); toast(copy.broke(), 'bad'); return; }
+  useActorStore.getState().useItem(item.uid);
+  sfx.click();
+}
 
+/** Player tapped the floor: stop whatever is running (cleanly) and walk there. */
+export function walkTo(x: number, z: number) {
+  if (useStatsStore.getState().activity) useStatsStore.getState().stop();
+  useActorStore.getState().walkTo(x, z);
+}
+
+/** Called by the scene once the avatar has arrived at the object and faces it. Runs the original use logic. */
+export function startUse(item: PlacedItem) {
+  const def = getFurniture(item.defId);
+  if (!def?.use) return;
+  const stats = useStatsStore.getState();
+  if (stats.activity) return;
+  const u = def.use;
   if (u.needsFood) {
     if (!carriedFood().length) { sfx.error(); toast('Nothing to eat. Order food on your phone.', 'bad'); return; }
     useUiStore.getState().setFoodPicker(item.uid);
@@ -42,7 +65,6 @@ export function interactWith(item: PlacedItem) {
   }
   if (u.cost && !useEconomyStore.getState().debit(u.cost, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return; }
   stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party });
-  sfx.click();
 }
 
 export function eatFood(foodId: string, targetUid?: string): boolean {

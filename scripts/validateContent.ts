@@ -176,10 +176,10 @@ for (const state of listStates()) {
       const def = getFurniture(f.defId)!, hw = (f.rotation % 2 ? def.footprint.d : def.footprint.w) / 2, hd = (f.rotation % 2 ? def.footprint.w : def.footprint.d) / 2;
       if (doorClearances(layout).some((r) => f.x + hw > r.x0 && f.x - hw < r.x1 && f.z + hd > r.z0 && f.z - hd < r.z1)) err(`${tag}: fixture ${f.defId} blocks a doorway`);
     }
-    // every room is reachable from the entrance
-    const reach = new Set<string>(['entry']), queue = ['entry'];
+    // every room is connected to the rest of the house (the open front has no separate entrance zone any more)
+    const reach = new Set<string>([indoor[0].id]), queue = [indoor[0].id];
     while (queue.length) { const a = queue.shift()!; for (const c of layout.connections) { const o = c.a === a ? c.b : c.b === a ? c.a : null; if (o && !reach.has(o)) { reach.add(o); queue.push(o); } } }
-    for (const z of indoor) if (!reach.has(z.id)) err(`${tag}: ${z.id} cannot be reached from the entrance`);
+    for (const z of indoor) if (!reach.has(z.id)) err(`${tag}: ${z.id} is not connected to the rest of the house`);
     if (layout.plot.fence !== 'none' || layout.decor.length) warn(`${tag}: has fence or decor geometry`);
   }
 

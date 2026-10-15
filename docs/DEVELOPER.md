@@ -184,6 +184,8 @@ Apps talk to stores/`game/*` directly (e.g. `useEconomyStore.debit`, `fireTask`)
 
 ## 11. The map
 
+> The expanded map (layout data, roads, airport, port), the city selector, categories, billboards and Sea Ads are documented in [`ADS_AND_MAP.md`](ADS_AND_MAP.md). Click-to-walk, pathfinding, interaction spots, animations and AFK are in its sections 6 and 7.
+
 `features/map/MapOverlay.tsx` renders `three/world/WorldView.tsx` for the current state. `WorldView` looks up the state's scene in `three/world/sceneRegistry.ts`, then overlays **markers generated from data** (`mapData.landmarks`, `areas[].mapData`). Clicking a marker opens a card: landmarks get a mock "Visit" (cost, effects, task event), areas show the property count/price range and "Browse homes" (opens the Houses app filtered to that area).
 
 A state scene is a React component `({ state }) => JSX`. Lagos's is `content/lagos/scene/LagosWorld.tsx` with landmark models in `landmarks.tsx`, keyed by `LandmarkDefinition.modelId`. Unknown model ids fall back to a plain block, so a new state works before its art exists.
@@ -253,5 +255,7 @@ Replace these seams, nothing else needs to change:
 - Bundle is ~1.3 MB (three.js). Split with dynamic `import()` for the map scene if load time matters.
 
 ## 17. Tests
+
+Also: `npm run test:nav`, `npm run test:ads`, `tests-browser/test_ads_flow.py`, `tests-browser/test_navigation.py` (see `ADS_AND_MAP.md` section 8).
 
 `tests-browser/test_lighting_camera.py` (run with `./run.sh test_lighting_camera.py`) guards three things: every graphics tier keeps `nightLights: true` and the scene is not duller at the lowest tier; a vertical drag tilts the camera to exactly `POLAR_MIN` / `POLAR_MAX` and no further; no page errors. Software rendering cannot reproduce a real phone's frame rate, so the test forces the lowest tier directly instead of waiting for the governor.

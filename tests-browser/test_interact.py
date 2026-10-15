@@ -13,10 +13,10 @@ with sync_playwright() as p:
       const out={};
       for(const id of ['desk','speaker','disco_light']){B.beginPlace(id);out['placed_'+id]=B.confirmDraft();}
       const home=A.getActiveHome();const desk=home.placed.find(p=>p.defId==='desk');const spk=home.placed.find(p=>p.defId==='speaker');
-      I.interactWith(desk);
+      I.interactWith(desk); I.startUse(desk); /* tapping now walks first; startUse is what the scene calls on arrival */
       out.midDesk=K.useSkillStore.getState().xp.coding; L.advance(5); out.stillMid=K.useSkillStore.getState().xp.coding;
       L.advance(20); out.afterDesk=K.useSkillStore.getState().xp.coding;
-      I.interactWith(spk); out.partyOn=!!S.useStatsStore.getState().activity?.party; L.advance(30); out.partyOff=!S.useStatsStore.getState().activity;
+      I.interactWith(spk); I.startUse(spk); out.partyOn=!!S.useStatsStore.getState().activity?.party; L.advance(30); out.partyOff=!S.useStatsStore.getState().activity;
       return out}""")
     print(r)
     check("desk, speaker, disco light all placeable",r["placed_desk"] and r["placed_speaker"] and r["placed_disco_light"])

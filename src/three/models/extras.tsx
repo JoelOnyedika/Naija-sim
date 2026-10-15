@@ -117,3 +117,20 @@ export function DiscoLight() {
     </group>
   );
 }
+
+/**
+ * Gym mat, procedural: a thick foam mat with a darker non-slip border, centre stripes, a thicker rolled lip at the toe end and
+ * a small logo block. Origin is the centre on the floor; an avatar doing push-ups faces +z, so its hands land toward +z and its toes toward -z.
+ */
+export function GymMat() {
+  return (
+    <group>
+      <B size={[0.9, 0.045, 1.9]} pos={[0, 0.0225, 0]} color="#1E3A8A" rough={0.95} radius={0.02} />
+      <B size={[0.78, 0.05, 1.78]} pos={[0, 0.024, 0]} color="#2F5BD3" rough={0.95} radius={0.015} />
+      {[-0.22, 0, 0.22].map((x) => <B key={x} size={[0.05, 0.052, 1.62]} pos={[x, 0.026, 0]} color="#E9F0FF" rough={0.9} radius={0.006} shadow={false} />)}
+      {[-0.55, 0.55].map((z) => <B key={z} size={[0.7, 0.052, 0.04]} pos={[0, 0.026, z]} color="#FFC21A" rough={0.9} radius={0.006} shadow={false} />)}
+      <B size={[0.9, 0.065, 0.1]} pos={[0, 0.032, -0.9]} color="#162A66" rough={0.9} radius={0.03} />
+      <B size={[0.22, 0.054, 0.12]} pos={[0, 0.027, 0.78]} color="#FFC21A" rough={0.8} radius={0.01} shadow={false} />
+    </group>
+  );
+}

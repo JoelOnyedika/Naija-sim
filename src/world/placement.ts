@@ -100,11 +100,12 @@ export function validatePlacement(def: FurnitureDef, layout: PropertyLayout, pos
     (z) => zoneOk(def, z) && pose.x - hw >= z.x0 + M - EPS && pose.x + hw <= z.x1 - M + EPS && pose.z - hd >= z.z0 + M - EPS && pose.z + hd <= z.z1 - M + EPS,
   );
   if (!inside) return false;
-  if (!def.placement.collides) return true;
+  const solid = (d: FurnitureDef) => d.placement.collides || !!d.exclusive;
+  if (!solid(def)) return true;
   for (const r of doorClearances(layout)) if (pose.x + hw > r.x0 && pose.x - hw < r.x1 && pose.z + hd > r.z0 && pose.z - hd < r.z1) return false;
   for (const o of others) {
     const od = getFurniture(o.defId);
-    if (!od || od.placement.surface !== 'floor' || !od.placement.collides) continue;
+    if (!od || od.placement.surface !== 'floor' || !solid(od)) continue;
     const e = extents(od, o.rotation);
     if (Math.abs(pose.x - o.x) < hw + e.hw - EPS && Math.abs(pose.z - o.z) < hd + e.hd - EPS) return false;
   }

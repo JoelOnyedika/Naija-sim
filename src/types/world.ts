@@ -1,3 +1,4 @@
+import type { AdsConfig } from './ads';
 /**
  * World content types. Everything a state (Lagos, Abuja, ...) provides is described here as DATA.
  * Core systems (houses, map, placement, saves) only read these types: they never mention a state by name.
@@ -124,7 +125,7 @@ export interface LandmarkDefinition {
   name: string;
   tagline: string;
   description: string;
-  category: 'club' | 'market' | 'park' | 'culture' | 'business' | 'food' | 'beach' | 'bank' | 'tech' | 'shopping' | 'entertainment' | 'recreation';
+  category: 'government' | 'transport' | 'club' | 'market' | 'park' | 'culture' | 'business' | 'food' | 'beach' | 'bank' | 'tech' | 'shopping' | 'entertainment' | 'recreation';
   /** Short list of things to do here (shown on the map card). */
   activities?: string[];
   position: [number, number];
@@ -163,7 +164,35 @@ export interface BillboardContent {
   meta?: Record<string, string>;
 }
 
+/** What a stretch of land is for. Drives the look of the district (buildings, density, props) in the state's scene. */
+export type DistrictKind = 'dense' | 'market' | 'estate' | 'business' | 'civic' | 'airport' | 'industrial' | 'resort';
+/** A rectangle of land. Everything not covered by a slab is water. */
+export interface LandSlab {
+  id: string; name: string; kind: DistrictKind; areaId?: string;
+  /** Short map label for districts that are not one of the state's named areas (airport, port, ...). */
+  label?: string;
+  cx: number; cz: number; w: number; d: number;
+  ground: string;
+  /** Random-building density 0..1 and tallest building height. 0 = leave empty (airport, port). */
+  density: number; tall: number; tin?: boolean;
+  /** Local street grid spacing in metres of map units; omitted = no local streets. */
+  streets?: number;
+}
+export type RoadClass = 'major' | 'secondary' | 'local';
+export interface RoadNode { id: string; x: number; z: number }
+/** A road between two nodes. `bridge` edges cross water and are drawn with pillars; `cable` adds a pylon. */
+export interface RoadEdge { a: string; b: string; cls: RoadClass; name?: string; bridge?: boolean; cable?: boolean; buses?: number }
+/** The playable city: land, roads and the water around it. Future cities ship their own MapLayout. */
+export interface MapLayout {
+  slabs: LandSlab[];
+  nodes: RoadNode[];
+  edges: RoadEdge[];
+  /** Extent of the sea that can host Sea Ads (and the camera limits): x0,x1,z0,z1. */
+  sea: { x0: number; x1: number; z0: number; z1: number };
+}
+
 export interface StateMapData {
+  layout?: MapLayout;
   center: [number, number];
   billboards?: BillboardDefinition[];
   /** Half-size of the playable map, used for camera limits. */
@@ -179,6 +208,7 @@ export interface StateVisualData {
   accent: string;
 }
 
+
 export interface StateDefinition {
   id: string;
   name: string;
@@ -188,6 +218,8 @@ export interface StateDefinition {
   properties: PropertyDefinition[];
   layouts: PropertyLayout[];
   mapData: StateMapData;
+  /** Advertising prices, durations, upload limits and rules for this state's map (see types/ads.ts). */
+  ads?: AdsConfig;
   visualData: StateVisualData;
   /** Property ids a new life can start in, per life type. */
   startingProperties: { lapo: string[]; nepo: string[] };

@@ -41,7 +41,6 @@ export const HOMES: Record<HomeNo, HomeSpec> = {
   6: { tier: 5, mainRooms: 5, bedrooms: 3, bathrooms: 1 },
 };
 
-export const ENTRY_DEPTH = 1.4; // shallow paved walkway along the open front
 const MARGIN = 0.6;             // ground kept around the house and carport
 
 const zone = (id: string, kind: ZoneKind, label: string, x0: number, z0: number, x1: number, z1: number, floor: FloorKind, indoor = true, furnishable = true): Zone =>
@@ -168,13 +167,13 @@ export function house(c: HomeCfg): PropertyLayout {
     }
   }
 
-  // Open front: a shallow paved walkway along the front edge; the two-car carport is attached to the RIGHT side of the
-  // house, flush against it and aligned with the front edge, so the bays sit side by side and face the front (+z).
+  // Open front: nothing is built in front of the house (the old green "Entrance" strip was removed; the round ground disc
+  // is the only ground). Parking bays attach to the RIGHT side of the house, flush with the front edge, facing +z.
   const n = tier.parkingBays, ext = n * BAY_WIDTH;
-  const zones = [...p.zones, zone('entry', 'compound', 'Entrance', 0, S, S, S + ENTRY_DEPTH, 'grass', false, false)];
-  const connections = [...p.connections, { a: p.entry, b: 'entry' }];
+  const zones = [...p.zones];
+  const connections = [...p.connections];
   for (let i = 0; i < n; i++) zones.push(zone(`bay${i + 1}`, 'parking', `Parking ${i + 1}`, S + i * BAY_WIDTH, S - BAY_LENGTH, S + (i + 1) * BAY_WIDTH, S, 'paving', false, false));
-  const plot = { x0: -MARGIN, z0: -MARGIN, x1: S + ext + MARGIN, z1: S + ENTRY_DEPTH + MARGIN, ground: c.ground ?? 'grass', fence: c.fence ?? ('none' as FenceKind) };
+  const plot = { x0: -MARGIN, z0: -MARGIN, x1: S + ext + MARGIN, z1: S + MARGIN, ground: c.ground ?? 'grass', fence: c.fence ?? ('none' as FenceKind) };
   return {
     id: c.id, plot, zones, connections, windows: p.windows, fixtures: p.fixtures, decor: [],
     palette: c.palette, finish: c.finish, wallHeight: c.wallHeight ?? 2.8, publicPower: c.publicPower ?? true,

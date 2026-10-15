@@ -1,7 +1,9 @@
 import type { StateDefinition } from '@/types/world';
 import { AREAS } from './areas';
 import { BILLBOARDS } from './billboards';
+import { LAGOS_ADS } from './ads';
 import { LANDMARKS } from './landmarks';
+import { LAGOS_LAYOUT } from './map/layout';
 import { ENTRIES } from './properties';
 
 const STATE_ID = 'lagos';
@@ -20,11 +22,13 @@ export const lagos: StateDefinition = {
   properties: ENTRIES.map((e) => ({ ...e.property, stateId: STATE_ID, layoutId: e.property.id })),
   layouts: ENTRIES.map((e) => e.layout(e.property.id)),
   mapData: {
-    center: [4, 0],
-    bounds: 38,
+    layout: LAGOS_LAYOUT,
+    center: [2, -2],
+    bounds: 62,
     landmarks: LANDMARKS.map((l) => ({ ...l, stateId: STATE_ID })),
     billboards: BILLBOARDS.map((b) => ({ ...b, stateId: STATE_ID })),
   },
+  ads: LAGOS_ADS,
   visualData: { sceneId: 'lagos', skyTop: '#2B7FBF', skyBottom: '#F7D7A0', accent: '#FFC21A' },
   legacyPropertyIds: {
     ...Object.fromEntries(['7-by-7-yaba', '7-by-7-mushin'].map((k) => [`lagos.${k}`, 'lagos.face-me-i-face-you'])),

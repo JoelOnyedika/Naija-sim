@@ -14,6 +14,7 @@ import { useLifeStore } from '@/stores/lifeStore';
 import { currentStateId, useMapStore } from '@/stores/mapStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { usePropertyStore } from '@/stores/propertyStore';
+import { useActorStore } from '@/stores/actorStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -66,6 +67,7 @@ export function resetTransientUi() {
   useFinishStore.getState().clearPreview();
   usePhoneStore.getState().closePhone();
   useStatsStore.getState().stop();
+  useActorStore.getState().reset();
   useUiStore.setState({
     mode: 'home', catalogOpen: true, buySpent: 0, detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, banner: null, toasts: [],
   });

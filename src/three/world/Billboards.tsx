@@ -1,6 +1,11 @@
-import { useMemo } from 'react';
-import { CanvasTexture, SRGBColorSpace, MeshStandardMaterial, BoxGeometry, CylinderGeometry } from 'three';
+import { useEffect, useMemo } from 'react';
+import type { ThreeEvent } from '@react-three/fiber';
+import { CanvasTexture, SRGBColorSpace, MeshStandardMaterial, BoxGeometry, CylinderGeometry, TextureLoader } from 'three';
+import { effectiveStatus } from '@/game/ads/slots';
+import { useAdsStore } from '@/stores/adsStore';
+import { useAdsUiStore } from '@/stores/adsUiStore';
 import { useBillboardStore } from '@/stores/billboardStore';
+import { useUiStore } from '@/stores/uiStore';
 import type { BillboardContent, BillboardDefinition } from '@/types/world';
 
 /** Shared across every billboard: one frame/post geometry set and two materials. Only the printed panel differs. */
@@ -34,20 +39,36 @@ function panelTexture(c: BillboardContent, aspect: number): CanvasTexture {
   return t;
 }
 
+/** The live purchased ad on a board, if any. Selecting the submission object keeps re-renders to real changes. */
+function useLiveAd(slotId: string) {
+  return useAdsStore((s) => s.submissions.find((x) => x.kind === 'billboard' && x.slotId === slotId && effectiveStatus(x, Date.now()) === 'active'));
+}
+
 function Board({ def }: { def: BillboardDefinition }) {
   const override = useBillboardStore((s) => s.overrides[def.id]);
+  const ad = useLiveAd(def.id);
   const content = useMemo(() => ({ ...def.content, ...override }), [def.content, override]);
   const [w, h] = SIZE[def.format];
   const tex = useMemo(() => panelTexture(content, w / h), [content, w, h]);
+  // a purchased ad replaces the placeholder artwork; the image keeps its own proportions inside the board
+  const adTex = useMemo(() => { if (!ad) return null; const t = new TextureLoader().load(ad.imageDataUrl); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; return t; }, [ad?.imageDataUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => adTex?.dispose(), [adTex]);
+  const aw = ad ? Math.min(w, h * (ad.imageWidth / ad.imageHeight)) : w, ah = ad ? aw / (ad.imageWidth / ad.imageHeight) : h;
   const y = 1.0;
+  const open = (e: ThreeEvent<MouseEvent>) => { if (e.delta > 6 || useUiStore.getState().mode !== 'map') return; e.stopPropagation(); useAdsUiStore.getState().openSheet({ type: 'billboard', slotId: def.id }); };
+  const light = [-w * 0.4, 0, w * 0.4];
   return (
-    <group position={[def.position[0], 0.07, def.position[1]]} rotation={[0, def.rotationY, 0]}>
+    <group position={[def.position[0], 0.07, def.position[1]]} rotation={[0, def.rotationY, 0]} onClick={open}
+      onPointerOver={() => { if (useUiStore.getState().mode === 'map') document.body.style.cursor = 'pointer'; }} onPointerOut={() => { document.body.style.cursor = ''; }}>
       {[-w * 0.32, w * 0.32].map((x) => <mesh key={x} geometry={POST} material={FRAME_MAT} position={[x, y / 2, -0.04]} scale={[1, y, 1]} castShadow />)}
       <mesh geometry={FRAME} material={FRAME_MAT} position={[0, y + h / 2, -0.03]} scale={[w + 0.1, h + 0.1, 0.06]} castShadow />
       <mesh position={[0, y + h / 2, 0.002]}>
         <planeGeometry args={[w, h]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
+        <meshBasicMaterial map={ad ? undefined : tex} color={ad ? '#14171C' : '#FFFFFF'} toneMapped={false} />
       </mesh>
+      {ad && adTex && <mesh position={[0, y + h / 2, 0.004]}><planeGeometry args={[aw, ah]} /><meshBasicMaterial map={adTex} toneMapped={false} /></mesh>}
+      {/* lamps along the top edge */}
+      {light.map((x) => (<group key={x} position={[x, y + h + 0.1, 0.1]}><mesh><boxGeometry args={[0.1, 0.04, 0.1]} /><meshStandardMaterial color="#2A2F36" /></mesh><mesh position={[0, -0.03, 0.04]}><sphereGeometry args={[0.03, 8, 6]} /><meshBasicMaterial color="#FFF3C4" /></mesh></group>))}
     </group>
   );
 }
