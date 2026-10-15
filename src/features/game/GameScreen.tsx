@@ -16,6 +16,7 @@ import { FoodPicker } from './FoodPicker';
 import { Hud } from './Hud';
 import { LoadingOverlay } from './LoadingOverlay';
 import { RotateButton } from './RotateButton';
+import { ProfileSheet } from './ProfileSheet';
 import { StatsWidget } from './StatsWidget';
 import { TaskPanel } from './TaskPanel';
 
@@ -36,6 +37,7 @@ export function GameScreen() {
       {mode === 'home' && <TaskPanel />}
       <AnimatePresence>{mode === 'home' && <StatsWidget key="stats" />}</AnimatePresence>
       <BuyMode />
+      <ProfileSheet />
       <MapOverlay />
       <Dock />
       <PhoneOverlay />

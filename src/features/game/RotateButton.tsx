@@ -9,7 +9,7 @@ export function RotateButton() {
   const mode = useUiStore((s) => s.mode);
   if (mode !== 'home' && mode !== 'buy') return null;
   return (
-    <div className="pointer-events-none absolute right-2 top-[calc(env(safe-area-inset-top,0px)+3.25rem)] z-20">
+    <div className="pointer-events-none absolute right-2 top-[calc(env(safe-area-inset-top,0px)+4.1rem)] z-20">
       <motion.button
         whileTap={{ scale: 0.9 }}
         onClick={(e) => { e.stopPropagation(); sfx.click(); useCameraStore.getState().rotateStep(); }}

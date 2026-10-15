@@ -18,23 +18,33 @@ with sync_playwright() as p:
     seed(pg)
     pg.evaluate("async()=>{(await import('/src/stores/adsStore.ts')).useAdsStore.getState().reset(); (await import('/src/stores/uiStore.ts')).useUiStore.getState().setMode('map')}")
     pg.wait_for_timeout(5000); pg.screenshot(path=f"{SHOTS}/01_map_ads.png")
-    # city selector: Lagos playable, the rest disabled
-    tabs = pg.locator('[role=tablist][aria-label=City] [role=tab]')
-    assert tabs.count() == 4, tabs.count()
-    states = [(tabs.nth(i).inner_text().replace("\n", " "), tabs.nth(i).get_attribute("aria-disabled")) for i in range(4)]
+    # city dropdown: Lagos playable, the rest disabled "Coming soon"
+    pg.locator('button[aria-haspopup=listbox]').click(); pg.wait_for_timeout(400)
+    opts = pg.locator('[role=listbox][aria-label=City] [role=option]')
+    assert opts.count() == 4, opts.count()
+    states = [(opts.nth(i).inner_text().replace("\n", " "), opts.nth(i).get_attribute("aria-disabled")) for i in range(4)]
     print("cities:", states)
-    assert states[0][1] == "false" and all(s[1] == "true" for s in states[1:]), states
-    assert "SOON" in states[1][0].upper()
+    assert states[0][1] == "false" and "here" in states[0][0].lower() and all(x[1] == "true" for x in states[1:]), states
+    assert "COMING SOON" in states[1][0].upper()
     before = pg.evaluate("async()=>(await import('/src/stores/mapStore.ts')).useMapStore.getState().stateId")
-    tabs.nth(1).click(force=True); pg.wait_for_timeout(300)
+    opts.nth(1).click(force=True); pg.wait_for_timeout(300)
     after = pg.evaluate("async()=>(await import('/src/stores/mapStore.ts')).useMapStore.getState().stateId")
     assert before == after, "clicking Abuja must not switch city"
-    # categories
-    cats = pg.locator('[role=tablist][aria-label="Map category"] [role=tab]'); assert cats.count() == 3
-    assert [cats.nth(i).inner_text().strip() for i in range(3)] == ["Ads", "Government", "Sea"]
-    cats.nth(1).click(); pg.wait_for_timeout(600); pg.screenshot(path=f"{SHOTS}/02_government.png")
+    pg.locator('button[aria-haspopup=listbox]').click(); pg.wait_for_timeout(300)   # close it again
+    # More dropdown: Billboards, Neighbours, Sea Plots, Government, Walk (Walk is marked Soon)
+    def more(name):
+        pg.get_by_role("button", name="More").or_(pg.locator('button[aria-haspopup=menu]')).first.click(); pg.wait_for_timeout(300)
+        pg.get_by_role("menuitem", name=name).click(); pg.wait_for_timeout(600)
+    pg.locator('button[aria-haspopup=menu]').click(); pg.wait_for_timeout(300)
+    items = pg.locator('[role=menu][aria-label=More] [role=menuitem]'); assert items.count() == 5
+    labels = [items.nth(i).inner_text().split("\n")[0].strip() for i in range(5)]
+    print("more:", labels); assert labels == ["Billboards", "Neighbours", "Sea Plots", "Government", "Walk"], labels
+    assert items.nth(4).get_attribute("aria-disabled") == "true"
+    pg.get_by_role("menuitem", name="Government").click(); pg.wait_for_timeout(900); pg.screenshot(path=f"{SHOTS}/02_government.png")
     assert pg.get_by_text("Tafawa Balewa Square").count() >= 1
-    cats.nth(2).click(); pg.wait_for_timeout(600); pg.screenshot(path=f"{SHOTS}/03_sea.png")
+    pg.locator('button[aria-haspopup=menu]').click(); pg.wait_for_timeout(300); pg.get_by_role("menuitem", name="Neighbours").click(); pg.wait_for_timeout(600)
+    assert pg.get_by_text("The neighbourhoods of Lagos").count() == 1
+    pg.locator('button[aria-haspopup=menu]').click(); pg.wait_for_timeout(300); pg.get_by_role("menuitem", name="Sea Plots").click(); pg.wait_for_timeout(900); pg.screenshot(path=f"{SHOTS}/03_sea.png")
     pg.get_by_role("button", name="Create a Sea Ad").click(); pg.wait_for_timeout(500)
     # validation: bad type and missing fields
     pg.set_input_files('input[type=file]', bad); pg.wait_for_timeout(800)

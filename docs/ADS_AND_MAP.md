@@ -13,6 +13,9 @@ This document describes what is **actually implemented** (and what is not). Path
 | Sea Ads (floating on the water, slot picker, green/red, 3-day expiry) | Implemented, **browser-local persistence only** |
 | Mock checkout, Pending/Active/Rejected/Expired model | Implemented. **No real payment, no real moderation backend** |
 | Moderation UI | Dev-only panel; the store actions are what a future admin UI would call |
+| Map header redesign: city dropdown, Names, More menu, top-down drag/zoom camera | Implemented |
+| Thought bubbles over the avatar, flies when dirty | Implemented |
+| Portrait stats bar and profile sheet (tap the portrait) | Implemented |
 | Houses: green "Entrance" strip removed | Implemented |
 | Billboard location labels ("Murtala Muhammed International Airport", "Near Eko Hotel and Suites") | Implemented, derived from map data |
 | Gym mat (procedural model, Buy catalogue, push-ups, AFK) | Implemented |
@@ -38,7 +41,19 @@ Edit `src/content/lagos/map/layout.ts` (slabs, nodes, edges) or `landmarks.ts` /
 1. Create `src/content/<city>/` like `lagos` (areas, properties, landmarks, `mapData.layout`, optional `ads`, a scene component) and register it in `src/content/index.ts` and `src/content/scenes.ts`.
 2. Its chip in the selector becomes available **automatically**: `src/content/cities.ts` is only the catalogue; a city is playable if and only if a state with the same id is registered. Abuja, Port Harcourt and Edo State exist only in the catalogue, are rendered disabled with a "Soon" tag, and tapping them does nothing (checked in `tests-browser/test_ads_flow.py`).
 
-## 2. Map selector and categories
+## 2. Map header, menus and camera (redesigned)
+
+* **Top bar** (`features/map/MapTopBar.tsx`): the shared HUD capsules (`ui/HudPill.tsx`: sun/moon, time, mood, people online, sound, cash with a "+" that opens the bank), then three controls: a **city dropdown**, a **Names** toggle and a **More** dropdown. Only one dropdown is open at a time; tapping outside closes it. The bar sits above every sheet (`z-[67]`) so menus are never covered.
+* **City dropdown:** lists the catalogue from `content/cities.ts`. Lagos shows "You're here"; Abuja, Port Harcourt and Edo State show **Coming soon** and are inert (they are not registered cities, so there is nothing to fly to). Below the list a flavour line shows Lagos traffic from the game clock ("Serious go-slow" at rush hour). It is text only, not a simulation.
+* **Names:** shows neighbourhood chips, district labels and every landmark's name. Off by default for a clean map.
+* **More:** Billboards, Neighbours (areas and how many homes each has; tapping flies there and opens the existing area card), Sea Plots (the former "Sea Ads" panel), Government, and Walk (marked Soon: walking the city is not built).
+* **Camera** (`three/world/WorldView.tsx`): the map is **top-down** (about 22 degrees of tilt, north up) and is **never rotated**. One finger or the mouse drags (pans), two fingers or the wheel zoom (`minDistance` 14, `maxDistance` 140), and the view is kept over the sea extent. Selecting a place glides the camera there; touching the map cancels the glide so dragging never fights it. The landing page still auto-rotates.
+
+## 2b. Old category tabs (replaced)
+
+The Ads / Government / Sea tab strip described earlier was replaced by the More dropdown above; the panels are unchanged.
+
+## 2c. Map selector and categories (earlier text, kept for the file list)
 
 * `src/features/map/CityAndCategoryBar.tsx`: `CitySelector` (chips, horizontally scrollable on small screens, `aria-disabled` for unavailable cities) and `CategoryTabs` (Ads | Government | Sea).
 * `src/stores/adsUiStore.ts` holds the category, the open sheet, the wizard, the placement picker and the camera focus. It resets when the map closes or the city changes.
@@ -164,3 +179,10 @@ Changed: `LagosWorld.tsx` (rewritten to be layout-driven), `Billboards.tsx` (cli
 * Prices are placeholders. The government category lists landmarks only.
 * No automated tests for the 3D visuals themselves (screenshots were reviewed by eye).
 * A tap on a wall in Home mode still counts as a floor tap (the click passes through to the floor plane); the path simply goes to the nearest free point.
+
+## 11. Character effects and profile
+
+* **Thought bubbles** (`three/property/HeadFx.tsx`, emoji table in `world/bubbles.ts`): a small DOM bubble above the head for whatever the avatar is doing, chosen from the object it uses (TV 📺, bed 💤, sofa/chair 😌, desk 💻, fridge 😋, cooker 🍳, shower 🚿, bath 🛁, toilet 🚽, piano 🎹, speaker 🎶, gym mat 💪, ...), falling back to the animation. It also shows for AFK behaviours. React re-renders only when the emoji changes. Add a row to `BUBBLE_BY_ITEM` when you add a usable object.
+* **Flies:** when hygiene is below `FLY_HYGIENE` (25) three tiny flies circle the head (three meshes moved in one `useFrame`).
+* **Stats bar** (`features/game/StatsWidget.tsx`): a procedural SVG **portrait** (`ui/Portrait.tsx`, drawn from the appearance, no extra 3D canvas) with a ring that turns red when a need is low, next to the needs bars. Need icons and colours are shared in `features/game/statMeta.ts`.
+* **Profile sheet** (`features/game/ProfileSheet.tsx`): opens from the portrait. Tabs: **Profile** (3D preview you can drag to spin, username, hairstyle, hair colour, outfit, top colour, skin tone; changes save instantly through `characterStore`), **Needs** (all nine bars), **Goals** (open tasks), **Skills**, **Career** and **People** (these two only link to the Jobs and Contacts phone apps, because those apps are still small, see `FEATURE_AUDIT.md`). The 3D preview loads lazily and exists only while the Profile tab is open. The display-name editor and "My CV" from your reference are not built.

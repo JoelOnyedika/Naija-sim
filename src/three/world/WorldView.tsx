@@ -1,7 +1,7 @@
 import { Html, OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useRef } from 'react';
-import { Vector3 } from 'three';
+import { MOUSE, TOUCH, Vector3 } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { getState } from '@/world/registry';
 import { getScene } from './sceneRegistry';
@@ -14,50 +14,90 @@ interface Props {
   onSelectArea?: (id: string) => void;
   /** Dim and slow down (used behind login/signup). */
   calm?: boolean;
+  /** Names toggle (map): neighbourhood and district labels, and every landmark name. */
+  showNames?: boolean;
 }
+
+/** Camera tilt of the map: nearly top-down (radians from straight up). The map is never rotated by the player. */
+const MAP_POLAR = 0.38;
 
 function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' | 'selected' | 'calm'>) {
   const state = getState(stateId)!;
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
   const focus = useRef(new Vector3(state.mapData.center[0], 0, state.mapData.center[1]));
-  const start = useRef(false);
+  /** True while the camera glides to a selected place; any touch or drag by the player cancels it so panning never fights it. */
+  const flying = useRef(false);
+  const lim = state.mapData.layout?.sea;
 
   useEffect(() => {
     const c = state.mapData.center;
-    const r = mode === 'landing' ? 72 : 66;
-    camera.position.set(c[0] + r * 0.55, r * 0.7, c[1] + r * 0.75);
     focus.current.set(c[0], 0, c[1]);
+    flying.current = false;
+    if (mode === 'map') {
+      // top-down: straight above the centre, tilted back a touch so buildings read as 3D
+      const r = 118;
+      camera.position.set(c[0], r * Math.cos(MAP_POLAR), c[1] + r * Math.sin(MAP_POLAR));
+    } else {
+      const r = 72;
+      camera.position.set(c[0] + r * 0.55, r * 0.7, c[1] + r * 0.75);
+    }
     controls.current?.target.copy(focus.current);
-    start.current = true;
+    controls.current?.update();
   }, [camera, state, mode]);
 
   useEffect(() => {
-    if (!selected) { focus.current.set(state.mapData.center[0], 0, state.mapData.center[1]); return; }
+    if (mode !== 'map') return;
+    if (!selected) { flying.current = false; return; }
     const pos = selected.type === 'point' ? ([selected.x, selected.z] as [number, number])
       : selected.type === 'landmark'
         ? state.mapData.landmarks.find((l) => l.id === selected.id)?.position
         : state.areas.find((a) => a.id === selected.id)?.mapData.position;
-    if (pos) focus.current.set(pos[0], 0, pos[1]);
-  }, [selected, state]);
+    if (pos) { focus.current.set(pos[0], 0, pos[1]); flying.current = true; }
+  }, [selected, state, mode]);
+
+  useEffect(() => {
+    const c = controls.current; if (!c) return;
+    const stop = () => { flying.current = false; };
+    c.addEventListener('start', stop);
+    return () => c.removeEventListener('start', stop);
+  }, []);
 
   useFrame(() => {
     const c = controls.current; if (!c || mode === 'landing') return;
-    c.target.lerp(focus.current, 0.06);
+    if (flying.current) {
+      const before = c.target.clone();
+      c.target.lerp(focus.current, 0.08);
+      camera.position.add(c.target.clone().sub(before)); // move the camera with its target so the view glides, not tilts
+      if (c.target.distanceToSquared(focus.current) < 0.01) flying.current = false;
+    }
+    if (lim) { // keep the view over the playable area
+      const x = Math.min(lim.x1 - 10, Math.max(lim.x0 + 10, c.target.x)), z = Math.min(lim.z1 - 10, Math.max(lim.z0 + 10, c.target.z));
+      if (x !== c.target.x || z !== c.target.z) { camera.position.x += x - c.target.x; camera.position.z += z - c.target.z; c.target.x = x; c.target.z = z; }
+    }
     c.update();
   });
 
+  if (mode === 'map') {
+    return (
+      <OrbitControls
+        ref={controls} makeDefault enableDamping dampingFactor={0.12}
+        enableRotate={false} enablePan enableZoom screenSpacePanning panSpeed={1.1} zoomSpeed={0.9}
+        mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
+        touches={{ ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN }}
+        minDistance={14} maxDistance={140} minPolarAngle={MAP_POLAR} maxPolarAngle={MAP_POLAR} minAzimuthAngle={0} maxAzimuthAngle={0}
+      />
+    );
+  }
   return (
     <OrbitControls
-      ref={controls} makeDefault enableDamping dampingFactor={0.1}
-      autoRotate={mode === 'landing'} autoRotateSpeed={calm ? 0.25 : 0.45}
-      enableZoom={mode === 'map'} enablePan={mode === 'map'} enableRotate
-      minDistance={14} maxDistance={130} minPolarAngle={0.5} maxPolarAngle={1.22}
+      ref={controls} makeDefault enableDamping dampingFactor={0.1} autoRotate autoRotateSpeed={calm ? 0.25 : 0.45}
+      enableZoom={false} enablePan={false} enableRotate minDistance={14} maxDistance={130} minPolarAngle={0.5} maxPolarAngle={1.22}
     />
   );
 }
 
-function Markers({ stateId, selected, onSelectLandmark, onSelectArea, showAreas }: Pick<Props, 'stateId' | 'selected' | 'onSelectLandmark' | 'onSelectArea'> & { showAreas: boolean }) {
+function Markers({ stateId, selected, onSelectLandmark, onSelectArea, showAreas, showNames }: Pick<Props, 'stateId' | 'selected' | 'onSelectLandmark' | 'onSelectArea'> & { showAreas: boolean; showNames: boolean }) {
   const state = getState(stateId)!;
   return (
     <>
@@ -72,7 +112,7 @@ function Markers({ stateId, selected, onSelectLandmark, onSelectArea, showAreas 
               aria-label={l.name}
             >
               <span className={`flex h-8 w-8 items-center justify-center rounded-full text-base shadow-glass sm:h-10 sm:w-10 sm:text-xl ring-2 ${sel ? 'bg-danfo ring-white' : 'bg-night/80 ring-danfo/80'} backdrop-blur`}>{l.icon}</span>
-              <span className={`mt-1 whitespace-nowrap rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur ${sel ? 'block' : 'hidden sm:block'}`}>{l.name}</span>
+              <span className={`mt-1 whitespace-nowrap rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur ${sel || showNames ? 'block' : 'hidden'}`}>{l.name}</span>
               <span className={`-mt-0.5 h-2 w-2 rotate-45 ${sel ? 'bg-danfo' : 'bg-danfo/80'}`} style={{ marginTop: -2 }} />
             </button>
           </Html>
@@ -107,7 +147,7 @@ export function WorldView(props: Props) {
       <hemisphereLight args={[skyTop, '#C9B58A', 0.9]} />
       <directionalLight position={[30, 40, 20]} intensity={1.6} color="#FFE7B8" />
       <Suspense fallback={null}>{Scene && <Scene state={state} />}</Suspense>
-      <Markers stateId={props.stateId} selected={props.selected} onSelectLandmark={props.onSelectLandmark} onSelectArea={props.onSelectArea} showAreas={props.mode === 'map'} />
+      <Markers stateId={props.stateId} selected={props.selected} onSelectLandmark={props.onSelectLandmark} onSelectArea={props.onSelectArea} showAreas={props.mode === 'map' && !!props.showNames} showNames={!!props.showNames} />
       <Rig stateId={props.stateId} mode={props.mode} selected={props.selected} calm={props.calm} />
     </Canvas>
   );

@@ -7,7 +7,7 @@ import { BODY, material, mix, shade } from './parts';
 
 /** What the avatar is doing with its hands. Drives the arm poses below; positions/poses come from the walker. */
 export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash';
-export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean }
+export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean; bubble?: string | null }
 type V3 = [number, number, number];
 
 /** One shared-geometry mesh. `dispose={null}`: geometry and materials are cached and reused by every avatar. */

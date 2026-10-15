@@ -13,7 +13,7 @@ export function TaskPanel() {
   const tasks = active.map((id) => TASKS.find((t) => t.id === id)!).filter(Boolean);
   return (
     <>
-      <motion.div className="pointer-events-none absolute left-0 top-[3.7rem] z-30 w-[min(62vw,14rem)]" initial={false} animate={{ x: open ? 0 : '-104%' }} transition={{ type: 'spring', stiffness: 280, damping: 30 }}>
+      <motion.div className="pointer-events-none absolute left-0 top-[4.5rem] z-30 w-[min(62vw,14rem)]" initial={false} animate={{ x: open ? 0 : '-104%' }} transition={{ type: 'spring', stiffness: 280, damping: 30 }}>
         <div className="panel pointer-events-auto ml-2 rounded-lg p-1.5">
           <div className="flex items-center justify-between px-1.5 pb-1">
             <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-white/70"><ListChecks size={13} className="text-accent-glow" />Tasks</span>
@@ -32,7 +32,7 @@ export function TaskPanel() {
       <AnimatePresence>
         {!open && (
           <motion.button initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -30, opacity: 0 }} onClick={() => { sfx.open(); toggle(); }} aria-label="Show tasks"
-            className="panel absolute left-0 top-[3.7rem] z-30 flex h-9 items-center gap-1 rounded-r-lg pl-2 pr-1.5 text-xs font-bold">
+            className="panel absolute left-0 top-[4.5rem] z-30 flex h-9 items-center gap-1 rounded-r-lg pl-2 pr-1.5 text-xs font-bold">
             <ListChecks size={15} className="text-accent-glow" /><span className="tabular-nums">{tasks.length}</span><ChevronRight size={14} className="text-white/60" />
           </motion.button>
         )}

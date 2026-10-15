@@ -6,6 +6,7 @@ import { billboardSlots, seaSlots, slotAvailability } from '@/game/ads/slots';
 import { useAdsStore } from '@/stores/adsStore';
 import { useAdsUiStore } from '@/stores/adsUiStore';
 import { useMapStore } from '@/stores/mapStore';
+import { propertiesOfState } from '@/world/registry';
 import type { StateDefinition } from '@/types/world';
 import { Button } from '@/ui/Button';
 import { AdRow, Price, timeLeft, useNow } from './common';
@@ -92,6 +93,26 @@ export function GovernmentPanel({ state }: { state: StateDefinition }) {
           <MapPin size={14} className="text-white/40" />
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Neighbours: the state's named areas (neighbourhoods) with how many homes each has. Tapping flies there and opens the area card. */
+export function NeighboursPanel({ state }: { state: StateDefinition }) {
+  const props = propertiesOfState(state.id);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-white/80">The neighbourhoods of {state.name}. Tap one to fly there and see the homes you can buy.</p>
+      {state.areas.map((a) => {
+        const homes = props.filter((p) => p.areaId === a.id);
+        return (
+          <button key={a.id} onClick={() => { sfx.pop(); useMapStore.getState().selectArea(a.id); }} className="glass flex w-full items-center gap-3 rounded-2xl p-2.5 text-left">
+            <span className="h-10 w-2.5 shrink-0 rounded-full" style={{ background: a.mapData.color }} />
+            <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{a.name}</span><span className="block truncate text-[11px] text-white/60">{a.tagline}</span></span>
+            <span className="shrink-0 text-right text-[11px] font-bold text-white/70">{homes.length ? `${homes.length} home${homes.length > 1 ? 's' : ''}` : 'No homes yet'}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

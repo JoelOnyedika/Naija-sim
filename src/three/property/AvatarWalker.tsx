@@ -11,7 +11,9 @@ import { useUiStore } from '@/stores/uiStore';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout } from '@/types/world';
 import { buildNavGrid, findPath, interactionSpot, isFree, nearestFree, type Pt, type Spot } from '@/world/navigation';
+import { bubbleFor } from '@/world/bubbles';
 import { Avatar, type Motion } from '../avatar/Avatar';
+import { HeadFx } from './HeadFx';
 
 const WALK = 1.8, GLIDE = 1.1, ARRIVE = 0.05;
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
@@ -179,6 +181,9 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     m.sitting = acting && spot?.pose === 'sit';
     m.action = acting ? (spot?.action ?? 'idle') : 'idle';
     m.bathing = acting && !!spot?.bathing;
+    // what the thought bubble shows: the object being used (real activity or AFK cosmetic), nothing while walking
+    const usedUid = activity?.targetUid ?? cosmetic?.uid, usedDef = usedUid ? its.find((i) => i.uid === usedUid)?.defId : undefined;
+    m.bubble = acting ? (cosmetic?.kind === 'relax' && !activity ? '😌' : bubbleFor(usedDef, spot?.action, spot?.pose)) : null;
     if (cover.current) cover.current.visible = !!m.bathing;
     if (moving || acting || p.stage !== 'idle') invalidate();
     // dev-only probe for browser tests (tests-browser): where the avatar is and what it is doing
@@ -188,6 +193,7 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
   return (
     <group ref={root} position={[home.x, 0, home.z]}>
       <Avatar appearance={appearance} motion={motion} />
+      <HeadFx motion={motion} />
       {/* bathing is shown with a light-blue water cover (no clothing changes), only while a bathing activity runs */}
       <mesh ref={cover} visible={false} position={[0, 0.72, 0]}><cylinderGeometry args={[0.3, 0.3, 1.45, 20, 1, true]} /><meshStandardMaterial color="#6EC1F5" transparent opacity={0.35} roughness={0.2} depthWrite={false} /></mesh>
     </group>

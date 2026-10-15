@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
@@ -12,13 +11,12 @@ import { useStatsStore } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { billboardSlots } from '@/game/ads/slots';
 import { WorldView } from '@/three/world/WorldView';
-import { AnimatedNumber } from '@/ui/AnimatedNumber';
 import { Button } from '@/ui/Button';
 import { POSITIONING_LABEL } from '@/world/labels';
 import { getArea, getLandmark, getState, propertiesOfState } from '@/world/registry';
 import { AdSheet } from './ads/AdSheet';
 import { AdWizard } from './ads/AdWizard';
-import { CategoryTabs, CitySelector } from './CityAndCategoryBar';
+import { MapTopBar } from './MapTopBar';
 import { CategorySheet } from './CategorySheet';
 
 const EFFECT_LABEL: Record<string, string> = { hunger: 'Hunger', thirst: 'Thirst', happiness: 'Happiness', social: 'Social', energy: 'Energy', hygiene: 'Hygiene', charisma: 'Charisma' };
@@ -29,7 +27,6 @@ export function MapOverlay() {
   const { selectedAreaId, selectedLandmarkId, selectLandmark, selectArea } = useMapStore();
   const ui = useAdsUiStore();
   const stateId = useStateId();
-  const money = useEconomyStore((s) => s.money);
   const [travel, setTravel] = useState<string | null>(null);
   const state = getState(stateId);
   const landmark = selectedLandmarkId ? getLandmark(selectedLandmarkId) : null;
@@ -41,7 +38,7 @@ export function MapOverlay() {
   useEffect(() => {
     if (ui.sheet?.type === 'billboard' && state) { const b = billboardSlots(state).find((x) => x.id === (ui.sheet as { slotId: string }).slotId); if (b) useAdsUiStore.getState().setFocus(b.position); }
   }, [ui.sheet, state]);
-  const panelVisible = !landmark && !area && !ui.sheet && !ui.wizard;
+  const panelVisible = !!ui.category && !landmark && !area && !ui.sheet && !ui.wizard;
 
   const visit = () => {
     if (!landmark) return;
@@ -58,16 +55,8 @@ export function MapOverlay() {
     <AnimatePresence>
       {mode === 'map' && state && (
         <motion.div key="map" className="absolute inset-0 z-[40] bg-night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
-          <WorldView stateId={stateId} mode="map" selected={selected} onSelectLandmark={(id) => { sfx.pop(); selectLandmark(id); }} onSelectArea={(id) => { sfx.pop(); selectArea(id); }} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[55] flex items-start justify-between gap-2 px-3 pt-safe">
-            <div className="glass-dark pointer-events-auto rounded-2xl px-4 py-2.5"><div className="font-display text-lg font-extrabold leading-tight">{state.name}</div><div className="text-xs text-white/60">{state.areas.length} areas · {propertiesOfState(stateId).length} homes</div></div>
-            <div className="glass-dark pointer-events-auto rounded-2xl px-3 py-2 font-display font-extrabold text-danfo"><AnimatedNumber value={money} /></div>
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 top-[5.1rem] z-[55] flex items-center gap-2 px-3">
-            <button onClick={() => useUiStore.getState().setMode('home')} className="glass-dark pointer-events-auto flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"><Home size={14} />Home</button>
-            <CitySelector />
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 top-[8.2rem] z-[55] px-3"><CategoryTabs /></div>
+          <WorldView stateId={stateId} mode="map" showNames={ui.names} selected={selected} onSelectLandmark={(id) => { sfx.pop(); selectLandmark(id); }} onSelectArea={(id) => { sfx.pop(); selectArea(id); }} />
+          <MapTopBar />
 
           <AnimatePresence mode="wait">
             {(landmark || area) && (

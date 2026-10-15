@@ -1,22 +1,19 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bath, Beef, ChevronUp, Droplet, HeartPulse, Smile, Sparkles, Toilet, Users, Zap, type LucideIcon } from 'lucide-react';
+import { sfx } from '@/audio/sfx';
+import { ChevronUp } from 'lucide-react';
+import { useCharacterStore } from '@/stores/characterStore';
 import { useStatsStore } from '@/stores/statsStore';
+import { Portrait } from '@/ui/Portrait';
+import { STAT_META } from './statMeta';
 import { SKILLS, levelOf, useSkillStore, xpForLevel } from '@/stores/skillStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { StatKey } from '@/types/game';
 import { STAT_KEYS } from '@/types/game';
 
-const META: Record<StatKey, { label: string; Icon: LucideIcon; color: string }> = {
-  hunger: { label: 'Hunger', Icon: Beef, color: '#FF8A3D' }, thirst: { label: 'Thirst', Icon: Droplet, color: '#38BDF8' },
-  bladder: { label: 'Toilet', Icon: Toilet, color: '#A3E635' }, happiness: { label: 'Happiness', Icon: Smile, color: '#F472B6' },
-  energy: { label: 'Energy', Icon: Zap, color: '#FFC21A' }, hygiene: { label: 'Hygiene', Icon: Bath, color: '#2DD4BF' },
-  health: { label: 'Health', Icon: HeartPulse, color: '#F87171' }, social: { label: 'Social', Icon: Users, color: '#A78BFA' },
-  charisma: { label: 'Charisma', Icon: Sparkles, color: '#34D399' },
-};
 const COMPACT: StatKey[] = ['hunger', 'thirst', 'bladder', 'energy', 'happiness'];
 
 function Bar({ k, v, tall }: { k: StatKey; v: number; tall?: boolean }) {
-  const { Icon, color, label } = META[k];
+  const { Icon, color, label } = STAT_META[k];
   const low = v < 25 && k !== 'charisma';
   return (
     <div className="min-w-0 flex-1" aria-label={`${label} ${Math.round(v)}`}>
@@ -36,9 +33,15 @@ export function StatsWidget() {
   const expanded = useUiStore((s) => s.statsExpanded);
   const toggle = useUiStore((s) => s.toggleStats);
   const skillXp = useSkillStore((s) => s.xp);
+  const appearance = useCharacterStore((s) => s.appearance);
+  const hasLow = COMPACT.some((k) => stats[k] < 25);
   return (
     <motion.div className="pointer-events-none absolute inset-x-0 bottom-[5.6rem] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
-      <motion.button layout onClick={toggle} className="panel pointer-events-auto w-full max-w-sm rounded-lg px-3 py-2 text-left" aria-expanded={expanded}>
+      <div className="pointer-events-auto flex w-full max-w-sm items-stretch gap-2">
+      <motion.button whileTap={{ scale: 0.92 }} onClick={() => { sfx.pop(); useUiStore.getState().setProfileOpen(true); }} aria-label="Open your profile" className="relative shrink-0 self-end rounded-full p-0.5" style={{ background: hasLow ? 'linear-gradient(160deg,#FF4D6D,#FF8A3D)' : 'linear-gradient(160deg,#5B93FF,#2DD4BF)' }}>
+        <Portrait a={appearance} size={58} className="rounded-full bg-night" />
+      </motion.button>
+      <motion.button layout onClick={toggle} className="panel min-w-0 flex-1 rounded-2xl px-3 py-2 text-left" aria-expanded={expanded}>
         <AnimatePresence initial={false} mode="wait">
           {expanded ? (
             <motion.div key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-3 gap-x-3 gap-y-2.5 pb-1 pt-1">
@@ -61,6 +64,7 @@ export function StatsWidget() {
           )}
         </AnimatePresence>
       </motion.button>
+      </div>
     </motion.div>
   );
 }

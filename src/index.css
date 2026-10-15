@@ -49,3 +49,13 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible { outli
 .animate-shake { animation: shake 0.45s; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* Top HUD capsules (ui/HudPill.tsx): deep glass with a hairline rim and a warm edge on the cash capsule */
+.hud-capsule { background: linear-gradient(180deg, rgba(20,24,36,0.82), rgba(12,15,24,0.88)); border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08); backdrop-filter: blur(14px); }
+.hud-cash { border-color: rgba(255,194,26,0.28); }
+
+/* Thought bubble over the avatar's head (three/property/HeadFx.tsx) */
+.thought-bubble { position: relative; display: flex; height: 2.3rem; min-width: 2.3rem; align-items: center; justify-content: center; border-radius: 1.4rem; background: #fff; padding: 0 0.55rem; font-size: 1.35rem; line-height: 1; box-shadow: 0 6px 16px rgba(0,0,0,0.35); animation: bubble-pop 0.28s cubic-bezier(.3,1.6,.5,1) both, bubble-bob 2.2s ease-in-out 0.3s infinite; }
+.thought-bubble::after { content: ''; position: absolute; left: 50%; bottom: -0.32rem; height: 0.7rem; width: 0.7rem; background: #fff; border-radius: 0.15rem; transform: translateX(-50%) rotate(45deg); }
+@keyframes bubble-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes bubble-bob { 50% { transform: translateY(-4px); } }

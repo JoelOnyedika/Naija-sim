@@ -39,7 +39,7 @@ function PadButton({ dir, Icon, label }: { dir: Dir; Icon: typeof ArrowUp; label
 /** The top-right Build/Buy exit. Always visible (even while an item is selected) and independent of the catalogue. */
 function ExitBar() {
   return (
-    <motion.div className="pointer-events-auto absolute right-2 top-[calc(env(safe-area-inset-top,0px)+3.6rem)] z-[66]" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+    <motion.div className="pointer-events-auto absolute right-2 top-[calc(env(safe-area-inset-top,0px)+4.4rem)] z-[66]" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
       <div className="panel flex items-center gap-2 rounded-lg py-1 pl-3 pr-1">
         <span className="flex items-center gap-1.5 text-[12px] font-bold"><span className="h-2 w-2 rounded-full bg-accent-glow" />Build / Buy</span>
         <button onClick={exitBuild} aria-label="Exit Build mode" className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"><X size={18} /></button>

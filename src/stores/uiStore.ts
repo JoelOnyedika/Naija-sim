@@ -9,6 +9,9 @@ interface UiState {
   mode: GameMode;
   taskPanelOpen: boolean;
   statsExpanded: boolean;
+  /** The character profile sheet (tap the portrait in the stats bar). */
+  profileOpen: boolean;
+  setProfileOpen: (v: boolean) => void;
   /** Buy catalog sheet visible (slides down when hidden but Buy mode stays active). */
   catalogOpen: boolean;
   /** Selected catalogue tab (kept here so it survives the catalogue unmounting while an item is being placed). */
@@ -44,7 +47,7 @@ interface UiState {
 
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
-  mode: 'home', taskPanelOpen: true, statsExpanded: false, catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
+  mode: 'home', taskPanelOpen: true, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
   detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null,
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),

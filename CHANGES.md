@@ -79,3 +79,10 @@ GLB vehicle loader, investment upgrades, free-angle furniture rotation.
 ## Billboard locations and gym mat
 - Billboards now show where they are in words (airport, "Near Eko Hotel and Suites", named road) in the inventory, wizard, review and sheet. Board id `lagos.bb.oshodi` was renamed `lagos.bb.ikorodu-road` and two boards were nudged so their labels are accurate.
 - New procedural **Gym mat** item (Fun, ₦45,000) with push-ups, new `exclusive` placement flag, and AFK push-ups now work. `test_interact.py` updated for walk-then-start.
+
+## Map redesign, HUD, character effects, profile
+- Map: city dropdown (Lagos here, others Coming soon), Names toggle, More dropdown (Billboards, Neighbours, Sea Plots, Government, Walk soon); top-down map, drag to pan, pinch/wheel to zoom, no rotation. Old category tabs removed. `tests-browser/test_ads_flow.py` updated.
+- HUD: shared `ui/HudPill.tsx` on home and map (time, mood, online, sound, cash with + to bank).
+- Avatar: thought bubbles for every object it uses, flies when hygiene is low.
+- Stats bar now has a procedural portrait; tapping it opens a profile sheet (Profile with 3D preview and appearance editing, Needs, Goals, Skills, Career, People).
+- New `docs/FEATURE_AUDIT.md`: first audit of the big economy/social brief and the proposed phase order. None of that brief is implemented yet.
