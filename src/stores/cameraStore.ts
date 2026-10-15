@@ -7,7 +7,7 @@ export const DEFAULT_POLAR = 1.0;         // MVP camera: radians from straight u
 /** Vertical drag tilts the camera between these two elevations (radians from straight up). Tweak here to change how far it goes. */
 export const POLAR_MIN = 0.7;             // most top-down view
 export const POLAR_MAX = 1.2;             // lowest, most side-on view
-export const ZOOM_MIN = 0.7, ZOOM_MAX = 1.3;
+export const ZOOM_MIN = 0.7, ZOOM_MAX = 2.5;
 
 interface CameraState {
   /** Button-selected orientation: number of 90-degree steps from the default (unwrapped, so 4 presses = a full turn). */
