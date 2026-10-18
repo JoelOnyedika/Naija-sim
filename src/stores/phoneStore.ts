@@ -12,8 +12,15 @@ export interface ChatMessage {
   replyTo?: string;
   /** emoji -> who reacted. Reacting again with the same emoji removes it. */
   reactions?: Record<string, ('me' | 'them')[]>;
+  /** In groups: who said it (a peer id or display name). */
+  sender?: string;
+  /** Pinned inside this chat (at most MAX_PINS per chat). */
+  pinned?: boolean;
+  /** A notice such as "You created the group", shown centred instead of as a bubble. */
+  system?: boolean;
 }
-export type SayExtra = Partial<Pick<ChatMessage, 'kind' | 'txId' | 'replyTo'>>;
+export const MAX_PINS = 3;
+export type SayExtra = Partial<Pick<ChatMessage, 'kind' | 'txId' | 'replyTo' | 'sender' | 'system'>>;
 
 /** Bumped on reset so delayed NPC replies from an old life never land in the new one. */
 let epoch = 0;
@@ -43,10 +50,15 @@ interface PhoneState {
   say: (contactId: string, from: 'me' | 'them', text: string, extra?: SayExtra) => string;
   react: (contactId: string, messageId: string, emoji: string, by: 'me' | 'them') => void;
   markThreadRead: (contactId: string) => void;
+  /** Toggles a pin. Returns false if the chat already has MAX_PINS pinned messages. */
+  pin: (contactId: string, messageId: string) => boolean;
+  /** Clears the messages of one chat on this device. Bank records are separate and are never touched. */
+  clearThread: (contactId: string) => void;
+  markAllRead: () => void;
   reset: () => void;
 }
 
-export const usePhoneStore = create<PhoneState>()(persist((set) => ({
+export const usePhoneStore = create<PhoneState>()(persist((set, get) => ({
   open: false, appId: null, origin: { x: 50, y: 50 }, recents: [], switcher: false, chatWith: null, notifications: [], threads: {}, readAt: {},
   openPhone: () => set({ open: true }),
   closePhone: () => set({ open: false, appId: null, switcher: false }),
@@ -75,5 +87,14 @@ export const usePhoneStore = create<PhoneState>()(persist((set) => ({
     },
   })),
   markThreadRead: (contactId) => set((s) => ({ readAt: { ...s.readAt, [contactId]: Date.now() } })),
+  pin: (contactId, messageId) => {
+    const list = get().threads[contactId] ?? [], m = list.find((x) => x.id === messageId);
+    if (!m) return false;
+    if (!m.pinned && list.filter((x) => x.pinned).length >= MAX_PINS) return false;
+    set((s) => ({ threads: { ...s.threads, [contactId]: list.map((x) => (x.id === messageId ? { ...x, pinned: !x.pinned } : x)) } }));
+    return true;
+  },
+  clearThread: (contactId) => set((s) => { const t = { ...s.threads }; delete t[contactId]; return { threads: t }; }),
+  markAllRead: () => set((s) => ({ readAt: Object.fromEntries(Object.keys(s.threads).map((k) => [k, Date.now()])) })),
   reset: () => { epoch += 1; set({ open: false, appId: null, recents: [], switcher: false, chatWith: null, notifications: [], threads: {}, readAt: {} }); },
 }), { name: 'nigerialife.phone', version: 1, partialize: (s) => ({ notifications: s.notifications, threads: s.threads, recents: s.recents, readAt: s.readAt }) }));

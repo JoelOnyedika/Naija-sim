@@ -22,7 +22,7 @@ export const ACCESSORIES: { id: Accessory; label: string }[] = [
   { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' },
 ];
 
-export type BoutiqueSlot = 'top' | 'bottom' | 'shoes' | 'hair' | 'extra';
+export type BoutiqueSlot = 'top' | 'bottom' | 'shoes' | 'hair' | 'extra' | 'bag';
 export interface BoutiqueItem { id: string; name: string; slot: BoutiqueSlot; style: string; color?: string; price: number; glyph: string }
 export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-tee-black', name: 'Black tee', slot: 'top', style: 'tee', color: '#1B1F24', price: 8000, glyph: '👕' },
@@ -48,6 +48,11 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-x-glasses', name: 'Round glasses', slot: 'extra', style: 'glasses', price: 10000, glyph: '👓' },
   { id: 'b-x-cap', name: 'Cap', slot: 'extra', style: 'cap', price: 8000, glyph: '🧢' },
   { id: 'b-x-chain', name: 'Gold chain', slot: 'extra', style: 'chain', price: 40000, glyph: '⛓️' },
+  { id: 'b-bag-tote', name: 'Canvas tote bag', slot: 'bag', style: 'tote', color: '#C9A66B', price: 12_000, glyph: '👜' },
+  { id: 'b-bag-backpack', name: 'Black backpack', slot: 'bag', style: 'backpack', color: '#1B1F24', price: 22_000, glyph: '🎒' },
+  { id: 'b-bag-crossbody', name: 'Leather crossbody', slot: 'bag', style: 'crossbody', color: '#8A4B2A', price: 48_000, glyph: '👝' },
+  { id: 'b-bag-clutch', name: 'Gold evening clutch', slot: 'bag', style: 'clutch', color: '#E5A400', price: 65_000, glyph: '👛' },
+  { id: 'b-bag-handbag', name: 'Designer handbag', slot: 'bag', style: 'handbag', color: '#C23B3B', price: 180_000, glyph: '👜' },
 ];
 
 /** What wearing an item does to an appearance. Shared by the Boutique preview and the real purchase. */
@@ -58,5 +63,6 @@ export function applyItem(a: Appearance, it: BoutiqueItem): Appearance {
     case 'shoes': return { ...a, shoes: it.style as ShoeStyle, shoeColor: it.color ?? a.shoeColor };
     case 'hair': return { ...a, hairStyle: it.style as HairStyle };
     case 'extra': return { ...a, accessory: it.style as Accessory };
+    case 'bag': return a; // bags are owned and kept in the wardrobe, but the character model cannot show them yet
   }
 }

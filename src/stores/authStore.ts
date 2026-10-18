@@ -12,6 +12,8 @@ interface AuthState {
   signup: (username: string, password: string) => string | null;
   login: (username: string, password: string) => string | null;
   google: () => void;
+  /** Changes the password of the signed-in local account. Returns an error message or null. */
+  changePassword: (current: string, next: string) => string | null;
   logout: () => void;
 }
 
@@ -40,6 +42,17 @@ export const useAuthStore = create<AuthState>()(persist((set, get) => ({
     if (existing) return set({ session: existing.username });
     const name = `${base}${Math.floor(100 + Math.random() * 900)}`;
     set((s) => ({ accounts: [...s.accounts, { username: name, password: '', google: true }], session: name }));
+  },
+  changePassword: (current, next) => {
+    const { session, accounts } = get();
+    const a = accounts.find((x) => x.username === session);
+    if (!a) return 'You are not signed in.';
+    if (a.google) return 'This account signs in with Google, so it has no password to change.';
+    if (a.password !== current) return 'Your current password is not correct.';
+    if (next.length < 4) return 'Password must be at least 4 characters.';
+    if (next === current) return 'Choose a different password.';
+    set({ accounts: accounts.map((x) => (x.username === a.username ? { ...x, password: next } : x)) });
+    return null;
   },
   logout: () => set({ session: null }),
 }), { name: 'nigerialife.auth', version: 1 }));

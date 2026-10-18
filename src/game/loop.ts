@@ -8,10 +8,12 @@ import { useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useLifeStore } from '@/stores/lifeStore';
-import { useSkillStore } from '@/stores/skillStore';
+import { skillName, useSkillStore } from '@/stores/skillStore';
 import { useStatsStore, type Activity } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { notify } from './notify';
+import { completeCareerShift } from './jobs';
+import { runDueEvents } from './scheduler';
 import { fireTask } from './tasks';
 
 function onFinished(a: Activity) {
@@ -19,11 +21,12 @@ function onFinished(a: Activity) {
     useEconomyStore.getState().credit(a.payout, a.label, 'salary');
     toast(copy.workDone(formatNaira(a.payout)), 'good');
     sfx.coin();
+    if (a.careerId) completeCareerShift(a.careerId);
   } else if (a.doneMessage) toast(a.doneMessage, 'good');
   if (a.slept) toast('You woke up rested.', 'good');
   if (a.skill) {
     const { before, after } = useSkillStore.getState().add(a.skill.id, a.skill.xp);
-    toast(after > before ? `Coding level ${after}! +${a.skill.xp} XP` : `Coding +${a.skill.xp} XP`, 'good');
+    toast(after > before ? `${skillName(a.skill.id)} level ${after}! +${a.skill.xp} XP` : `${skillName(a.skill.id)} +${a.skill.xp} XP`, 'good');
   }
   if (a.event) fireTask(a.event);
 }
@@ -35,6 +38,7 @@ export function advance(dt: number) {
   const finished = useStatsStore.getState().tick(dt);
   if (finished) onFinished(finished);
   useClockStore.getState().advance(dt);
+  runDueEvents();
 
   // food deliveries
   const now = Date.now();

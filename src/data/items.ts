@@ -1,3 +1,4 @@
+import type { SkillId } from '@/stores/skillStore';
 import type { Effects } from '@/types/game';
 
 export type ItemCategory = 'storage' | 'designs' | 'sleep' | 'kitchen' | 'bathroom' | 'comfort' | 'fun' | 'skills';
@@ -18,7 +19,7 @@ export interface UseDef {
   /** Fires a task event, e.g. 'use:bathe'. */
   event?: string;
   /** Skill practice: XP is granted only when the activity finishes. */
-  skill?: { id: 'coding'; xp: number };
+  skill?: { id: SkillId; xp: number };
   /** While this runs the home is throwing a party (disco lights switch on). */
   party?: boolean;
 }
@@ -43,6 +44,8 @@ export interface FurnitureDef {
   sleepRate?: number;
   comfort?: number;
   use?: UseDef;
+  /** Tapping this opens a phone app instead of running a use action. The wardrobe opens the Boutique catalogue (owned clothes). */
+  opensApp?: 'boutique';
   /**
    * Needs clear floor to be placed or used (e.g. the gym mat) but does not block walking: nothing solid can be put on it and it
    * cannot be put on anything solid. Rugs, which may go under furniture, do not set this.
@@ -58,7 +61,7 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'bed', name: 'Wooden bed', description: 'Proper frame, proper mattress, two pillows.', price: 180000, category: 'sleep', rarity: 'uncommon', glyph: '🛌', model: 'bed', footprint: { w: 1.6, d: 2.0 }, height: 0.9, placement: floor, style: 4, sleepRate: 1, use: { label: 'Sleep', seconds: 0, effects: {}, sleep: true, pose: 'sleep' } },
   { id: 'king_bed', name: 'King-size bed', description: 'Upholstered headboard. Sleep like a Chairman.', price: 650000, category: 'sleep', rarity: 'epic', glyph: '👑', model: 'king_bed', footprint: { w: 1.95, d: 2.15 }, height: 1.1, placement: floor, style: 9, sleepRate: 1.35, use: { label: 'Sleep', seconds: 0, effects: {}, sleep: true, pose: 'sleep' } },
   // ---- Storage
-  { id: 'wardrobe', name: 'Wardrobe', description: 'Two doors, hanging rail, room for your agbada.', price: 120000, category: 'storage', rarity: 'uncommon', glyph: '🚪', model: 'wardrobe', footprint: { w: 1.2, d: 0.6 }, height: 2.0, placement: floor, style: 3 },
+  { id: 'wardrobe', name: 'Wardrobe', opensApp: 'boutique', description: 'Two doors, hanging rail, room for your agbada. Tap to change outfit.', price: 120000, category: 'storage', rarity: 'uncommon', glyph: '🚪', model: 'wardrobe', footprint: { w: 1.2, d: 0.6 }, height: 2.0, placement: floor, style: 3 },
   { id: 'bookshelf', name: 'Bookshelf', description: 'Books for show. A few for reading.', price: 60000, category: 'storage', rarity: 'common', glyph: '📚', model: 'bookshelf', footprint: { w: 0.9, d: 0.35 }, height: 1.9, placement: floor, style: 2, use: { label: 'Read', seconds: 10, effects: { charisma: 2, energy: -2 }, pose: 'stand' } },
   // ---- Kitchen
   { id: 'fridge', name: 'Fridge-freezer', description: 'Keeps the water cold and the leftovers honest.', price: 450000, category: 'kitchen', rarity: 'rare', glyph: '🧊', model: 'fridge', footprint: { w: 0.7, d: 0.7 }, height: 1.8, placement: floor, style: 6, use: { label: 'Eat', seconds: 4, effects: {}, needsFood: true, pose: 'stand' } },

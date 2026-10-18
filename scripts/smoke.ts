@@ -121,7 +121,7 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
   ok(Object.keys(useFinishStore.getState().byProperty).length === 0 && useFinishStore.getState().owned.length === 0, 'new life clears finishes');
   useSkillStore.getState().reset();
   useSkillStore.getState().add('coding', 25);
-  ok(levelOf(useSkillStore.getState().xp.coding) >= 2, 'coding XP raises the level');
+  ok(levelOf(useSkillStore.getState().xp.coding ?? 0) >= 2, 'coding XP raises the level');
 }
 
 

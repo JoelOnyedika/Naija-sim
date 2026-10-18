@@ -46,7 +46,7 @@ export function StatsWidget() {
           {expanded ? (
             <motion.div key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-3 gap-x-3 gap-y-2.5 pb-1 pt-1">
               {STAT_KEYS.map((k) => <Bar key={k} k={k} v={stats[k]} tall />)}
-              {SKILLS.map((sk) => {
+              {SKILLS.filter((sk) => sk.id === 'coding' || (skillXp[sk.id] ?? 0) > 0).map((sk) => {
                 const xp = skillXp[sk.id] ?? 0, lv = levelOf(xp), lo = xpForLevel(lv), hi = xpForLevel(lv + 1);
                 return (
                   <div key={sk.id} className="col-span-3 border-t border-white/10 pt-2">

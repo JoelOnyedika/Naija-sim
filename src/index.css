@@ -59,3 +59,30 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible { outli
 .thought-bubble::after { content: ''; position: absolute; left: 50%; bottom: -0.32rem; height: 0.7rem; width: 0.7rem; background: #fff; border-radius: 0.15rem; transform: translateX(-50%) rotate(45deg); }
 @keyframes bubble-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes bubble-bob { 50% { transform: translateY(-4px); } }
+
+/* Battery saver: no decorative motion. Same rule as prefers-reduced-motion, switched on from Settings. */
+.battery-saver *, .battery-saver *::before, .battery-saver *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+
+/* Dark theme for phone apps. Scoped to .app-surface (the app screen inside the phone) by remapping the light utility
+   classes the apps use, so no app needs its own dark styles. The 3D world, HUD and home screen are already dark. */
+[data-theme='dark'] .app-surface { background: #0E131A; color: #E6EBF2; color-scheme: dark; }
+[data-theme='dark'] .app-surface .bg-slate-100 { background-color: #232D3D; }
+[data-theme='dark'] .app-surface .bg-slate-50 { background-color: #1A2230; }
+[data-theme='dark'] .app-surface .bg-white { background-color: #1B2433; }
+[data-theme='dark'] .app-surface .bg-slate-200 { background-color: #2E3A4E; }
+[data-theme='dark'] .app-surface .text-slate-900, [data-theme='dark'] .app-surface .text-slate-800 { color: #E6EBF2; }
+[data-theme='dark'] .app-surface .text-slate-700, [data-theme='dark'] .app-surface .text-slate-600 { color: #BAC4D3; }
+[data-theme='dark'] .app-surface .text-slate-500 { color: #93A0B4; }
+[data-theme='dark'] .app-surface .text-slate-400 { color: #7C8AA0; }
+[data-theme='dark'] .app-surface .border-slate-200, [data-theme='dark'] .app-surface .ring-slate-200 { border-color: #2E3A4E; --tw-ring-color: #2E3A4E; }
+[data-theme='dark'] .app-surface .bg-emerald-100, [data-theme='dark'] .app-surface .bg-emerald-50 { background-color: rgba(16,185,129,0.18); }
+[data-theme='dark'] .app-surface .bg-rose-100 { background-color: rgba(244,63,94,0.2); }
+[data-theme='dark'] .app-surface .bg-sky-100, [data-theme='dark'] .app-surface .bg-sky-50 { background-color: rgba(56,189,248,0.16); }
+[data-theme='dark'] .app-surface .bg-amber-100 { background-color: rgba(245,158,11,0.2); }
+[data-theme='dark'] .app-surface .bg-violet-50 { background-color: rgba(167,139,250,0.16); }
+[data-theme='dark'] .app-surface .text-emerald-700, [data-theme='dark'] .app-surface .text-emerald-800 { color: #6EE7B7; }
+[data-theme='dark'] .app-surface .text-sky-900, [data-theme='dark'] .app-surface .text-sky-800 { color: #BAE6FD; }
+[data-theme='dark'] .app-surface .text-amber-700 { color: #FCD34D; }
+[data-theme='dark'] .app-surface .fill-slate-900 { fill: #E6EBF2; }
+[data-theme='dark'] .app-surface .fill-slate-500 { fill: #93A0B4; }
+[data-theme='dark'] .app-surface input:not([type='checkbox']) { color: #E6EBF2; }

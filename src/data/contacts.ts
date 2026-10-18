@@ -6,11 +6,13 @@ export interface ContactDef {
   username?: string;
   /** Can receive bank transfers. NPCs have no account balance, so the money simply leaves the player's account. */
   canReceiveMoney?: boolean;
+  /** 'mom' marks the preloaded parent contact that Contacts always shows first. It is a scripted character, not a player account. */
+  special?: 'mom';
 }
 /** How a contact is labelled in lists: players as @username, NPCs by name. */
 export const contactLabel = (c: ContactDef) => (c.kind === 'player' && c.username ? `@${c.username}` : c.name);
 export const CONTACTS: ContactDef[] = [
-  { id: 'mama', name: 'Mama', role: 'Family', avatar: '👩🏾', group: 'family', line: 'Have you eaten? Do not skip meals.' },
+  { id: 'mama', name: 'Mama', role: 'Mom', avatar: '👩🏾', group: 'family', special: 'mom', kind: 'npc', line: 'Have you eaten? Do not skip meals.' },
   { id: 'daddy', name: 'Daddy', role: 'Family', avatar: '👨🏾‍🦳', group: 'family', line: 'Work hard. Respect your elders.' },
   { id: 'tunde', name: 'Tunde (Yaba)', role: 'Friend', avatar: '🧑🏾', group: 'friend', line: 'Guy, wetin dey happen? Link up this weekend.' },
   { id: 'chioma', name: 'Chioma', role: 'Friend', avatar: '👩🏾‍🦱', group: 'friend', line: 'Quilox on Saturday? I dey come.' },

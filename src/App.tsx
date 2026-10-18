@@ -6,6 +6,7 @@ import { LandingScreen } from '@/features/landing/LandingScreen';
 import { RouletteScreen } from '@/features/roulette/RouletteScreen';
 import { SummaryScreen } from '@/features/summary/SummaryScreen';
 import { resetTransientUi } from '@/game/life';
+import { useAppearanceSync } from '@/hooks/useAppearanceSync';
 import { useMusicSync } from '@/hooks/useMusicSync';
 import { useAuthStore } from '@/stores/authStore';
 import { useCharacterStore } from '@/stores/characterStore';
@@ -17,6 +18,7 @@ import { ErrorBoundary } from '@/ui/ErrorBoundary';
 /** Top-level flow: landing → login/signup → character → roulette → summary → game. */
 export default function App() {
   useMusicSync();
+  useAppearanceSync();
   const phase = useFlowStore((s) => s.phase);
   const go = useFlowStore((s) => s.go);
   const session = useAuthStore((s) => s.session);

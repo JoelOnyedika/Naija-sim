@@ -1,5 +1,26 @@
 # Nigeria Life - improvement pass
 
+## Jobs, Messages, Hustle, Investments, Companies, Court, Police, Ride, Grocery, Boutique, Games, Family, Tax
+- **Income tax is on**: weekly progressive brackets on job, Hustle and company income (0% to ₦150k, 5% to ₦600k, 10% to ₦2M, 15% above). Unpaid tax is retried and payable. See `SYSTEMS.md` B.
+- **Jobs**: 32 careers with ranks, skills and requirements; formal careers use apply, offer, accept; promotions are earned (shifts + Charisma + skill level).
+- **Contacts and Messages**: Mom contact, find a player, Message Requests, Groups, pinning, delete chat, notification toggles; the "Only friends" privacy setting is enforced.
+- **Hustle**: board, Find a Pro, post a job, direct hire, escrow (hold, release, separate refund), rating with a per-client cap.
+- **Investments and land** across four cities (ownership survives city changes), **Companies** (4 slots, manager, staff, branches, upgrades, marketing, daily settlement, once-a-day payouts).
+- **Court and Police**: filing, a deterministic case viewer, lawyers, reports that are dismissed or referred to one linked case.
+- **Ride, Grocery, Games, Family, Forbes podium**, and a **full-screen Boutique** with occasions, bags and a shared wardrobe (the house wardrobe opens it).
+- Net worth now includes land, market holdings and company funds. Chips are proper toggle buttons for screen readers.
+- Bugs found by tests and fixed: Live Cases could be empty; the Messages list reset to Chats after leaving a group; chip groups had wrong ARIA roles.
+- New checks: `test:careers`, `test:social`, `test:hustle`, `test:empire`, `test:legal`, `test:shop`; browser tests `test_social_ui.py`, `test_apps_a.py`, `test_apps_b.py`.
+
+## Foundations, Banking and Settings (latest)
+- **Ledger upgraded in place** (`economyStore`, save v2 with migration): direction, balance before/after, reference numbers, game time, related entity, idempotency keys, lifetime totals, 1,000-entry history. Old call sites unchanged. No data reset.
+- **Scheduler** (`game/scheduler.ts`): one place for weekly events, once per game week, never repeated by reloads or screens.
+- **Bank rebuilt** into 9 sections: Overview, Send (existing feature kept), Savings (0.5% weekly), Bonds, Credibility, Income Tax (no rule is active, so nothing is charged), Weekly Bills, Last Receipt, Money History.
+- **One net worth** for Bank and Forbes (wallet + savings + bonds + homes + cars).
+- **Settings**: light/dark/system theme for phone apps, battery saver, graphics Auto/On/Off wired into the graphics governor, change password (mock account), privacy policy draft. Unavailable options are shown disabled with the reason.
+- New checks: `test:economy` (55), `test:settings`, `test:persist`, `test:all`; browser test `tests-browser/test_bank_ui.py`.
+- Docs: new `docs/SYSTEMS.md`, rewritten `docs/FEATURE_AUDIT.md`.
+
 ## Fixed
 - **Start a New Life froze** when started from the phone: the game screen waited forever on exit animations. It now unmounts immediately, and `restartLife()` clears build mode, drafts, sheets, toasts and running activities.
 - **Build mode black screen**: after Cancel/Buy/Place the exiting placement bar re-read the store (draft = null) and threw, which unmounted the whole app. The bar now gets the draft as a prop; error boundaries wrap the app and the 3D scene.

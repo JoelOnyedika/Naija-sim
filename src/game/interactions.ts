@@ -1,3 +1,5 @@
+import { useBoutiqueNav } from '@/stores/boutiqueNavStore';
+import { usePhoneStore } from '@/stores/phoneStore';
 import { sfx } from '@/audio/sfx';
 import { copy } from '@/data/copy';
 import { getFood } from '@/data/foods';
@@ -26,6 +28,7 @@ export const carriedFood = () => FOODS.filter((f) => useInventoryStore.getState(
  */
 export function interactWith(item: PlacedItem) {
   const def = getFurniture(item.defId);
+  if (def?.opensApp) { useBoutiqueNav.getState().setOwnedOnly(true); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp(def.opensApp); sfx.click(); return; }
   if (!def?.use) { toast(def?.name ?? 'Nothing to do here'); return; }
   const stats = useStatsStore.getState();
   if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }

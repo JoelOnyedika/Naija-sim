@@ -11,7 +11,17 @@
     "validate:content": "tsx scripts/validateContent.ts",
     "smoke": "tsx scripts/smoke.ts",
     "test:ads": "tsx scripts/adsTest.ts",
-    "test:nav": "tsx scripts/navTest.ts"
+    "test:nav": "tsx scripts/navTest.ts",
+    "test:economy": "tsx scripts/economyTest.ts",
+    "test:settings": "tsx scripts/settingsTest.ts",
+    "test:all": "npm run typecheck && npm run validate:content && npm run smoke && npm run test:nav && npm run test:ads && npm run test:careers && npm run test:social && npm run test:hustle && npm run test:empire && npm run test:legal && npm run test:shop && npm run test:economy && npm run test:settings && npm run test:persist",
+    "test:persist": "tsx scripts/persistTest.ts",
+    "test:careers": "tsx scripts/careersTest.ts",
+    "test:social": "tsx scripts/socialTest.ts",
+    "test:hustle": "tsx scripts/hustleTest.ts",
+    "test:empire": "tsx scripts/empireTest.ts",
+    "test:legal": "tsx scripts/legalTest.ts",
+    "test:shop": "tsx scripts/shopTest.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",

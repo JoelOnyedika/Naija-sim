@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useLifeStore } from '@/stores/lifeStore';
 import { usePhoneStore } from '@/stores/phoneStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { SKILLS, levelOf, useSkillStore, xpForLevel } from '@/stores/skillStore';
 import { moodOf, useStatsStore } from '@/stores/statsStore';
 import { useTaskStore } from '@/stores/taskStore';
@@ -21,6 +22,7 @@ import { STAT_META } from './statMeta';
 const AvatarPreview = lazy(() => import('@/three/avatar/AvatarPreview').then((m) => ({ default: m.AvatarPreview })));
 
 type Tab = 'profile' | 'needs' | 'goals' | 'skills' | 'career' | 'people';
+const REL_LABEL = '💍 Single';
 const TABS: { id: Tab; label: string }[] = [{ id: 'profile', label: 'Profile' }, { id: 'needs', label: 'Needs' }, { id: 'goals', label: 'Goals' }, { id: 'skills', label: 'Skills' }, { id: 'career', label: 'Career' }, { id: 'people', label: 'People' }];
 
 const Chip = ({ on, onClick, children }: { on?: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -78,7 +80,7 @@ function SkillsTab() {
   const xp = useSkillStore((s) => s.xp);
   return (
     <div className="space-y-3">
-      {SKILLS.map((sk) => { const x = xp[sk.id] ?? 0, lv = levelOf(x), lo = xpForLevel(lv), hi = xpForLevel(lv + 1); return (
+      {SKILLS.filter((sk) => sk.id === 'coding' || (xp[sk.id] ?? 0) > 0).map((sk) => { const x = xp[sk.id] ?? 0, lv = levelOf(x), lo = xpForLevel(lv), hi = xpForLevel(lv + 1); return (
         <div key={sk.id} className="rounded-2xl bg-white/[0.07] p-3"><div className="mb-1.5 flex items-center justify-between text-sm font-bold"><span>{sk.icon} {sk.name} · Level {lv}</span><span className="text-xs text-white/50">{x - lo}/{hi - lo} XP</span></div>
           <div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, ((x - lo) / (hi - lo)) * 100)}%` }} /></div></div>
       ); })}
@@ -103,6 +105,7 @@ export function ProfileSheet() {
   const life = useLifeStore((s) => s.lifeType);
   const mood = moodOf(stats);
   const user = useAuthStore((s) => s.session);
+  const showRel = useSettingsStore((s) => s.showRelationship);
   const close = () => useUiStore.getState().setProfileOpen(false);
   return (
     <AnimatePresence>
@@ -113,7 +116,7 @@ export function ProfileSheet() {
             <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-white/25" />
             <div className="flex items-center gap-3 px-4 pb-2 pt-3">
               <Portrait a={a} size={52} className="shrink-0 rounded-full ring-2 ring-white/20" />
-              <div className="min-w-0 flex-1"><div className="truncate font-display text-xl font-extrabold">{user ?? 'Guest'}</div><div className="truncate text-sm text-white/60">{mood.label}{life ? ` · ${LIFE_TYPES[life].name}` : ''}</div></div>
+              <div className="min-w-0 flex-1"><div className="truncate font-display text-xl font-extrabold">{user ?? 'Guest'}</div><div className="truncate text-sm text-white/60">{showRel ? `${REL_LABEL} · ` : ''}{mood.label}{life ? ` · ${LIFE_TYPES[life].name}` : ''}</div></div>
               <button onClick={close} aria-label="Close profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={18} /></button>
             </div>
             <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3" role="tablist">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => { sfx.pop(); setTab(t.id); }} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${tab === t.id ? 'bg-slate-200 text-night' : 'bg-white/10 text-white/75'}`}>{t.label}</button>)}</div>

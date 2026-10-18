@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { useQualityStore } from '@/stores/qualityStore';
+import { tierFloor, useSettingsStore } from '@/stores/settingsStore';
 
 // Tuning. Drop only after sustained poor frame rate; climb back only after a long stable stretch (hysteresis + cooldowns).
 const WARMUP_S = 3;          // shader compile and first-frame spikes are not "performance"
@@ -37,9 +38,15 @@ export function PerfGovernor() {
     a.t = 0; a.frames = 0;
     if (a.elapsed < WARMUP_S) return;
     const { tier, setTier } = useQualityStore.getState();
+    // Settings first. 'off' pins the lowest tier, 'on' pins the best tier the battery saver allows; both stop the auto logic.
+    // Room lights stay on in every tier, so 'off' only lowers resolution and shadows: the game stays playable.
+    const prefs = useSettingsStore.getState(), floor = tierFloor(prefs);
+    if (prefs.graphics === 'off') { if (tier !== 3) setTier(3); return; }
+    if (prefs.graphics === 'on') { if (tier !== floor) setTier(floor); return; }
+    if (tier < floor) { setTier(floor); return; }
     if (fps < LOW_FPS) { a.low += 1; a.high = 0; } else if (fps >= HIGH_FPS) { a.high += 1; a.low = 0; } else { a.low = 0; a.high = 0; }
     if (a.low >= DROP_AFTER_S && a.since >= DROP_COOLDOWN_S && tier < 3) { setTier(tier + 1); a.low = 0; a.since = 0; console.info(`[graphics] ${fps.toFixed(0)} fps, tier ${tier} -> ${tier + 1}`); }
-    else if (a.high >= RISE_AFTER_S && a.since >= RISE_COOLDOWN_S && tier > 0) { setTier(tier - 1); a.high = 0; a.since = 0; console.info(`[graphics] stable, tier ${tier} -> ${tier - 1}`); }
+    else if (a.high >= RISE_AFTER_S && a.since >= RISE_COOLDOWN_S && tier > floor) { setTier(tier - 1); a.high = 0; a.since = 0; console.info(`[graphics] stable, tier ${tier} -> ${tier - 1}`); }
   });
   return null;
 }

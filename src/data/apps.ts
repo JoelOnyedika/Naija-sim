@@ -1,8 +1,9 @@
 export type AppId =
   | 'jobs' | 'messages' | 'contacts' | 'guide' | 'food' | 'bank' | 'boutique' | 'forbes' | 'houses' | 'cars' | 'invite'
-  | 'help' | 'invest' | 'betting' | 'family' | 'staff' | 'hustle' | 'motors' | 'companies' | 'shops' | 'police' | 'settings';
+  | 'help' | 'invest' | 'betting' | 'family' | 'staff' | 'hustle' | 'motors' | 'companies' | 'shops' | 'police' | 'settings'
+  | 'court' | 'games' | 'ride' | 'grocery';
 
-export interface AppDef { id: AppId; label: string; glyph: string; from: string; to: string; dock?: boolean }
+export interface AppDef { id: AppId; label: string; glyph: string; from: string; to: string; dock?: boolean; /** Opens over the whole screen instead of inside the phone frame (see PhoneOverlay). */ fullscreen?: boolean }
 
 /** Order = order on the home screen. Each app is an independent module in features/phone/apps. */
 export const APPS: AppDef[] = [
@@ -13,7 +14,7 @@ export const APPS: AppDef[] = [
   { id: 'contacts', label: 'Contacts', glyph: '👥', from: '#94A3B8', to: '#475569' },
   { id: 'houses', label: 'Houses', glyph: '🏠', from: '#F59E0B', to: '#B45309' },
   { id: 'cars', label: 'Cars', glyph: '🚗', from: '#EF4444', to: '#991B1B' },
-  { id: 'boutique', label: 'Boutique', glyph: '👗', from: '#F472B6', to: '#BE185D' },
+  { id: 'boutique', label: 'Boutique', glyph: '👗', from: '#F472B6', to: '#BE185D', fullscreen: true },
   { id: 'forbes', label: 'Forbes', glyph: '📈', from: '#1F2937', to: '#030712' },
   { id: 'invest', label: 'Invest', glyph: '💹', from: '#4ADE80', to: '#15803D' },
   { id: 'betting', label: 'Betting', glyph: '🎰', from: '#A78BFA', to: '#5B21B6' },
@@ -24,6 +25,10 @@ export const APPS: AppDef[] = [
   { id: 'family', label: 'Family', glyph: '👨🏾‍👩🏾‍👧🏾', from: '#FDBA74', to: '#C2410C' },
   { id: 'staff', label: 'Staff', glyph: '🧹', from: '#5EEAD4', to: '#0F766E' },
   { id: 'police', label: 'Police', glyph: '🚓', from: '#38BDF8', to: '#075985' },
+  { id: 'court', label: 'Court', glyph: '⚖️', from: '#78716C', to: '#292524' },
+  { id: 'ride', label: 'Ride', glyph: '🛺', from: '#FACC15', to: '#B45309' },
+  { id: 'grocery', label: 'Grocery', glyph: '🛒', from: '#86EFAC', to: '#15803D' },
+  { id: 'games', label: 'Games', glyph: '🎲', from: '#F0ABFC', to: '#A21CAF' },
   { id: 'invite', label: 'Invite', glyph: '🎟️', from: '#C084FC', to: '#7E22CE' },
   { id: 'guide', label: 'Guide', glyph: '📖', from: '#FDE047', to: '#A16207' },
   { id: 'help', label: 'Help', glyph: '❓', from: '#A3E635', to: '#4D7C0F' },

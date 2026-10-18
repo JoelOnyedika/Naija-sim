@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { clamp } from '@/core/format';
 import { CONFIG } from '@/data/config';
 import { STAT_KEYS, type Effects, type Stats } from '@/types/game';
+import type { SkillId } from './skillStore';
 
 export const FRESH_STATS: Stats = { hunger: 80, thirst: 80, bladder: 85, happiness: 70, energy: 90, hygiene: 85, health: 100, social: 55, charisma: 5 };
 
@@ -20,11 +21,13 @@ export interface Activity {
   doneMessage?: string;
   /** Fired when finished, e.g. a task event. */
   event?: string;
+  /** Set on career shifts, so finishing one counts toward that career's progress. */
+  careerId?: string;
   /** Paid out at the end (jobs). */
   payout?: number;
   slept?: boolean;
   /** Skill XP granted on completion (practice items). */
-  skill?: { id: 'coding'; xp: number };
+  skill?: { id: SkillId; xp: number };
   /** True while a house party is running. */
   party?: boolean;
 }

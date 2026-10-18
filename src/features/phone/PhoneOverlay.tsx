@@ -8,6 +8,7 @@ import { clockParts, useClockStore } from '@/stores/clockStore';
 import { useLifeStore } from '@/stores/lifeStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import type { PhoneType } from '@/types/game';
+import { createPortal } from 'react-dom';
 import { AppView } from './apps';
 
 function useClock() {
@@ -149,7 +150,7 @@ export function PhoneOverlay() {
                 <div className="relative min-h-0 flex-1">
                   <HomeScreen type={type} onOpen={openApp} />
                   <AnimatePresence>
-                    {appId && (
+                    {appId && !getApp(appId).fullscreen && (
                       <motion.div key={appId} className="absolute inset-0 z-20 overflow-hidden bg-slate-100" style={{ transformOrigin: `${origin.x}% ${origin.y}%` }}
                         initial={{ scale: 0.12, opacity: 0, borderRadius: '2.2rem' }} animate={{ scale: 1, opacity: 1, borderRadius: '0rem' }} exit={{ scale: 0.12, opacity: 0, borderRadius: '2.2rem' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
                         <AppView id={appId} onBack={home} />
@@ -157,6 +158,7 @@ export function PhoneOverlay() {
                     )}
                   </AnimatePresence>
                   <AnimatePresence>{switcher && <Switcher key="sw" />}</AnimatePresence>
+                  {appId && getApp(appId).fullscreen && createPortal(<div className="fixed inset-0 z-[200] bg-slate-100" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}><AppView id={appId} onBack={home} /></div>, document.body)}
                 </div>
                 {type === 'ios' ? (
                   <div className="relative z-30 flex items-center justify-center pb-2 pt-1">

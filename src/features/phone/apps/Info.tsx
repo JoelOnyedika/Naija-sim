@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
-import { restartLife } from '@/game/life';
 import { useAuthStore } from '@/stores/authStore';
-import { useFlowStore } from '@/stores/flowStore';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { toast } from '@/stores/uiStore';
-import { useLifeStore } from '@/stores/lifeStore';
 import { VEHICLES } from '@/data/vehicles';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { Btn, Card, Row, Title } from '../ui';
@@ -52,42 +48,12 @@ export function InviteApp() {
   );
 }
 
-export function PoliceApp() {
-  const act = (m: string) => { sfx.click(); toast(m); };
-  return (
-    <div className="space-y-2 p-3">
-      <Card className="bg-sky-50 text-sm">Police services are a placeholder for the prototype.</Card>
-      <Card><Row glyph="🚨" title="Emergency" sub="Call 112" right={<Btn tone="red" onClick={() => act('Calling 112… (mock)')}>Call</Btn>} /></Card>
-      <Card><Row glyph="📝" title="Report an incident" sub="Theft, noise, fraud" right={<Btn onClick={() => act('Report filed. An officer will respond. (mock)')}>Report</Btn>} /></Card>
-      <Card><Row glyph="🧾" title="Pay a fine" sub="No fines. Keep it that way." right={<Btn tone="light" disabled>None</Btn>} /></Card>
-    </div>
-  );
-}
-
 export function MotorsApp() {
   return (
     <div className="p-3">
       <div className="rounded-3xl bg-gradient-to-br from-red-700 to-red-950 p-5 text-white"><p className="font-display text-2xl font-extrabold">Motors Corporation</p><p className="text-sm text-white/80">Nigeria's biggest dealership network. Own a showroom later; browse stock now.</p></div>
       <Title>Featured stock</Title>
       <div className="space-y-2">{VEHICLES.slice(-4).reverse().map((v) => <Card key={v.id}><Row glyph="🏎️" title={v.name} sub={v.blurb} right={<Btn onClick={() => usePhoneStore.getState().openApp('cars')}>View</Btn>} /></Card>)}</div>
-    </div>
-  );
-}
-
-export function SettingsApp() {
-  const { sfx: sfxOn, music, toggleSfx, toggleMusic } = useSettingsStore();
-  const [confirm, setConfirm] = useState(false);
-  const logout = () => { usePhoneStore.getState().closePhone(); useAuthStore.getState().logout(); useFlowStore.getState().go('landing'); };
-  const T = ({ label, on, tap }: { label: string; on: boolean; tap: () => void }) => (
-    <button onClick={() => { sfx.click(); tap(); }} className="flex w-full items-center justify-between rounded-2xl bg-white p-3.5 text-left shadow-sm"><span className="text-sm font-bold">{label}</span><span className={`relative h-6 w-11 rounded-full transition ${on ? 'bg-emerald-500' : 'bg-slate-300'}`}><i className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`} /></span></button>
-  );
-  return (
-    <div className="space-y-2 p-3">
-      <T label="Sound effects" on={sfxOn} tap={toggleSfx} /><T label="Music" on={music} tap={toggleMusic} />
-      <Card><p className="text-sm font-bold">Account</p><p className="text-xs text-slate-500">Signed in as {useAuthStore.getState().session}</p><Btn tone="light" className="mt-2" onClick={logout}>Log out</Btn></Card>
-      <Card><p className="text-sm font-bold">Start a new life</p><p className="text-xs text-slate-500">Your current life is deleted. The roulette decides who you become.</p>
-        {confirm ? <div className="mt-2 flex gap-2"><Btn tone="light" onClick={() => setConfirm(false)}>Keep playing</Btn><Btn tone="red" onClick={() => { usePhoneStore.getState().closePhone(); restartLife(); }}>Spin again</Btn></div> : <Btn tone="red" className="mt-2" onClick={() => setConfirm(true)} disabled={!useLifeStore.getState().lifeType}>Start New Life</Btn>}</Card>
-      <p className="pt-2 text-center text-xs text-slate-400">Nigeria Life · prototype 0.1</p>
     </div>
   );
 }

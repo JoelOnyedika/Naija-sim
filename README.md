@@ -10,6 +10,7 @@ npm run dev              # http://localhost:5173 (use the printed network URL on
 npm run build            # typecheck + production build
 npm run validate:content # checks every state's properties/layouts/starting homes
 npm run smoke            # headless logic test (life start, buying, placing, moving house...)
+npm run test:all         # every check, including economy, settings and save-upgrade tests
 ```
 
 Node 18+.
@@ -23,6 +24,8 @@ Bigger connected Lagos (airport, port, Eko Atlantic, Lekki, roads), a city selec
 
 ## Read next
 
+- [`docs/SYSTEMS.md`](docs/SYSTEMS.md): what each system does today (ledger, banking, scheduler, settings), rules, limits, how to test.
+- [`docs/FEATURE_AUDIT.md`](docs/FEATURE_AUDIT.md): status of every app and the plan for the rest.
 - [`docs/DEVELOPER.md`](docs/DEVELOPER.md): architecture, systems, how to extend anything.
 - [`docs/ADDING_A_STATE.md`](docs/ADDING_A_STATE.md): add Abuja (or any state) as data, step by step.
 

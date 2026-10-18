@@ -2,6 +2,7 @@ import { formatNaira } from '@/core/format';
 import { CONTACTS, contactLabel, type ContactDef } from '@/data/contacts';
 import { useEconomyStore } from '@/stores/economyStore';
 import { phoneEpoch, usePhoneStore } from '@/stores/phoneStore';
+import { recordTransferSignal } from './banking';
 
 /** The most one transfer may move. A game rule, not a banking limit. */
 export const MAX_TRANSFER = 50_000_000_000;
@@ -59,6 +60,7 @@ export function sendTransfer(req: TransferRequest): TransferResult {
       return { ok: false, error: 'That is more than your balance.' };
     }
     last = { key, at: now };
+    recordTransferSignal(contact.id, req.amount);
     const txId = useEconomyStore.getState().transactions[0].id;
     const phone = usePhoneStore.getState();
     phone.say(contact.id, 'me', `Sent ${formatNaira(req.amount)}${description ? `: ${description}` : ''}`, { kind: 'transaction', txId });
