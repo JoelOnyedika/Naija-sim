@@ -137,14 +137,28 @@ Anti-farming: the per-contact caps, and moving money in and out of savings earns
 * **Games** (`game/games.ts`): tables are generated from city and game day; sitting down reserves a seat and checks you could afford the stake. **Stakes are never charged** because Ludo gameplay does not exist yet.
 
 ## F. Application design and navigation
-* Apps are registered in two places: `data/apps.ts` (id, label, icon, colours) and `features/phone/apps/index.tsx` (id → component). `AppView` wraps each in a header and a scroll area with class `app-surface`.
+
+### The phone (`features/phone/`)
+* **Two skins, one set of apps.** Nepo lives get an iPhone-style phone, Lapo lives an Android phone in the Samsung One UI style (`usePhoneType`). `PhoneOverlay.tsx` is the frame and navigation; `HomeScreens.tsx` holds the status bar, `IosHome`, `AndroidHome` and `AppLibrary`.
+* **Status bar** floats over everything so the clock is always visible. iOS (following the reference design): carrier on the left, Wi-Fi, battery and a bold 24-hour clock on the right, with the Dynamic Island in the middle. Android: bold clock on the left, signal, Wi-Fi and battery % on the right. Tapping it opens the notification shade.
+* **Home** shows 12 favourite apps in a 4-column grid (icon plus label) and a dock of Messages, Bank, Jobs and the **App Library** button. iOS adds two glass widgets (time and place, calendar from the game clock); Android adds a large clock and a search pill that opens the library.
+* **App Library** lists every app grouped (Money, Work, Social, Daily life, Law and order, More) with a search box. Nothing is hidden and there is no paging. Which apps are favourites, in the dock and in each group is `data/phoneLayout.ts` (a test checks every app is reachable).
+* **Icons** are white vector glyphs on a gradient tile (`appIcons.tsx`): a glossy squircle on iOS, a rounder flat tile on Android. Add an icon for a new app in `ICONS`.
+* **Inside an app** (`AppView`): iOS has a centred title with a back chevron; Android has a back arrow and a large left-aligned title. Content scrolls in the middle.
+* **Navigation** (`Tabs` in `ui.tsx`): a fixed bar at the **bottom** of the app, drawn into a slot below the scroll area through a portal, with at most five icon-and-label items. If an app passes more than five, the first four show and "More" opens the rest. Related sections are merged onto one page instead: Bank is Home, Send, Grow (savings and bonds), Activity (history and receipt) and More (credibility, bills, tax); Companies puts upgrades and marketing on one Growth page; Court puts history under My cases.
+* **Cards and titles** are flatter and quieter (`Card`, `Title`); the dark theme remaps them automatically (see Theme below).
+
+### Sending money
+Bank > Send has two boxes: the receiver's **username** and the **amount**. There is no contact list and no pre-filled names. The username is matched ignoring `@` and capital letters; an unknown username, yourself, a bad amount or more than your balance is refused with a message. One confirmation step, then one ledger debit, a record, and a chat card in your conversation with that player (rules in `game/bank.ts`).
+
+* Apps are registered in `data/apps.ts` (id, label, colours), `features/phone/apps/index.tsx` (id to component), `features/phone/appIcons.tsx` (icon) and `data/phoneLayout.ts` (where it appears). `AppView` wraps each in a header and a scroll area with class `app-surface`.
 * Open/close: `usePhoneStore.openApp(id)` / `closeApp()`. Notifications: `game/notify.ts` (`notify({ title, body, icon, appId })`).
 * Multi-section apps follow the Bank pattern: a thin shell with `Tabs`, one file per section, rules in `game/*.ts`, state in a store.
 * **Theme:** `settingsStore.theme` (`light` default, `dark`, `system`). `hooks/useAppearanceSync.ts` sets `data-theme` on `<html>`. Dark styling is a block of CSS in `index.css` that remaps the light utility classes **inside `.app-surface` only**. The 3D world, HUD and phone home screen are not themed (already dark). If you use a new light colour class in an app, add its dark mapping there.
 * **Battery saver:** adds class `battery-saver` to `<html>` (stops decorative animation via CSS) and floors the graphics tier at 2 (Low).
 * **Graphics:** `PerfGovernor` reads the setting every second. Auto = measured tiers (unchanged logic, clamped by the floor); On = best tier allowed by the floor; Off = tier 3 (smaller render size, no shadows; room lights stay on).
 * **Persistence:** every store uses zustand `persist` under `nigerialife.*`. New stores: `nigerialife.bank`, `nigerialife.scheduler`. Settings merges old saves with new defaults.
-* **Adding an app:** add the id to `AppId` and an entry to `APPS` (`data/apps.ts`), write the component, add one line to `APP_COMPONENTS`. Reuse `ui.tsx` pieces. Money goes through `economyStore.post`; time-based events go in `game/scheduler.ts`'s `PERIODIC_EVENTS`.
+* **Adding an app:** add the id to `AppId` and an entry to `APPS` (`data/apps.ts`), an icon in `appIcons.tsx`, a group in `CATEGORIES` (`data/phoneLayout.ts`), write the component, add one line to `APP_COMPONENTS`. Use `<Tabs>` for sections (five at most). Reuse `ui.tsx` pieces. Money goes through `economyStore.post`; time-based events go in `game/scheduler.ts`'s `PERIODIC_EVENTS`.
 * **Adding a scheduled event:** write `run(period)` in a game module, make it safe to run twice for one period (use `opKey`), add it to `PERIODIC_EVENTS`. New-life reset: `startNewLife` resets the scheduler and bank stores.
 
 ### Time and the "offline" rule
@@ -180,11 +194,12 @@ npm run test:hustle       # applications, escrow, refunds, completion, rating li
 npm run test:empire       # tax brackets, land, companies (incl. never-lose-money sweep)
 npm run test:legal        # filing, case model, verdicts, police reports and referrals
 npm run test:shop         # grocery, ride, games lobby, boutique
+npm run test:phone        # every app reachable from the library, home layout valid
 npm run test:settings     # settings defaults/persistence, password rules
 npm run test:persist      # a real v1 save upgrades to v2 without losing money or history
 npm run build             # typecheck + production build
 ```
-Browser (needs Playwright + Chromium and a dev server on :5173): `test_bank_ui.py`, `test_social_ui.py` (Jobs, Contacts, Messages, Hustle) and `test_apps_ui.py` (Companies, Invest, Grocery, Ride, Court, Police, Games, Forbes, Family, Tax, Boutique) drive the real UI. `test_bank_ui.py` walks every Bank tab in light and dark on a 390×844 viewport,
+Browser (needs Playwright + Chromium and a dev server on :5173): `test_bank_ui.py`, `test_phone_ui.py nepo|lapo` (home screen, clock, library, bottom navigation, sending by username), `test_social_ui.py` (Jobs, Contacts, Messages, Hustle) and `test_apps_ui.py` (Companies, Invest, Grocery, Ride, Court, Police, Games, Forbes, Family, Tax, Boutique) drive the real UI. `test_bank_ui.py` walks every Bank tab in light and dark on a 390×844 viewport,
 exercises deposit, search, receipt, theme, battery saver and graphics, and saves screenshots to `$SHOTS` (default `/tmp/shots`).
 `tests-browser/run.sh` still has a hard-coded path from the original machine; start `npx vite --port 5173` yourself or edit it.
 

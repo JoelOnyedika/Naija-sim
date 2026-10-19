@@ -1,5 +1,14 @@
 # Nigeria Life - improvement pass
 
+## Phone redesign and Send by username
+- **Send money** is two boxes: the receiver's username and the amount. No contact list, no pre-filled names (Mom, Dad). Unknown usernames are refused.
+- **iPhone-style phone** rebuilt after the reference design: carrier left, bold clock top-right, glass time and calendar widgets, 4-column glossy icons with labels, dock with an App Library button. **Android** rebuilt in a Samsung One UI style: big clock, rounded tiles, search pill, three-button navigation.
+- **App Library** groups every app with search, so nothing is hidden and nothing scrolls sideways.
+- **No more scrolling tab strips.** Every app has a fixed bottom bar of at most five items. Bank 9 sections to 5, Companies 6 to 5, Court 5 to 4; related sections share a page.
+- Vector icons replace emoji on the home screen; flatter, calmer cards and headings; clearer app headers per phone.
+- Fixes: the iOS clock and status icons were hidden or tiny; the iOS home pill was a 5px tap target; home icons stayed focusable under the App Library.
+- New check: `test:phone`; browser test `test_phone_ui.py`.
+
 ## Jobs, Messages, Hustle, Investments, Companies, Court, Police, Ride, Grocery, Boutique, Games, Family, Tax
 - **Income tax is on**: weekly progressive brackets on job, Hustle and company income (0% to ₦150k, 5% to ₦600k, 10% to ₦2M, 15% above). Unpaid tax is retried and payable. See `SYSTEMS.md` B.
 - **Jobs**: 32 careers with ranks, skills and requirements; formal careers use apply, offer, accept; promotions are earned (shifts + Charisma + skill level).

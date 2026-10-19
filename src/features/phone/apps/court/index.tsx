@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
+import { Briefcase, FilePlus, FolderOpen, Radio } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
@@ -84,7 +85,7 @@ function FileForm({ lawyer, setLawyer, done }: { lawyer: string | null; setLawye
   );
 }
 
-const TABS = [['file', 'File a Case'], ['live', 'Live Cases'], ['mine', 'My Cases'], ['lawyers', 'Lawyers'], ['history', 'History']] as const;
+const TABS = [['live', 'Live', Radio], ['file', 'File', FilePlus], ['mine', 'My cases', FolderOpen], ['lawyers', 'Lawyers', Briefcase]] as const;
 export function CourtApp() {
   const cases = useLegalStore((s) => s.cases), now = useGameMinutes();
   const nav = useCourtNav();
@@ -98,13 +99,12 @@ export function CourtApp() {
       <Tabs label="Court sections" tabs={TABS} value={tab} onChange={setTab} />
       {tab === 'file' && <FileForm lawyer={lawyer} setLawyer={setLawyer} done={(id) => { setTab('mine'); void id; }} />}
       {tab === 'live' && list(cases.filter((c) => c.status === 'live'), 'No live cases right now', '🏛️')}
-      {tab === 'mine' && list(cases.filter((c) => involved(c) && c.status === 'live'), 'You have no open cases', '📁')}
+      {tab === 'mine' && (<>{list(cases.filter((c) => involved(c) && c.status === 'live'), 'You have no open cases', '📁')}<p className="px-6 pt-1 text-[12px] font-semibold uppercase tracking-wider text-slate-500">History</p>{list(cases.filter((c) => involved(c) && c.status === 'closed'), 'No closed cases yet', '🗂️')}</>)}
       {tab === 'lawyers' && (
         <div className="space-y-2 p-3">
           {LAWYERS.map((l) => <Card key={l.id}><Row glyph={l.icon} title={l.name} sub={`${l.specialty.join(', ')} · ${l.experience}`} right={l.available ? <Btn tone="light" onClick={() => { setLawyer(l.id); setTab('file'); }}>Select</Btn> : <span className="rounded-md bg-stone-200 px-2 py-0.5 text-[11px] font-bold text-stone-600">Unavailable</span>} /><p className="mt-1 text-xs text-slate-500">Fee {formatNaira(l.fee)} · adds {l.strength} to your chance of winning (out of 100)</p></Card>)}
           <Note>Lawyers are fictional characters, not real legal professionals.</Note>
         </div>)}
-      {tab === 'history' && list(cases.filter((c) => involved(c) && c.status === 'closed'), 'No closed cases yet', '🗂️')}
     </div>
   );
 }

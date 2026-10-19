@@ -1,3 +1,4 @@
+import { History, LayoutDashboard, MapPin, Rocket, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { CITY_CATALOG } from '@/content/cities';
@@ -141,7 +142,7 @@ function Activity({ c }: { c: Company }) {
   );
 }
 
-const TABS = [['overview', 'Overview'], ['team', 'Team'], ['branches', 'Branches'], ['marketing', 'Marketing'], ['upgrades', 'Upgrades'], ['activity', 'Activity']] as const;
+const TABS = [['overview', 'Overview', LayoutDashboard], ['team', 'Team', Users], ['branches', 'Branches', MapPin], ['growth', 'Growth', Rocket], ['activity', 'Activity', History]] as const;
 
 /** Companies: slots, creation and a dashboard per company. Rules in game/companies.ts, numbers in data/companies.ts. */
 export function CompaniesApp() {
@@ -173,7 +174,7 @@ export function CompaniesApp() {
         </div>
       ) : (<>
         <Tabs label="Company sections" tabs={TABS} value={tab} onChange={setTab} />
-        {tab === 'overview' && <Overview c={c} />}{tab === 'team' && <Team c={c} />}{tab === 'branches' && <Branches c={c} />}{tab === 'marketing' && <Marketing c={c} />}{tab === 'upgrades' && <Upgrades c={c} />}{tab === 'activity' && <Activity c={c} />}
+        {tab === 'overview' && <Overview c={c} />}{tab === 'team' && <Team c={c} />}{tab === 'branches' && <Branches c={c} />}{tab === 'growth' && (<><Upgrades c={c} /><p className="px-6 pt-2 text-[12px] font-semibold uppercase tracking-wider text-slate-500">Marketing</p><Marketing c={c} /></>)}{tab === 'activity' && <Activity c={c} />}
       </>)}
     </div>
   );

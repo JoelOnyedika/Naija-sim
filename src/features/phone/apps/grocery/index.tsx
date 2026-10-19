@@ -1,4 +1,4 @@
-import { Minus, Plus } from 'lucide-react';
+import { Archive, Minus, Package, Plus, ShoppingCart, Store } from 'lucide-react';
 import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
@@ -84,7 +84,7 @@ export function GroceryApp() {
   const count = useGroceryStore((s) => Object.values(s.cart).reduce((a, b) => a + b, 0));
   return (
     <div className="flex min-h-full flex-col">
-      <Tabs label="Grocery sections" tabs={[['shop', 'Shop'], ['cart', count ? `Cart (${count})` : 'Cart'], ['orders', 'Orders'], ['pantry', 'Pantry']] as const} value={tab} onChange={setTab} />
+      <Tabs label="Grocery sections" tabs={[['shop', 'Shop', Store], ['cart', count ? `Cart (${count})` : 'Cart', ShoppingCart], ['orders', 'Orders', Package], ['pantry', 'Pantry', Archive]] as const} value={tab} onChange={setTab} />
       {tab === 'shop' && <Shop />}{tab === 'cart' && <Cart shop={() => setTab('shop')} orders={() => setTab('orders')} />}{tab === 'orders' && <Orders />}{tab === 'pantry' && <Pantry />}
     </div>
   );

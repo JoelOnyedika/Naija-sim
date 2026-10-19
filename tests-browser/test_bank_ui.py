@@ -10,7 +10,7 @@ def ok(c, m):
     print(("✓ " if c else "✗ ") + m)
     if not c: fails.append(m)
 
-TABS = ["Overview", "Send", "Savings", "Bonds", "Credibility", "Income Tax", "Weekly Bills", "Last Receipt", "Money History"]
+TABS = ["Home", "Send", "Grow", "Activity", "More"]
 
 def js(pg, code, arg=None):
     return pg.evaluate("async (a)=>{" + code + "}", arg)
@@ -25,7 +25,7 @@ with sync_playwright() as p:
       const D=await import('/src/data/economy.ts'); const Gd=await import('/src/game/guard.ts');
       E.useEconomyStore.getState().credit(6000000,'Shift pay','salary');
       B.depositSavings(1500000); Gd.clearGuard(); B.buyBond('nt-7d', 500000); Gd.clearGuard();
-      G.sendTransfer({toId:'mama', amount:600000, description:'Upkeep'});
+      G.sendTransfer({to:'dj_kele', amount:600000});
       E.useEconomyStore.getState().debit(5000000,'Bought a sofa','purchase');
       S.runDueEvents();
       C.useClockStore.setState({minutes: D.WEEK_MINUTES + 700}); S.runDueEvents();   // a game week passes: interest + a bill
@@ -48,7 +48,7 @@ with sync_playwright() as p:
 
     # --- actions through the real UI
     js(pg, "const E=await import('/src/stores/economyStore.ts'); E.useEconomyStore.getState().credit(2000000,'Top up','income');")
-    pg.get_by_role("tab", name="Savings", exact=True).click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="Grow", exact=True).click(); pg.wait_for_timeout(300)
     snap = "const E=await import('/src/stores/economyStore.ts'); const B=await import('/src/stores/bankStore.ts'); return [E.useEconomyStore.getState().money, B.useBankStore.getState().savings.balance]"
     before = js(pg, snap)
     pg.get_by_label("Quick amounts").get_by_text("25%").click()
@@ -57,9 +57,9 @@ with sync_playwright() as p:
     moved = after[1] - before[1]
     ok(moved > 0 and before[0] - after[0] == moved, f"deposit through the UI moves exactly the same amount out of the wallet (moved {moved})")
 
-    pg.get_by_role("tab", name="Weekly Bills", exact=True).click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="More", exact=True).click(); pg.wait_for_timeout(300); pg.get_by_text("Weekly bills").first.click(); pg.wait_for_timeout(300)
     ok(pg.get_by_text("Overdue").count() > 0, "an overdue bill is shown")
-    pg.get_by_role("tab", name="Money History", exact=True).click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="Activity", exact=True).click(); pg.wait_for_timeout(300)
     pg.get_by_label("Search transactions").fill("bond"); pg.wait_for_timeout(300)
     rows = pg.locator("button[aria-label$='open receipt']").count()
     ok(rows >= 1, f"history search finds the bond entries ({rows})")

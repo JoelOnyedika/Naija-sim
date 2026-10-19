@@ -1,30 +1,34 @@
 import { formatNaira } from '@/core/format';
-import { CONTACTS, contactLabel, type ContactDef } from '@/data/contacts';
+import { PLAYERS, type PlayerDef } from '@/data/players';
+import { useAuthStore } from '@/stores/authStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { phoneEpoch, usePhoneStore } from '@/stores/phoneStore';
 import { recordTransferSignal } from './banking';
 
 /** The most one transfer may move. A game rule, not a banking limit. */
 export const MAX_TRANSFER = 50_000_000_000;
-/** Quick amounts. Tapping one fills the amount box; it never sends anything. */
-export const TRANSFER_PRESETS = [10_000, 15_000, 20_000, 50_000, 100_000];
-export const MAX_DESCRIPTION = 60;
 
-export interface TransferRequest { toId: string; amount: number; description?: string }
-export type TransferResult = { ok: true; txId: string; recipient: ContactDef } | { ok: false; error: string };
+/** A transfer is just a receiver's username and an amount. There is no contact list and no pre-filled names. */
+export interface TransferRequest { to: string; amount: number }
+export type TransferResult = { ok: true; txId: string; recipient: PlayerDef } | { ok: false; error: string };
 
-/** Who the player can send money to: people, not businesses. */
-export const transferableContacts = () => CONTACTS.filter((c) => c.canReceiveMoney ?? (c.group === 'family' || c.group === 'friend'));
+export const cleanUsername = (s: string) => s.trim().replace(/^@+/, '').toLowerCase();
+/**
+ * Finds the player a username belongs to. Every player is a SIMULATED character (data/players.ts) until real accounts exist;
+ * when they do, this is the one place that becomes a server lookup.
+ */
+export const findRecipient = (to: string): PlayerDef | null => PLAYERS.find((p) => p.username.toLowerCase() === cleanUsername(to)) ?? null;
 
 /** Returns why a transfer is not allowed, or null when it is. Pure: touches no state. */
 export function validateTransfer(req: TransferRequest, balance = useEconomyStore.getState().money): string | null {
-  const contact = transferableContacts().find((c) => c.id === req.toId);
-  if (!contact) return 'Choose who to send money to.';
+  const name = cleanUsername(req.to);
+  if (!name) return 'Enter the receiver\'s username.';
+  if (name === (useAuthStore.getState().session ?? '').toLowerCase()) return 'You cannot send money to yourself.';
+  if (!findRecipient(req.to)) return `No player has the username @${name}.`;
   const a = req.amount;
   if (!Number.isFinite(a) || !Number.isSafeInteger(a) || a <= 0) return 'Enter an amount.';
   if (a > MAX_TRANSFER) return `The most you can send at once is ${formatNaira(MAX_TRANSFER)}.`;
   if (a > balance) return 'That is more than your balance.';
-  if ((req.description ?? '').trim().length > MAX_DESCRIPTION) return `Keep the description under ${MAX_DESCRIPTION} characters.`;
   return null;
 }
 
@@ -32,48 +36,38 @@ export function validateTransfer(req: TransferRequest, balance = useEconomyStore
 let busy = false;
 let last: { key: string; at: number } | null = null;
 const DUPLICATE_WINDOW_MS = 2500;
-
-const REPLIES: Record<string, string[]> = {
-  family: ['Received. God bless you, my child!', 'Thank you o! Have you eaten?', 'I got the alert. You are a good child.'],
-  friend: ['Alert don enter! You too much.', 'Received, boss. I owe you one.', 'Thanks, guy. Sharp sharp.'],
-};
+const THANKS = ['Received, thank you!', 'Alert don enter. Thanks o!', 'Got it. God bless you.'];
 
 /**
- * Send money to a contact. Validates first, then moves the money exactly once through the shared economy store, records
+ * Send money to a player by username. Validates first, then moves the money exactly once through the shared ledger, records
  * the transaction, and posts a chat card that points at that very record. Invalid or repeated requests change nothing.
- * Recipients here are scripted characters without balances, so there is no matching credit; if player accounts ever
- * exist, the credit belongs right after the debit below.
+ * Recipients are scripted players without balances, so there is no matching credit; with real accounts the credit belongs
+ * right after the debit below.
  */
 export function sendTransfer(req: TransferRequest): TransferResult {
-  const description = (req.description ?? '').trim();
   const err = validateTransfer(req);
   if (err) return { ok: false, error: err };
-  const key = `${req.toId}|${req.amount}|${description}`;
+  const player = findRecipient(req.to)!;
+  const key = `${player.id}|${req.amount}`;
   const now = Date.now();
   if (busy || (last && last.key === key && now - last.at < DUPLICATE_WINDOW_MS)) return { ok: false, error: 'That transfer was already sent.' };
   busy = true;
   try {
-    const contact = transferableContacts().find((c) => c.id === req.toId)!;
-    const label = `Transfer to ${contact.name}`;
-    const eco = useEconomyStore.getState();
-    if (!eco.debit(req.amount, label, 'transfer', contact.name, { status: 'completed', description: description || undefined, sender: 'You', recipient: contact.name })) {
+    const handle = `@${player.username}`;
+    if (!useEconomyStore.getState().debit(req.amount, `Transfer to ${handle}`, 'transfer', handle, { status: 'completed', sender: 'You', recipient: handle })) {
       return { ok: false, error: 'That is more than your balance.' };
     }
     last = { key, at: now };
-    recordTransferSignal(contact.id, req.amount);
+    recordTransferSignal(player.id, req.amount);
     const txId = useEconomyStore.getState().transactions[0].id;
-    const phone = usePhoneStore.getState();
-    phone.say(contact.id, 'me', `Sent ${formatNaira(req.amount)}${description ? `: ${description}` : ''}`, { kind: 'transaction', txId });
+    usePhoneStore.getState().say(player.id, 'me', `Sent ${formatNaira(req.amount)}`, { kind: 'transaction', txId });
     const epoch = phoneEpoch();
-    const pool = REPLIES[contact.group] ?? REPLIES.friend;
     setTimeout(() => {
       if (epoch !== phoneEpoch()) return; // the life was reset while we waited
-      usePhoneStore.getState().say(contact.id, 'them', pool[Math.floor(Math.random() * pool.length)]);
+      usePhoneStore.getState().say(player.id, 'them', THANKS[Math.floor(Math.random() * THANKS.length)]);
     }, 1400);
-    return { ok: true, txId, recipient: contact };
+    return { ok: true, txId, recipient: player };
   } finally {
     busy = false;
   }
 }
-
-export { contactLabel };

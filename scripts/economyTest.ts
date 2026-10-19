@@ -162,10 +162,10 @@ const c = computeCredibility();
 ok(c.score >= base && c.score <= 100 && c.items.every((i) => i.points <= i.max || i.max === 0), 'score stays between 0 and 100 and every item respects its cap');
 fresh(100_000);
 {
-  const r = sendTransfer({ toId: 'mama', amount: 50_000 });
+  const r = sendTransfer({ to: 'dj_kele', amount: 50_000 });
   ok(r.ok && eco().money === 50_000, 'the transfer flow still works through the upgraded ledger');
   const tx = eco().transactions[0];
-  ok(tx.kind === 'transfer' && tx.recipient === 'Mama' && tx.status === 'completed', 'transfer records keep their sender, recipient and status');
+  ok(tx.kind === 'transfer' && tx.recipient === '@dj_kele' && tx.status === 'completed', 'transfer records keep their sender, recipient and status');
 }
 
 // ── Net worth

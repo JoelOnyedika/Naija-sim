@@ -21,11 +21,11 @@ with sync_playwright() as p:
 
     # ---- Court + Police
     app(pg, "court")
-    pg.get_by_role("tab", name="Live Cases").click(); pg.wait_for_timeout(300); shot(pg, "court_live")
+    pg.get_by_role("tab", name="Live", exact=True).click(); pg.wait_for_timeout(300); shot(pg, "court_live")
     pg.get_by_role("button", name="Watch case").first.click(); pg.wait_for_timeout(400); shot(pg, "court_viewer")
     ok(pg.get_by_label("Case timeline").count() == 1, "Court: Watch case opens the proceedings")
     pg.locator("button:has-text('Back'):not([aria-label])").first.click(); pg.wait_for_timeout(300)
-    pg.get_by_role("tab", name="File a Case").click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="File", exact=True).click(); pg.wait_for_timeout(300)
     pg.get_by_placeholder("e.g. lekki_larry").fill("lekki_larry")
     pg.get_by_role("button", name="Unpaid debt", exact=True).click()
     pg.locator("textarea").fill("He agreed to pay me for the work but never did.")
@@ -34,7 +34,7 @@ with sync_playwright() as p:
     pg.get_by_role("button", name="File case", exact=True).click(); pg.wait_for_timeout(600)
     ok(c0 - money(pg) == 25_000 and pg.get_by_text("CASE-0001").count() >= 1, "Court: filing charges the fee and gives a case reference")
     app(pg, "police")
-    pg.get_by_role("tab", name="Report a Player").click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="Report", exact=True).click(); pg.wait_for_timeout(300)
     pg.get_by_placeholder("e.g. dj_kele").fill("dj_kele")
     pg.get_by_role("button", name="Theft", exact=True).click()
     pg.locator("textarea").fill("My bag went missing after the party at the club.")
@@ -59,7 +59,7 @@ with sync_playwright() as p:
     app(pg, "family"); ok(pg.get_by_text("Single").count() >= 1 and pg.get_by_role("button", name="Marriage: coming later").is_disabled(), "Family: status is Single and marriage is disabled")
 
     # ---- Tax tab
-    app(pg, "bank"); pg.get_by_role("tab", name="Income Tax").click(); pg.wait_for_timeout(400)
+    app(pg, "bank"); pg.get_by_role("tab", name="More", exact=True).click(); pg.wait_for_timeout(250); pg.get_by_text("Income tax").first.click(); pg.wait_for_timeout(400)
     ok(pg.get_by_text("Tax rates (per game week)").count() == 1, "Bank: the Income Tax tab shows the rate table")
     shot(pg, "bank_tax")
 

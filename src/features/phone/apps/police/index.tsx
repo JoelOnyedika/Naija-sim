@@ -1,3 +1,4 @@
+import { BadgeCheck, ClipboardList, FileWarning, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { fmtGame } from '@/core/gameTime';
@@ -72,7 +73,7 @@ function Record() {
   );
 }
 
-const TABS = [['home', 'Station'], ['report', 'Report a Player'], ['mine', 'My Reports'], ['record', 'My Record']] as const;
+const TABS = [['home', 'Station', ShieldCheck], ['report', 'Report', FileWarning], ['mine', 'My reports', ClipboardList], ['record', 'My record', BadgeCheck]] as const;
 export function PoliceApp() {
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('home');
   return (

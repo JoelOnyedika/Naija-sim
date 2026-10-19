@@ -36,8 +36,7 @@ with sync_playwright() as p:
     pg.get_by_role("button", name="Hire manager", exact=False).click(); pg.wait_for_timeout(500)
     ok(js(pg, "const C=await import('/src/stores/companyStore.ts'); return !!C.useCompanyStore.getState().companies[0].manager"), "Companies: hiring a manager makes it operate")
     pg.get_by_role("tab", name="Team").click(); pg.wait_for_timeout(300); shot(pg, "companies_team")
-    pg.get_by_role("tab", name="Marketing").click(); pg.wait_for_timeout(300); shot(pg, "companies_marketing")
-    pg.get_by_role("tab", name="Upgrades").click(); pg.wait_for_timeout(300)
+    pg.get_by_role("tab", name="Growth").click(); pg.wait_for_timeout(300); shot(pg, "companies_marketing")
     ok(pg.get_by_text("Needs: 4 staff").count() == 1 or pg.get_by_text("Needs 4 staff", exact=False).count() >= 1, "Companies: level 2 shows its requirement")
     shot(pg, "companies_upgrades")
 

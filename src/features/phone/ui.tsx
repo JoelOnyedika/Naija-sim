@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Circle, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { useContext, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { sfx } from '@/audio/sfx';
+import { BottomSlot } from './bottomSlot';
 
 /** Light-theme building blocks shared by every phone app. */
 export const Card = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
-  <div className={`rounded-2xl bg-white p-3.5 text-slate-900 shadow-sm ${className}`}>{children}</div>
+  <div className={`rounded-[20px] bg-white p-4 text-slate-900 ${className}`}>{children}</div>
 );
-export const Title = ({ children }: { children: ReactNode }) => <h3 className="mb-2 mt-4 px-1 font-display text-[15px] font-bold text-slate-700 first:mt-0">{children}</h3>;
+export const Title = ({ children }: { children: ReactNode }) => <h3 className="mb-1.5 mt-6 px-2 text-[12px] font-semibold uppercase tracking-wider text-slate-500 first:mt-0">{children}</h3>;
 export const Empty = ({ children }: { children: ReactNode }) => <p className="py-8 text-center text-sm text-slate-400">{children}</p>;
 
 export function Btn({ tone = 'dark', className = '', onClick, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'dark' | 'green' | 'red' | 'light' }) {
@@ -26,17 +29,37 @@ export const Row = ({ glyph, title, sub, right }: { glyph?: string; title: React
   </div>
 );
 
-/** Scrollable tab strip used by multi-section apps. Underline style, so it reads differently from the filter Chips. */
-export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: readonly (readonly [T, string])[]; value: T; onChange: (v: T) => void; label: string }) {
-  return (
-    <div role="tablist" aria-label={label} className="no-scrollbar sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-100 px-2">
-      {tabs.map(([id, text]) => (
-        <button key={id} role="tab" aria-selected={value === id} onClick={() => { sfx.click(); onChange(id); }}
-          className={`relative shrink-0 px-3 py-2.5 text-[13px] font-bold transition ${value === id ? 'text-accent' : 'text-slate-500'}`}>
-          {text}{value === id && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent" />}
-        </button>
-      ))}
-    </div>
+/**
+ * The app's navigation bar. It is a fixed bar at the BOTTOM of the app (drawn into AppView's bottom strip), with at most five
+ * items, each with an icon and a label, so every section is always visible: nothing to scroll sideways, nothing hidden.
+ * More than five sections? The first four show, and "More" opens the rest in a small list. Prefer merging related sections
+ * onto one page instead.
+ */
+export type TabDef<T extends string> = readonly [T, string] | readonly [T, string, LucideIcon];
+const MAX_TABS = 5;
+export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: readonly TabDef<T>[]; value: T; onChange: (v: T) => void; label: string }) {
+  const slot = useContext(BottomSlot);
+  const [more, setMore] = useState(false);
+  if (!slot) return null;
+  const split = tabs.length > MAX_TABS, shown = split ? tabs.slice(0, MAX_TABS - 1) : tabs, rest = split ? tabs.slice(MAX_TABS - 1) : [];
+  const item = (t: TabDef<T>, active: boolean, onClick: () => void, key: string) => {
+    const Icon = (t[2] as LucideIcon | undefined) ?? Circle;
+    return (
+      <button key={key} role="tab" aria-selected={active} onClick={() => { sfx.click(); onClick(); }} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10.5px] font-semibold">
+        <span className={`flex h-7 w-12 items-center justify-center rounded-full transition ${active ? 'bg-accent/15 text-accent' : 'text-slate-500'}`}><Icon size={21} strokeWidth={active ? 2.3 : 1.9} /></span>
+        <span className={`w-full truncate text-center ${active ? 'text-accent' : 'text-slate-500'}`}>{t[1]}</span>
+      </button>
+    );
+  };
+  return createPortal(
+    <nav aria-label={label} className="border-t border-slate-200 bg-white">
+      {more && <div className="absolute inset-x-3 bottom-full mb-2 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5">{rest.map((t) => <button key={t[0]} role="menuitem" onClick={() => { sfx.click(); onChange(t[0]); setMore(false); }} className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-[14px] font-semibold last:border-0 ${value === t[0] ? 'text-accent' : 'text-slate-800'}`}>{t[2] ? (() => { const I = t[2] as LucideIcon; return <I size={19} />; })() : null}{t[1]}</button>)}</div>}
+      <div role="tablist" aria-label={label} className="flex pb-0.5">
+        {shown.map((t) => item(t, value === t[0], () => { setMore(false); onChange(t[0]); }, t[0]))}
+        {split && item(['more' as T, 'More', MoreHorizontal] as TabDef<T>, rest.some((t) => t[0] === value), () => setMore((v) => !v), 'more')}
+      </div>
+    </nav>,
+    slot,
   );
 }
 

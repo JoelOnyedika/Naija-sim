@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react';
+import { Briefcase, Check, Compass, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
@@ -126,7 +126,7 @@ export function JobsApp() {
   const offers = useCareerStore((s) => Object.keys(s.offers).length);
   return (
     <div className="flex min-h-full flex-col">
-      <Tabs label="Jobs sections" tabs={[['job', 'My Job'], ['careers', offers ? `Careers (${offers} offer${offers > 1 ? 's' : ''})` : 'Careers']] as const} value={tab} onChange={setTab} />
+      <Tabs label="Jobs sections" tabs={[['job', 'My job', Briefcase], ['careers', offers ? `Careers (${offers})` : 'Careers', Compass]] as const} value={tab} onChange={setTab} />
       {tab === 'job' ? <MyJob browse={() => setTab('careers')} /> : <Careers />}
     </div>
   );

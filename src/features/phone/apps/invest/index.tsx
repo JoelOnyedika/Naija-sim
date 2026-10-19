@@ -1,3 +1,4 @@
+import { Briefcase, LayoutDashboard, LineChart, Map } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { CITY_CATALOG } from '@/content/cities';
@@ -140,7 +141,7 @@ export function InvestApp() {
   const [tab, setTab] = useState<'overview' | 'land' | 'markets' | 'portfolio'>('overview');
   return (
     <div className="flex min-h-full flex-col">
-      <Tabs label="Investment sections" tabs={[['overview', 'Overview'], ['land', 'Land'], ['markets', 'Markets'], ['portfolio', 'Portfolio']] as const} value={tab} onChange={setTab} />
+      <Tabs label="Investment sections" tabs={[['overview', 'Overview', LayoutDashboard], ['land', 'Land', Map], ['markets', 'Markets', LineChart], ['portfolio', 'Portfolio', Briefcase]] as const} value={tab} onChange={setTab} />
       {tab === 'overview' && <Overview go={setTab} />}{tab === 'land' && <Land />}{tab === 'markets' && <Markets />}{tab === 'portfolio' && <Portfolio />}
     </div>
   );

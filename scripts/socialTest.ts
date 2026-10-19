@@ -86,8 +86,9 @@ const ids = ph().threads.mama.map((m) => m.id);
 ok(ids.slice(0, MAX_PINS).every((id) => ph().pin('mama', id)) && !ph().pin('mama', ids[3]), `at most ${MAX_PINS} messages can be pinned in one chat`);
 ok(ph().pin('mama', ids[0]) && !ph().threads.mama[0].pinned && ph().pin('mama', ids[3]), 'unpinning frees a slot');
 useEconomyStore.getState().reset(1_000_000);
-sendTransfer({ toId: 'mama', amount: 50_000 }); const ledgerBefore = useEconomyStore.getState().transactions.length, moneyBefore = useEconomyStore.getState().money;
-ok(S.deleteChat('mama').ok && !ph().threads.mama && useEconomyStore.getState().transactions.length === ledgerBefore && useEconomyStore.getState().money === moneyBefore, 'deleting a chat (that has a transfer in it) leaves the bank ledger and balance alone');
+sendTransfer({ to: 'dj_kele', amount: 50_000 }); const ledgerBefore = useEconomyStore.getState().transactions.length, moneyBefore = useEconomyStore.getState().money;
+ok(S.deleteChat('p:dj_kele').ok && !ph().threads['p:dj_kele'] && useEconomyStore.getState().transactions.length === ledgerBefore && useEconomyStore.getState().money === moneyBefore, 'deleting a chat (that has a transfer in it) leaves the bank ledger and balance alone');
+S.deleteChat('mama'); S.deleteChat(A); // start from empty chats
 ph().say('mama', 'them', 'hi'); ph().say(A, 'them', 'yo');
 ok(S.unreadCount('mama') === 1 && S.unreadCount(A) === 1, 'unread counts are per chat');
 ph().markAllRead();

@@ -29,7 +29,7 @@ with sync_playwright() as p:
     pg.get_by_role("button", name="POS Agent", exact=False).first.click(); pg.wait_for_timeout(300)
     pg.get_by_role("button", name="Start a shift").click(); pg.wait_for_timeout(500)
     ok(js(pg, "const C=await import('/src/stores/careerStore.ts'); return C.useCareerStore.getState().employed?.careerId") == "pos", "Jobs: starting a POS shift takes the job")
-    pg.get_by_role("tab", name="My Job").click(); pg.wait_for_timeout(400)
+    pg.get_by_role("tab", name="My job", exact=True).click(); pg.wait_for_timeout(400)
     pg.screenshot(path=f"{SHOTS}/jobs_my_job.png")
     ok(pg.get_by_text("Career progression").count() == 1 and pg.get_by_text("Flexible").count() >= 1, "Jobs: dashboard shows rank ladder and schedule")
 
@@ -92,7 +92,7 @@ with sync_playwright() as p:
     pg.get_by_role("button", name="Apply at", exact=False).click(); pg.wait_for_timeout(300)
     ok(pg.get_by_text("Applying is not being hired").count() == 1, "Hustle: applying shows a waiting state, not a hire")
     # post a job
-    pg.locator(".app-surface button[aria-label='Back']").last.click(); pg.wait_for_timeout(250); pg.locator(".app-surface button[aria-label='Back']").last.click(); pg.wait_for_timeout(300)
+    pg.locator("button:has-text('Job details')").click(); pg.wait_for_timeout(250); pg.locator("button:has-text('Find Work')").click(); pg.wait_for_timeout(300)
     pg.get_by_role("button", name="Post a Job").click(); pg.wait_for_timeout(300)
     pg.get_by_placeholder("e.g. DJ for a naming ceremony").fill("DJ for my housewarming")
     pg.get_by_role("button", name="DJ and music", exact=True).click()

@@ -1,4 +1,4 @@
-import { Bell, Plus, Trash2 } from 'lucide-react';
+import { Bell, Inbox, MessageCircle, Plus, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { acceptRequest, deleteChat, leaveGroup, rejectRequest, unreadCount } from '@/game/social';
@@ -90,7 +90,7 @@ export function MessagesList({ section, setSection, onOpen, onNewGroup }: { sect
         <button onClick={() => setBell(!bell)} aria-label="Notification settings" aria-expanded={bell} className="relative flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-700"><Bell size={19} />{(anyUnread || requests > 0) && <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-white" />}</button>
       </div>
       {bell && <NotificationSheet close={() => setBell(false)} />}
-      <Tabs label="Message sections" tabs={[['chats', 'Chats'], ['groups', 'Groups'], ['requests', requests ? `Requests (${requests})` : 'Requests']] as const} value={section} onChange={(s) => { setSection(s); setEditing(false); }} />
+      <Tabs label="Message sections" tabs={[['chats', 'Chats', MessageCircle], ['groups', 'Groups', Users], ['requests', requests ? `Requests (${requests})` : 'Requests', Inbox]] as const} value={section} onChange={(s) => { setSection(s); setEditing(false); }} />
       {section !== 'requests' && (
         <div className="flex items-center gap-2 px-3 py-2">
           <div className="no-scrollbar flex flex-1 gap-1.5 overflow-x-auto" role="group" aria-label="Filter">{FILTERS.map(([id, t]) => <Chip key={id} active={filter === id} onClick={() => setFilter(id)}>{t}</Chip>)}</div>

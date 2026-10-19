@@ -127,31 +127,31 @@ ok(useEconomyStore.getState().money >= 25_000_000, `nepo money ${useEconomyStore
 
 // ── banking rules: validation, exactly-once charging, limits, honest records
 {
-  const { sendTransfer, validateTransfer, MAX_TRANSFER, TRANSFER_PRESETS } = await import('../src/game/bank');
+  const { sendTransfer, validateTransfer, MAX_TRANSFER } = await import('../src/game/bank');
   const { usePhoneStore } = await import('../src/stores/phoneStore');
   startNewLife('lapo');
   useEconomyStore.getState().reset(1_000_000);
-  ok(TRANSFER_PRESETS.includes(10_000) && TRANSFER_PRESETS.includes(15_000) && TRANSFER_PRESETS.includes(20_000), 'presets include 10k, 15k, 20k');
-  ok(!!validateTransfer({ toId: 'mama', amount: 0 }), 'zero amount is invalid');
-  ok(!!validateTransfer({ toId: 'mama', amount: -5 }), 'negative amount is invalid');
-  ok(!!validateTransfer({ toId: 'mama', amount: 12.5 }), 'fractional amount is invalid');
-  ok(!!validateTransfer({ toId: 'nobody', amount: 100 }), 'unknown recipient is invalid');
-  ok(!!validateTransfer({ toId: 'eko-bank', amount: 100 }), 'businesses cannot receive transfers');
-  ok(!!validateTransfer({ toId: 'mama', amount: 2_000_000 }), 'more than the balance is invalid');
-  ok(!!validateTransfer({ toId: 'mama', amount: MAX_TRANSFER + 1 }, 1e15), 'over the 50 billion limit is invalid');
-  ok(validateTransfer({ toId: 'mama', amount: MAX_TRANSFER }, MAX_TRANSFER) === null, 'exactly 50 billion is allowed when affordable');
+  ok(!!validateTransfer({ to: 'dj_kele', amount: 0 }), 'zero amount is invalid');
+  ok(!!validateTransfer({ to: 'dj_kele', amount: -5 }), 'negative amount is invalid');
+  ok(!!validateTransfer({ to: 'dj_kele', amount: 12.5 }), 'fractional amount is invalid');
+  ok(!!validateTransfer({ to: '', amount: 100 }), 'an empty username is invalid');
+  ok(!!validateTransfer({ to: 'nobody_here', amount: 100 }), 'an unknown username is invalid');
+  ok(validateTransfer({ to: '@DJ_Kele', amount: 100 }) === null, 'usernames ignore @ and capital letters');
+  ok(!!validateTransfer({ to: 'dj_kele', amount: 2_000_000 }), 'more than the balance is invalid');
+  ok(!!validateTransfer({ to: 'dj_kele', amount: MAX_TRANSFER + 1 }, 1e15), 'over the 50 billion limit is invalid');
+  ok(validateTransfer({ to: 'dj_kele', amount: MAX_TRANSFER }, MAX_TRANSFER) === null, 'exactly 50 billion is allowed when affordable');
   const before = useEconomyStore.getState().money;
-  ok(!sendTransfer({ toId: 'mama', amount: 5_000_000 }).ok && useEconomyStore.getState().money === before, 'failed transfer changes nothing');
-  const r1 = sendTransfer({ toId: 'mama', amount: 10_000, description: 'rent help' });
+  ok(!sendTransfer({ to: 'dj_kele', amount: 5_000_000 }).ok && useEconomyStore.getState().money === before, 'failed transfer changes nothing');
+  const r1 = sendTransfer({ to: 'dj_kele', amount: 10_000 });
   ok(r1.ok && useEconomyStore.getState().money === before - 10_000, 'valid transfer debits exactly once');
-  const r2 = sendTransfer({ toId: 'mama', amount: 10_000, description: 'rent help' });
+  const r2 = sendTransfer({ to: 'dj_kele', amount: 10_000 });
   ok(!r2.ok && useEconomyStore.getState().money === before - 10_000, 'immediate duplicate is ignored (no second charge)');
   const tx = useEconomyStore.getState().transactions[0];
-  ok(tx.kind === 'transfer' && tx.amount === -10_000 && tx.status === 'completed' && tx.description === 'rent help' && tx.recipient === 'Mama', 'transaction record is complete and accurate');
-  const msg = usePhoneStore.getState().threads['mama'].find((m) => m.kind === 'transaction');
+  ok(tx.kind === 'transfer' && tx.amount === -10_000 && tx.status === 'completed' && tx.recipient === '@dj_kele', 'transaction record is complete and accurate');
+  const msg = usePhoneStore.getState().threads['p:dj_kele'].find((m) => m.kind === 'transaction');
   ok(!!msg && r1.ok && msg.txId === r1.txId && msg.txId === tx.id, 'chat card points at the real transaction record');
   const big = 49_000_000_000; useEconomyStore.getState().reset(big + 123);
-  ok(sendTransfer({ toId: 'chioma', amount: big, description: 'big' }).ok && useEconomyStore.getState().money === 123, 'large transfer is exact (no precision loss)');
+  ok(sendTransfer({ to: 'ada_cooks', amount: big }).ok && useEconomyStore.getState().money === 123, 'large transfer is exact (no precision loss)');
 }
 
 
