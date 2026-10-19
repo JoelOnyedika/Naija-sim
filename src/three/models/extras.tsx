@@ -134,3 +134,47 @@ export function GymMat() {
     </group>
   );
 }
+
+/** "Ibeta Pass My Neighbor": the small petrol set. Tubular frame, yellow tank, pull-cord, one socket panel. Needs a tap during NEPA outages. */
+export function Ibeta() {
+  return (
+    <group>
+      <B size={[0.62, 0.05, 0.42]} pos={[0, 0.16, 0]} color="#2B2F32" metal={0.4} rough={0.55} />
+      <B size={[0.5, 0.3, 0.34]} pos={[0, 0.34, 0]} color="#E8B21E" rough={0.45} radius={0.05} />
+      <B size={[0.34, 0.1, 0.26]} pos={[-0.04, 0.54, 0]} color="#C93A2B" rough={0.4} radius={0.04} />
+      <Cyl r={0.03} h={0.04} pos={[0.12, 0.6, 0.05]} color="#1B1B1B" />
+      {/* tubular frame */}
+      {[-0.29, 0.29].map((x) => [-0.19, 0.19].map((z) => <B key={`${x}${z}`} size={[0.025, 0.48, 0.025]} pos={[x, 0.4, z]} color="#B0B6BA" metal={0.7} rough={0.3} radius={0.008} shadow={false} />))}
+      <B size={[0.62, 0.025, 0.025]} pos={[0, 0.64, 0.19]} color="#B0B6BA" metal={0.7} rough={0.3} radius={0.008} shadow={false} />
+      <B size={[0.62, 0.025, 0.025]} pos={[0, 0.64, -0.19]} color="#B0B6BA" metal={0.7} rough={0.3} radius={0.008} shadow={false} />
+      {/* socket panel and pull-cord handle */}
+      <B size={[0.16, 0.12, 0.01]} pos={[0.14, 0.34, 0.175]} color="#1B1B1B" />
+      <Cyl r={0.018} h={0.02} pos={[0.12, 0.34, 0.185]} rot={[Math.PI / 2, 0, 0]} color="#F4F6F6" />
+      <Cyl r={0.025} h={0.05} pos={[-0.3, 0.36, 0.0]} rot={[0, 0, Math.PI / 2]} color="#C93A2B" />
+    </group>
+  );
+}
+
+/** Solar kit: a tilted two-panel array on a stand and a wall-style inverter/battery cabinet with a green status light. */
+export function SolarSystem() {
+  return (
+    <group>
+      {/* array */}
+      <group position={[0, 0.78, -0.1]} rotation={[-0.5, 0, 0]}>
+        <B size={[1.1, 0.04, 0.62]} color="#1C2B4A" metal={0.3} rough={0.25} radius={0.01} />
+        <B size={[1.14, 0.03, 0.66]} pos={[0, -0.025, 0]} color="#C7CCD0" metal={0.6} rough={0.35} radius={0.01} />
+        {[-0.275, 0.275].map((x) => <B key={x} size={[0.005, 0.045, 0.6]} pos={[x * 2, 0.002, 0]} color="#7F95B8" rough={0.3} radius={0.001} shadow={false} />)}
+        {[-0.2, 0, 0.2].map((z) => <B key={z} size={[1.08, 0.045, 0.005]} pos={[0, 0.002, z]} color="#7F95B8" rough={0.3} radius={0.001} shadow={false} />)}
+      </group>
+      <B size={[0.06, 0.62, 0.06]} pos={[-0.45, 0.31, -0.28]} color="#9AA0A4" metal={0.6} rough={0.4} radius={0.01} />
+      <B size={[0.06, 0.62, 0.06]} pos={[0.45, 0.31, -0.28]} color="#9AA0A4" metal={0.6} rough={0.4} radius={0.01} />
+      <B size={[0.06, 0.3, 0.06]} pos={[-0.45, 0.15, 0.1]} color="#9AA0A4" metal={0.6} rough={0.4} radius={0.01} />
+      <B size={[0.06, 0.3, 0.06]} pos={[0.45, 0.15, 0.1]} color="#9AA0A4" metal={0.6} rough={0.4} radius={0.01} />
+      {/* inverter + battery cabinet */}
+      <B size={[0.5, 0.62, 0.24]} pos={[0.85, 0.31, 0.15]} color="#EEF1F2" rough={0.35} radius={0.03} />
+      <B size={[0.34, 0.16, 0.012]} pos={[0.85, 0.46, 0.27]} color="#1B1B1B" />
+      <Sph r={0.018} pos={[0.76, 0.2, 0.275]} color="#22C55E" emissive="#22C55E" emissiveIntensity={1.2} />
+      <B size={[0.22, 0.03, 0.012]} pos={[0.88, 0.2, 0.27]} color="#9AA0A4" />
+    </group>
+  );
+}

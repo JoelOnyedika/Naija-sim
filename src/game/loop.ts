@@ -15,6 +15,9 @@ import { notify } from './notify';
 import { completeCareerShift } from './jobs';
 import { runDueEvents } from './scheduler';
 import { fireTask } from './tasks';
+import { getActiveHome } from './active';
+import { backupIn, powerMode } from './power';
+import { usePowerStore } from '@/stores/powerStore';
 
 function onFinished(a: Activity) {
   if (a.payout) {
@@ -33,12 +36,29 @@ function onFinished(a: Activity) {
 
 const warned = { hunger: false, energy: false };
 
+/** NEPA: advance the outage schedule and tell the player what happened, in words that match what they own. */
+function stepPower(dt: number) {
+  const home = getActiveHome();
+  if (!home) return;
+  const ps = usePowerStore.getState();
+  const event = ps.step(dt, home.layout.publicPower);
+  if (!event) return;
+  const b = backupIn(home.placed);
+  if (event === 'outage-end') { if (!b.hasSolar) toast('NEPA don bring light. Everything is back to normal.', 'good'); return; }
+  const mode = powerMode({ outage: true, ibetaOn: false, ...b });
+  if (mode === 'solar') toast('NEPA take light, but your solar dey carry the house.', 'good');
+  else if (mode === 'generator') toast('NEPA take light. Your generator don start by itself.', 'good');
+  else if (mode === 'ibeta') toast('NEPA take light! Tap your Ibeta to start it.', 'bad');
+  else toast('NEPA take light! Buy a lamp or a generator, or wait for them to bring it back.', 'bad');
+}
+
 /** One simulation step. Everything time-based lives here. */
 export function advance(dt: number) {
   const finished = useStatsStore.getState().tick(dt);
   if (finished) onFinished(finished);
   useClockStore.getState().advance(dt);
   runDueEvents();
+  stepPower(dt);
 
   // food deliveries
   const now = Date.now();

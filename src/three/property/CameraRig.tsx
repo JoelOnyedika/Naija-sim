@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
+import { PLACE_FOCUS } from '@/data/balance';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
 import { houseBounds } from '@/world/layoutGeometry';
@@ -18,6 +19,8 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const { camera, size, gl } = useThree();
   const cur = useRef(DEFAULT_AZ);
   const curPolar = useRef(DEFAULT_POLAR);
+  const lastFocus = useRef<import('@/stores/cameraStore').CameraFocus | null>(null);
+  const blend = useRef(0); // 0 = normal view, 1 = fully focused on the placed item
   const aspect = size.width / Math.max(size.height, 1);
   // MVP framing, applied to every home: distance grows with the house side, pulled back a little on portrait screens.
   // Only the house is framed and centred; the parking pad is separate and may run off screen.
@@ -40,7 +43,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     el.style.touchAction = 'none';
     const pts = new Map<number, { x: number; y: number }>();
     let pinch = 0;
-    const down = (e: PointerEvent) => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) pinch = dist(); };
+    const down = (e: PointerEvent) => { useCameraStore.getState().clearFocus(); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) pinch = dist(); };
     const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
     const move = (e: PointerEvent) => {
       const p = pts.get(e.pointerId); if (!p) return;
@@ -51,7 +54,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     };
     const up = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
     // mouse wheel tilts the camera a little; ctrl + wheel (or pinch) zooms
-    const wheel = (e: WheelEvent) => { if (!ready) return; e.preventDefault(); const c = useCameraStore.getState(); if (e.ctrlKey) c.setZoom(c.zoom * (1 + e.deltaY * 0.01)); else c.tiltBy(e.deltaY * 0.0008); };
+    const wheel = (e: WheelEvent) => { if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); const c = useCameraStore.getState(); if (e.ctrlKey) c.setZoom(c.zoom * (1 + e.deltaY * 0.01)); else c.tiltBy(e.deltaY * 0.0008); };
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     el.addEventListener('wheel', wheel, { passive: false });
     return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); };
@@ -66,9 +69,18 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     curPolar.current += (st.polar - curPolar.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 12));
     const pol = Math.abs(st.polar - curPolar.current) < 1e-4 ? st.polar : curPolar.current;
     curPolar.current = pol;
-    const r = fit * st.zoom, sp = Math.sin(pol), a = cur.current;
-    camera.position.set(tx + r * sp * Math.sin(a), ty + r * Math.cos(pol), tz + r * sp * Math.cos(a));
-    camera.lookAt(tx, ty, tz);
+    // Placement focus: ease toward the item, hold, then release on its own. Time-based, so slow devices behave the same.
+    const fo = st.focus;
+    if (fo && (Date.now() - fo.at) / 1000 > PLACE_FOCUS.holdSeconds) useCameraStore.getState().clearFocus();
+    const want = useCameraStore.getState().focus ? 1 : 0;
+    blend.current += (want - blend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * PLACE_FOCUS.ease));
+    if (Math.abs(want - blend.current) < 1e-3) blend.current = want;
+    const bl = blend.current, fp = (fo ?? lastFocus.current)?.point;
+    if (fo) lastFocus.current = fo;
+    const lx = fp ? tx + (fp[0] - tx) * bl : tx, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = fp ? tz + (fp[2] - tz) * bl : tz;
+    const r = fit * st.zoom * (1 - (1 - PLACE_FOCUS.zoomFactor) * bl), sp = Math.sin(pol), a = cur.current;
+    camera.position.set(lx + r * sp * Math.sin(a), ly + r * Math.cos(pol), lz + r * sp * Math.cos(a));
+    camera.lookAt(lx, ly, lz);
     const ed = useEditorStore.getState(), na = Math.atan2(Math.sin(a), Math.cos(a));
     if (Math.abs(ed.cameraAzimuth - na) > 1e-3) ed.setCameraAzimuth(na);
     if (Math.abs(ed.cameraPolar - pol) > 1e-3) ed.setCameraPolar(pol);

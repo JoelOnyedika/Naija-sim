@@ -51,6 +51,11 @@ export interface FurnitureDef {
    * cannot be put on anything solid. Rugs, which may go under furniture, do not set this.
    */
   exclusive?: boolean;
+  /**
+   * Backup power during NEPA outages (see game/power.ts). 'manual' must be tapped during an outage, 'auto' starts by itself,
+   * 'solar' keeps the house powered all the time. Backup items are functional, not decorative.
+   */
+  power?: 'manual' | 'auto' | 'solar';
 }
 
 const floor = { surface: 'floor', collides: true, rotatable: true } as const;
@@ -78,7 +83,9 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'chair', name: 'Plastic chair', description: 'Every Nigerian home has at least four.', price: 15000, category: 'comfort', rarity: 'common', glyph: '🪑', model: 'chair', footprint: { w: 0.5, d: 0.5 }, height: 0.95, placement: floor, place: 'any', style: 1, use: { label: 'Sit', seconds: 5, effects: { happiness: 3 }, pose: 'sit' } },
   { id: 'ac', name: 'Split air conditioner', description: 'Wall-mounted. Cold room, deep sleep.', price: 650000, category: 'comfort', rarity: 'epic', glyph: '❄️', model: 'ac', footprint: { w: 1.0, d: 0.25 }, height: 0.3, placement: { surface: 'wall', collides: true, rotatable: false, mountHeight: 2.0 }, style: 8, comfort: 0.35 },
   { id: 'fan', name: 'Standing fan', description: 'Makes sleep better in the heat.', price: 45000, category: 'comfort', rarity: 'common', glyph: '🌀', model: 'fan', footprint: { w: 0.45, d: 0.45 }, height: 1.2, placement: floor, style: 1, comfort: 0.15 },
-  { id: 'generator', name: 'Generator', description: 'Pass-your-neighbour. NEPA cannot stress you.', price: 380000, category: 'comfort', rarity: 'rare', glyph: '⚡', model: 'generator', footprint: { w: 0.8, d: 0.55 }, height: 0.65, placement: floor, place: 'any', style: 4, comfort: 0.1 },
+  { id: 'generator', name: 'Generator', description: 'Proper standby set with auto-start. NEPA takes light, it starts by itself.', price: 380000, category: 'comfort', rarity: 'rare', glyph: '⚡', model: 'generator', footprint: { w: 0.8, d: 0.55 }, height: 0.65, placement: floor, place: 'any', style: 4, comfort: 0.1, power: 'auto' },
+  { id: 'ibeta', name: 'Ibeta Pass My Neighbor', description: 'Small petrol set. When NEPA takes light, you must tap it to start it.', price: 150000, category: 'comfort', rarity: 'uncommon', glyph: '🔌', model: 'ibeta', footprint: { w: 0.65, d: 0.45 }, height: 0.66, placement: floor, place: 'any', style: 2, power: 'manual' },
+  { id: 'solar_system', name: 'Solar power system', description: 'Panels, inverter and battery. The house stays lit, NEPA or no NEPA.', price: 2600000, category: 'comfort', rarity: 'epic', glyph: '☀️', model: 'solar_system', footprint: { w: 1.4, d: 0.8 }, height: 0.95, placement: floor, place: 'any', style: 9, power: 'solar' },
   // ---- Fun
   { id: 'tv', name: 'TV and stand', description: 'Flat screen on a wooden unit.', price: 320000, category: 'fun', rarity: 'rare', glyph: '📺', model: 'tv', footprint: { w: 1.2, d: 0.4 }, height: 1.1, placement: floor, style: 6, use: { label: 'Watch TV', seconds: 12, effects: { happiness: 22, energy: -3 }, pose: 'sit' } },
   { id: 'gaming_setup', name: 'Gaming setup', description: 'Big monitor, console, RGB. Obviously.', price: 480000, category: 'fun', rarity: 'epic', glyph: '🎮', model: 'gaming_setup', footprint: { w: 1.2, d: 0.6 }, height: 1.1, placement: floor, style: 7, use: { label: 'Play games', seconds: 12, effects: { happiness: 28, energy: -5 }, pose: 'sit' } },

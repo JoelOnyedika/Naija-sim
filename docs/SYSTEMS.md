@@ -206,3 +206,12 @@ exercises deposit, search, receipt, theme, battery saver and graphics, and saves
 * **Test harness caveat:** zustand's persist reads `window.localStorage`, and Node has none, so `smoke`/`nav`/`ads`/`economy` run with persistence **off** (state in memory only). `settingsTest` and `persistTest` define `window` first so they exercise real saving.
 * **Inspect state:** in the dev console or a browser test, `await import('/src/stores/economyStore.ts')` gives the live store (`useEconomyStore.getState().transactions`); same for `bankStore` and `schedulerStore` (`last` shows the last week each event ran).
 * **Reproduce a week passing:** set `useClockStore.setState({ minutes: WEEK_MINUTES + 600 })` then call `runDueEvents()` (see `scripts/economyTest.ts`).
+
+
+## H. v8 foundations: pricing, placement camera, NEPA power (`data/balance.ts`)
+All tunables for these live in `src/data/balance.ts`.
+* **Pricing** (`game/pricing.ts`): `priceOf(base, multiplier?)`. Multiplier range 0.1..0.9, neutral 0.5 (= base price). Status: **Implemented** locally. The admin setting does not exist; `setAffordability()` is the hook. In multiplayer the server must own the multiplier and compute the charge itself.
+* **Wall height / wall mounting**: `INTERIOR_WALL_HEIGHT`, `WALL_MOUNT_GAP`; `world/placement.ts#getTransform`. **Implemented.**
+* **Placement camera**: `cameraStore.focus` + `CameraRig`; `PLACE_FOCUS`. **Implemented.**
+* **Item information**: `game/itemInfo.ts` (`describeItem`) + `ItemInfoSheet` in `BuyMode.tsx`. Only existing item data is shown; decorative items say so. **Implemented.**
+* **NEPA** (`game/power.ts` pure rules, `stores/powerStore.ts` live state, `game/loop.ts#stepPower`, `three/property/Lighting.tsx`, `features/game/PowerBadge.tsx`). Outage state is not saved (a reload ends it). Backup items are read from the placed furniture of the active home. **Implemented as a local simulation.** Not authoritative: nothing here is safe to trust in multiplayer.

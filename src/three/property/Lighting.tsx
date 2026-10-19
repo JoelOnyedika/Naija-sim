@@ -3,6 +3,7 @@ import { Color } from 'three';
 import { clockParts, useClockStore } from '@/stores/clockStore';
 import { QUALITY_TIERS, useQualityStore } from '@/stores/qualityStore';
 import type { PropertyLayout } from '@/types/world';
+import { usePower } from '@/game/powerHooks';
 
 const MAX_ROOM_LIGHTS = 5;
 
@@ -27,6 +28,9 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
     return ls;
   }, [layout]);
   const night = 1 - day;
+  // NEPA: room lights scale with the power level (never zero). The sun, hemisphere and ambient light are untouched, so a
+  // blackout is dim, not black, and the home stays navigable.
+  const { level } = usePower();
   return (
     <>
       <color attach="background" args={[bg.getStyle()]} />
@@ -39,7 +43,7 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
       {/* every room has its own warm ceiling light: a soft glow by day, a bright pool of light at night */}
       {q.nightLights && lamps.map((z) => {
         const w = z.x1 - z.x0, d = z.z1 - z.z0;
-        return <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 1.9, (z.z0 + z.z1) / 2]} intensity={4 + night * 24} distance={Math.max(w, d) * 1.5 + 2} decay={1.5} color="#FFC688" />;
+        return <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 1.9, (z.z0 + z.z1) / 2]} intensity={(4 + night * 24) * level} distance={Math.max(w, d) * 1.5 + 2} decay={1.5} color="#FFC688" />;
       })}
     </>
   );

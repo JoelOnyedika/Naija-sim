@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { DiscoLight, BedsideTable, Bathtub, CoffeeTable, Jacuzzi, Speaker, WallShelf, Washbasin, GymMat } from './extras';
+import { DiscoLight, BedsideTable, Bathtub, CoffeeTable, Jacuzzi, Speaker, WallShelf, Washbasin, GymMat, Ibeta, SolarSystem } from './extras';
 import { Ac, Fan, Fridge, Generator, Tv } from './appliances';
 import { Bucket, Plant, Rug, Shower, WallFrame } from './decor';
 import { Cabinet, Cooker, Desk, Dispenser, GamingSetup, KingBed, Lamp, Piano, Toilet, Wardrobe, Bookshelf } from './more';
@@ -15,7 +15,7 @@ export const MODELS: Record<string, ComponentType> = {
   generator: Generator, fan: Fan, ac: Ac, rug: Rug, wall_frame: WallFrame, bucket: Bucket, shower: Shower, plant: Plant,
   wardrobe: Wardrobe, bookshelf: Bookshelf, cooker: Cooker, cabinet: Cabinet, toilet: Toilet, desk: Desk,
   gaming_setup: GamingSetup, piano: Piano, lamp: Lamp, dispenser: Dispenser,
-  bathtub: Bathtub, jacuzzi: Jacuzzi, washbasin: Washbasin, speaker: Speaker, gym_rug: GymMat, bedside_table: BedsideTable, coffee_table: CoffeeTable, wall_shelf: WallShelf, disco_light: DiscoLight,
+  bathtub: Bathtub, jacuzzi: Jacuzzi, washbasin: Washbasin, speaker: Speaker, gym_rug: GymMat, bedside_table: BedsideTable, coffee_table: CoffeeTable, wall_shelf: WallShelf, disco_light: DiscoLight, ibeta: Ibeta, solar_system: SolarSystem,
 };
 
 export function FurnitureModel({ modelKey }: { modelKey: string }) {

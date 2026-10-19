@@ -12,6 +12,7 @@ import { useStatsStore } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { FOODS } from '@/data/foods';
 import { getActiveHome } from './active';
+import { usePowerStore } from '@/stores/powerStore';
 
 /** Sum of comfort bonuses (fan, AC...) in the active home. */
 const comfort = () => {
@@ -29,6 +30,7 @@ export const carriedFood = () => FOODS.filter((f) => useInventoryStore.getState(
 export function interactWith(item: PlacedItem) {
   const def = getFurniture(item.defId);
   if (def?.opensApp) { useBoutiqueNav.getState().setOwnedOnly(true); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp(def.opensApp); sfx.click(); return; }
+  if (def?.power) { tapBackupPower(def.power, def.name); return; }
   if (!def?.use) { toast(def?.name ?? 'Nothing to do here'); return; }
   const stats = useStatsStore.getState();
   if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }
@@ -76,4 +78,14 @@ export function eatFood(foodId: string, targetUid?: string): boolean {
   const ok = useStatsStore.getState().start({ label: `Eating ${food.name.toLowerCase()}`, seconds: 4, effects: food.effects, pose: 'stand', targetUid, kind: 'use', doneMessage: `${food.name} hit the spot.` });
   if (!ok) useInventoryStore.getState().add(foodId);
   return ok;
+}
+
+/** Tapping a backup power item. Only the manual set (Ibeta) does anything, and only while NEPA is out. */
+function tapBackupPower(kind: 'manual' | 'auto' | 'solar', name: string) {
+  const ps = usePowerStore.getState();
+  if (kind === 'solar') { toast('Solar dey work by itself. Nothing to switch.'); return; }
+  if (kind === 'auto') { toast(ps.outage ? 'The generator don start by itself.' : 'It starts by itself when NEPA takes light.'); return; }
+  if (!ps.outage) { toast('NEPA dey around. Tap it when they take light.'); return; }
+  if (ps.ibetaOn) { toast(`${name} is already running.`); return; }
+  if (ps.switchIbetaOn()) { sfx.pop(); toast(`${name} don start. Light is back.`, 'good'); }
 }

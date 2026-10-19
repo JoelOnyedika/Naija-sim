@@ -1,9 +1,11 @@
 import type { PropertyLayout, WindowSpec, Zone } from '@/types/world';
+import { INTERIOR_WALL_HEIGHT } from '@/data/balance';
 import { BAY_LENGTH, BAY_WIDTH } from './garage';
 
 const EPS = 1e-3;
 export const WALL_T = 0.14;
-export const LOW_WALL = 0.95; // interior partitions are "cutaway" so you can see every room
+/** Interior partitions stay "cutaway" so every room is visible, but taller than before (was 0.95). Tune in data/balance.ts. */
+export const LOW_WALL = INTERIOR_WALL_HEIGHT;
 
 export interface WallPiece {
   /** 'h' runs along x at z = c. 'v' runs along z at x = c. */

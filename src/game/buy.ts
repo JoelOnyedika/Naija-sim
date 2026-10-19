@@ -8,8 +8,10 @@ import { useEditorStore, type Draft } from '@/stores/editorStore';
 import { useFinishStore } from '@/stores/finishStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { toast, useUiStore } from '@/stores/uiStore';
-import { findFreeSpot, fixturesOf, resolvePlacement, validatePlacement, type Pose } from '@/world/placement';
+import { findFreeSpot, fixturesOf, getTransform, resolvePlacement, validatePlacement, type Pose } from '@/world/placement';
 import { getActiveHome, setPlaced } from './active';
+import { priceOf } from './pricing';
+import { useCameraStore } from '@/stores/cameraStore';
 import { fireTask } from './tasks';
 
 /** Buy-mode actions. All of them operate on the active home, whichever state it is in. */
@@ -24,6 +26,7 @@ function revalidate(draft: Draft, pose: Pose): Draft {
 
 /** Pick something from the catalog (or inventory): show the ghost. */
 export function beginPlace(defId: string): boolean {
+  useCameraStore.getState().clearFocus();
   const home = getActiveHome(); const def = getFurniture(defId);
   if (!home || !def) return false;
   useFinishStore.getState().clearPreview(); // one thing at a time: placing furniture drops any floor/wall try-on
@@ -35,6 +38,7 @@ export function beginPlace(defId: string): boolean {
 }
 
 export function beginMove(uidToMove: string) {
+  useCameraStore.getState().clearFocus();
   const home = getActiveHome();
   const item = home?.placed.find((p) => p.uid === uidToMove);
   if (!home || !item) return;
@@ -79,6 +83,7 @@ export function cancelDraft() {
 
 /** Leave Buy mode: discard any unconfirmed preview (never charged, never saved) and hand control back to the home camera. */
 export function exitBuild() {
+  useCameraStore.getState().clearFocus();
   useEditorStore.setState({ draft: null, dragging: false });
   useFinishStore.getState().clearPreview();
   useUiStore.getState().setMode('home');
@@ -90,21 +95,27 @@ export function confirmDraft(): boolean {
   const { draft } = useEditorStore.getState(); const home = getActiveHome(); const def = draft && getFurniture(draft.defId);
   if (!draft || !home || !def) return false;
   if (!draft.valid) { sfx.error(); toast('That spot does not work. Try another.', 'bad'); return false; }
+  let placedUid = draft.uid;
   if (draft.uid) {
     setPlaced(home.property.id, home.placed.map((p) => (p.uid === draft.uid ? { ...p, ...draft.pose } : p)));
   } else {
     if (draft.purchase) {
-      if (!useEconomyStore.getState().debit(def.price, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return false; }
-      useUiStore.getState().addSpent(def.price);
+      const price = priceOf(def.price); // the same function the shop used to show the price
+      if (!useEconomyStore.getState().debit(price, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return false; }
+      useUiStore.getState().addSpent(price);
       fireTask('buy:furniture');
       sfx.purchase();
     } else {
       useInventoryStore.getState().remove(def.id, 1);
       sfx.pop();
     }
-    setPlaced(home.property.id, [...home.placed, { uid: uid(), defId: def.id, ...draft.pose }]);
+    placedUid = uid();
+    setPlaced(home.property.id, [...home.placed, { uid: placedUid, defId: def.id, ...draft.pose }]);
   }
   useEditorStore.getState().setDraft(null);
+  // Successful placement only (failed/cancelled paths returned above): glide the camera to the item.
+  const t = getTransform(def, draft.pose);
+  useCameraStore.getState().focusOn(placedUid!, [t.position[0], def.placement.surface === 'wall' ? t.position[1] : def.height * 0.5, t.position[2]]);
   return true;
 }
 
@@ -123,7 +134,7 @@ export function storeItem(itemUid: string) {
 export function sellItem(itemUid: string) {
   const home = getActiveHome(); const item = home?.placed.find((p) => p.uid === itemUid); const def = item && getFurniture(item.defId);
   if (!home || !item || !def) return;
-  const refund = Math.round(def.price * CONFIG.sellRefund);
+  const refund = Math.round(priceOf(def.price) * CONFIG.sellRefund);
   useEconomyStore.getState().credit(refund, `Sold ${def.name}`, 'income');
   useUiStore.getState().addSpent(-refund);
   setPlaced(home.property.id, home.placed.filter((p) => p.uid !== itemUid));

@@ -1,3 +1,37 @@
+# Nigeria Life - v8 foundations pass
+
+Scope of this pass: the dependency foundations of the master brief (walls, wall-mounted placement, placement camera, shared pricing, item
+information, NEPA and backup power). The rest of the brief is NOT done, see "Not done" at the bottom of this section.
+
+## Done
+- **Interior walls**: partitions are now `INTERIOR_WALL_HEIGHT` = 1.4 (was 0.95), configurable in `src/data/balance.ts`. Outer walls, footprints, doors,
+  windows and the camera-facing rules are untouched. Checked on all six homes (26 partitions) and in a real browser screenshot.
+- **Wall-mounted items were buried in the wall** (root cause: the offset used the item depth only, ignoring the wall's thickness, so thin frames sat
+  inside it). `getTransform` now offsets by half the wall thickness + a 0.02 gap. Fixes frames, shelves and the AC on both wall orientations (back and left).
+- **Camera zoom on placement**: a successful placement eases the camera toward the item, holds 3.2 s, then eases back. Failed/cancelled placement never zooms,
+  duplicate requests for the same item inside 700 ms are ignored, any drag/pinch/wheel or the new "Back to room view" button returns at once. Values in `PLACE_FOCUS`.
+- **Shared pricing** (`game/pricing.ts`): one function, `priceOf(base)`, used by the shop cards, the placement bar, the charge and the sell refund. The future admin
+  multiplier is clamped to 0.1..0.9 and maps to 0.1 = 20% of base, 0.5 = base (today's prices, the default), 0.9 = 180%. Whole naira, never negative or NaN.
+- **Item information button** (eye) on every shop card, a sibling of the buy button so it can never buy or place. The panel is generated from the item
+  definition: category, tier, price, decorative vs functional, activities with duration/cost/stat changes/XP, needs, passive benefits.
+- **NEPA and backup power**: random outages (`POWER` in balance.ts, shorter gaps in homes without reliable public power), a toast and a small status chip,
+  room lights dim to 22% (never black; each floor lamp adds a little). Three backups: **Ibeta Pass My Neighbor** (new, tap it during an outage), the existing
+  **Generator** (now starts by itself), **Solar power system** (new, always lit). Solar wins over the others. No fuel or maintenance. All prices go through `priceOf`.
+
+## Behaviour changes to know about
+- A **Generator** already placed in an old save now starts automatically (before it was decorative with a small comfort bonus).
+- The first-furniture task reward still pays out on the first purchase, so a first purchase can raise the balance.
+
+## Checks
+`npm run test:v8` (new: pricing, wall height, wall-mount offsets, camera focus, item info, outage schedule, the three backups, AFK regression),
+`npm run test:all` (all older checks still pass), `npm run build`.
+
+## Not done (still open from the brief)
+Procedural catalogue expansion, central activity/needs system and new stats (fitness etc.), stat-changing activity menus on items, House Design tab and extra wall patterns,
+pets, map tilt/water/billboards, ads provider abstraction, public interiors and NPC capacity, local/global chat, hustles in interiors, crime/jail, the club and receipts,
+Polanco Motors and the phone car app, referrals and the onboarding task, admin-ready config for everything except pricing and power. None of these exist yet.
+Everything that touches real money, shared state or other players needs a backend, which this project does not have.
+
 # Nigeria Life - improvement pass
 
 ## Phone redesign and Send by username

@@ -3,7 +3,8 @@ import type { FurnitureDef } from '@/data/items';
 import { getFurniture } from '@/data/items';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout, Zone } from '@/types/world';
-import { doorClearances, tallWalls, windowsOnPiece, type WallPiece } from './layoutGeometry';
+import { WALL_MOUNT_GAP } from '@/data/balance';
+import { doorClearances, tallWalls, WALL_T, windowsOnPiece, type WallPiece } from './layoutGeometry';
 
 const STEP = 0.05;
 const M = 0.1; // margin from walls
@@ -60,10 +61,12 @@ export function resolvePlacement(def: FurnitureDef, layout: PropertyLayout, rawX
 export function getTransform(def: FurnitureDef, p: Pose): { position: [number, number, number]; rotationY: number } {
   if (def.placement.surface === 'wall') {
     const y = def.placement.mountHeight ?? 1.5;
-    const a = p.along ?? 0, c = p.wallC ?? 0;
+    // wallC is the wall's CENTRE line. The visible surface is WALL_T/2 in front of it, so the item's back face must start there
+    // (plus a small gap for the interior finish panel); the old offset of just d/2 buried thin items inside the wall.
+    const a = p.along ?? 0, c = p.wallC ?? 0, off = WALL_T / 2 + WALL_MOUNT_GAP + def.footprint.d / 2;
     return p.wall === 'left'
-      ? { position: [c + def.footprint.d / 2, y, a], rotationY: Math.PI / 2 }
-      : { position: [a, y, c + def.footprint.d / 2], rotationY: 0 };
+      ? { position: [c + off, y, a], rotationY: Math.PI / 2 }
+      : { position: [a, y, c + off], rotationY: 0 };
   }
   return { position: [p.x, 0, p.z], rotationY: (p.rotation * Math.PI) / 2 };
 }
