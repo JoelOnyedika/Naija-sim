@@ -13,6 +13,7 @@ import { ActivityBanner } from './ActivityBanner';
 import { BuyMode } from './BuyMode';
 import { Dock } from './Dock';
 import { FoodPicker } from './FoodPicker';
+import { ActionMenu } from './ActionMenu';
 import { Hud } from './Hud';
 import { LoadingOverlay } from './LoadingOverlay';
 import { RotateButton } from './RotateButton';
@@ -42,6 +43,7 @@ export function GameScreen() {
       <Dock />
       <PhoneOverlay />
       <FoodPicker />
+      <ActionMenu />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

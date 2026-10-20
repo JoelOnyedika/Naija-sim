@@ -215,3 +215,8 @@ All tunables for these live in `src/data/balance.ts`.
 * **Placement camera**: `cameraStore.focus` + `CameraRig`; `PLACE_FOCUS`. **Implemented.**
 * **Item information**: `game/itemInfo.ts` (`describeItem`) + `ItemInfoSheet` in `BuyMode.tsx`. Only existing item data is shown; decorative items say so. **Implemented.**
 * **NEPA** (`game/power.ts` pure rules, `stores/powerStore.ts` live state, `game/loop.ts#stepPower`, `three/property/Lighting.tsx`, `features/game/PowerBadge.tsx`). Outage state is not saved (a reload ends it). Backup items are read from the placed furniture of the active home. **Implemented as a local simulation.** Not authoritative: nothing here is safe to trust in multiplayer.
+
+## I. Pets and activities
+* **Pets**: `data/items.ts` (`pet`, `toy`), `world/petBrain.ts` (behaviour, pure), `three/models/pets.tsx` (models), `three/property/Pets.tsx` (scene layer). Home-wide limits in `PETS`. **Implemented**, no stat effects, no imported animation assets.
+* **Activities**: `data/activities.ts` (`ACTIVITY_SETS`, `usesOf`, `blockedReason`), `game/interactions.ts` (`chooseActivity`, `startUse`), `features/game/ActionMenu.tsx`, `game/itemInfo.ts` (`describeUse`). **Implemented** for desk, speaker and disco light; other objects keep their single `use` and can be moved into the table one by one.
+* Money costs and payouts are a local simulation. A multiplayer server must own rewards, costs and durations.

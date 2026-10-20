@@ -1,3 +1,25 @@
+# Nigeria Life - v8 part 2: pets, activities, stats
+
+## Pets (new)
+- **Cat, dog and lion** (₦450k / ₦900k / ₦12M, shared pricing) and a **pet ball** (₦8k), in a new Pets shop tab. Max 3 pets and 2 balls per home (`PETS` in balance.ts).
+- Pets are procedural models (one generator, `three/models/pets.tsx`; a new species is one row in `LOOKS` and one in `SPECIES`). Legs swing in diagonal pairs, tail wags, head bobs, lion has a mane and tail tuft.
+- Behaviour is a pure state machine (`world/petBrain.ts`): idle, wander, hop, walk to the ball, play, bat the ball to a free spot, cooldown before the next game. It uses the avatar's own navigation grid, so pets use doors and cannot enter walls or solid furniture. Pets turn to face their path before walking, land exactly on path corners, slide along or abandon a walk instead of entering a blocked cell, and step out if furniture is dropped on them.
+- Pets never block the player (they are not part of the grid) and never touch AFK. In Buy mode they are ordinary items you can move or sell; in Home mode the live pets are drawn. Tapping a pet makes a sound toast.
+- Limits: no skeletal animation or imported models (none exist in the project), pets do not react to the avatar, and they have no stat effects yet (the info panel says so).
+
+## Activities and stats (new central table)
+- `src/data/activities.ts` is the one place for what an object lets you do: duration, cost, needs, stat changes, skill XP, payout, requirements. Items with several choices open an **action menu** (shows effects, cost, requirements and reward before starting, disables and explains what is missing); single-choice items (toilet, fridge, bed...) stay one tap.
+- Desk: learn to code, practise coding (unchanged), work on a coding task (needs coding level 2, pays ₦3,500 only when finished), browse social media. Speaker: start a party, dance. Disco light: dance under the lights, needs a speaker ("No speaker for this dancefloor oh!"), re-checked when the character arrives.
+- No second stat system: the existing stats and skills are used. Fitness = fitness skill, social skill = communication skill, creator skill = creativity.
+- Cancelled activities pay nothing and give no XP; finished ones reward once. The existing activity bubbles and walking/animation flow are reused (the disco light got a bubble and a dance spot).
+- Fixed a flaky existing test (careers) caused by the Lapo life's random money gift in the game loop (it failed about 1 run in 12 before and after this work).
+
+## New checks
+`npm run test:pets` (about 40 checks), `npm run test:activities`. `npm run test:all` runs everything.
+
+## Still open
+Catalogue expansion, map tilt/water/billboards, House Design tab and wall patterns, public interiors, chat, club, dealership, referrals, crime/jail. Hustles and the other items' activity menus (ring light, camera, laptop variants) come with the catalogue.
+
 # Nigeria Life - v8 foundations pass
 
 Scope of this pass: the dependency foundations of the master brief (walls, wall-mounted placement, placement camera, shared pricing, item

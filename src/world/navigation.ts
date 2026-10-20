@@ -170,6 +170,7 @@ export const SPECS: Record<string, Spec> = {
   piano: { pose: 'stand', action: 'piano', mode: 'front' },
   washbasin: { pose: 'stand', action: 'wash', mode: 'front' },
   speaker: { pose: 'stand', action: 'dance', mode: 'front' },
+  disco_light: { pose: 'stand', action: 'dance', mode: 'front' },
   gym_rug: { pose: 'stand', action: 'pushup', mode: 'mat', top: 0.045 },
   bucket: { pose: 'stand', action: 'shower', mode: 'front', bathing: true },
   shower: { pose: 'stand', action: 'shower', mode: 'inside', bathing: true },

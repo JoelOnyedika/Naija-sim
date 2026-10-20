@@ -5,6 +5,7 @@ import { Bucket, Plant, Rug, Shower, WallFrame } from './decor';
 import { Cabinet, Cooker, Desk, Dispenser, GamingSetup, KingBed, Lamp, Piano, Toilet, Wardrobe, Bookshelf } from './more';
 import { Chair, Sofa, Table } from './seating';
 import { Bed, FoamMattress } from './sleeping';
+import { PetBall, StaticCat, StaticDog, StaticLion } from './pets';
 
 /**
  * Furniture model registry: FurnitureDef.model → component.
@@ -16,6 +17,7 @@ export const MODELS: Record<string, ComponentType> = {
   wardrobe: Wardrobe, bookshelf: Bookshelf, cooker: Cooker, cabinet: Cabinet, toilet: Toilet, desk: Desk,
   gaming_setup: GamingSetup, piano: Piano, lamp: Lamp, dispenser: Dispenser,
   bathtub: Bathtub, jacuzzi: Jacuzzi, washbasin: Washbasin, speaker: Speaker, gym_rug: GymMat, bedside_table: BedsideTable, coffee_table: CoffeeTable, wall_shelf: WallShelf, disco_light: DiscoLight, ibeta: Ibeta, solar_system: SolarSystem,
+  pet_cat: StaticCat, pet_dog: StaticDog, pet_lion: StaticLion, pet_ball: PetBall,
 };
 
 export function FurnitureModel({ modelKey }: { modelKey: string }) {

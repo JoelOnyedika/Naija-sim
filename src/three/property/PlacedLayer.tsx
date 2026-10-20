@@ -27,6 +27,8 @@ export function PlacedLayer({ items }: { items: PlacedItem[] }) {
         if (item.uid === draftUid) return null;
         const def = getFurniture(item.defId);
         if (!def) return null;
+        // live pets and toys are drawn by PetLayer in Home mode; in Buy mode they are plain items you can move
+        if ((def.pet || def.toy) && mode !== 'buy') return null;
         const t = getTransform(def, item);
         const onClick = (e: ThreeEvent<MouseEvent>) => {
           if (e.delta > 6) return;

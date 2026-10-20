@@ -53,3 +53,12 @@ export const POWER = {
   /** Backup power items (ids in data/items.ts). Prices there are base prices and go through the shared pricing function. */
   items: { manual: 'ibeta', auto: 'generator', solar: 'solar_system' },
 } as const;
+
+/** Pets. Behaviour numbers per species live in world/petBrain.ts (SPECIES); these are home-wide limits. */
+export const PETS = {
+  /** Animated pets per home. Keeps the scene cheap: each pet is ~25 small meshes and one frame callback. */
+  maxPerHome: 3,
+  maxBallsPerHome: 2,
+  /** A pet will not go back to the ball for this many seconds after playing. */
+  playCooldown: 10,
+} as const;

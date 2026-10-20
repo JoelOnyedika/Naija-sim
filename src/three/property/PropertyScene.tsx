@@ -11,6 +11,7 @@ import { CameraRig } from './CameraRig';
 import { EditLayer } from './EditLayer';
 import { Lighting } from './Lighting';
 import { PlacedLayer } from './PlacedLayer';
+import { PetLayer } from './Pets';
 import { PropertyEnvironment } from './PropertyEnvironment';
 
 /** Invisible floor: tap anywhere on the ground in Home mode to walk there (furniture stops the tap first). */
@@ -39,6 +40,7 @@ export function PropertyScene() {
       <Suspense fallback={null}>
         <PropertyEnvironment layout={home.layout} />
         <PlacedLayer items={all} />
+        {mode !== 'buy' && <PetLayer layout={home.layout} items={all} />}
         <GroundClick />
         <AvatarWalker layout={home.layout} items={all} />
         <EditLayer />

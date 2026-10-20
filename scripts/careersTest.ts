@@ -10,6 +10,8 @@ import { useSkillStore } from '../src/stores/skillStore';
 import { useStatsStore } from '../src/stores/statsStore';
 
 registerContent();
+// The Lapo life randomly gifts money inside the game loop (src/game/loop.ts), which made salary checks fail about 1 run in 12.
+Math.random = () => 0.999999;
 let fails = 0;
 const ok = (c: boolean, m: string) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fails++; };
 const stats = () => useStatsStore.getState();

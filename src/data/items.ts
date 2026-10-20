@@ -1,7 +1,7 @@
 import type { SkillId } from '@/stores/skillStore';
 import type { Effects } from '@/types/game';
 
-export type ItemCategory = 'storage' | 'designs' | 'sleep' | 'kitchen' | 'bathroom' | 'comfort' | 'fun' | 'skills';
+export type ItemCategory = 'pets' | 'storage' | 'designs' | 'sleep' | 'kitchen' | 'bathroom' | 'comfort' | 'fun' | 'skills';
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
 export interface UseDef {
@@ -22,6 +22,14 @@ export interface UseDef {
   skill?: { id: SkillId; xp: number };
   /** While this runs the home is throwing a party (disco lights switch on). */
   party?: boolean;
+  /** Stable id inside the item's activity list (data/activities.ts). */
+  id?: string;
+  /** Equipment that must be in the active home. Each entry is satisfied by ANY of its item ids. `hint` is the message when it is missing. */
+  requires?: { anyOf: string[]; hint: string }[];
+  /** Minimum skill level before this can be started. */
+  minSkill?: { id: SkillId; level: number };
+  /** Money paid ONCE when the activity finishes (never when it is cancelled). */
+  payout?: number;
 }
 
 export interface FurnitureDef {
@@ -44,6 +52,8 @@ export interface FurnitureDef {
   sleepRate?: number;
   comfort?: number;
   use?: UseDef;
+  /** Several choices on one object: tapping it opens an action menu (see data/activities.ts, which wins over `use`). */
+  uses?: UseDef[];
   /** Tapping this opens a phone app instead of running a use action. The wardrobe opens the Boutique catalogue (owned clothes). */
   opensApp?: 'boutique';
   /**
@@ -56,11 +66,20 @@ export interface FurnitureDef {
    * 'solar' keeps the house powered all the time. Backup items are functional, not decorative.
    */
   power?: 'manual' | 'auto' | 'solar';
+  /** A live pet (see world/petBrain.ts). It wanders the home on its own instead of standing where it was placed. */
+  pet?: 'cat' | 'dog' | 'lion';
+  /** A pet toy: pets walk to it and play. */
+  toy?: boolean;
 }
 
 const floor = { surface: 'floor', collides: true, rotatable: true } as const;
 
 export const FURNITURE: FurnitureDef[] = [
+  // ---- Pets: valuable, animated, never block walking
+  { id: 'pet_ball', name: 'Pet ball', description: 'A rubber ball. Pets love chasing it.', price: 8000, category: 'pets', rarity: 'common', glyph: '🎾', model: 'pet_ball', footprint: { w: 0.25, d: 0.25 }, height: 0.2, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 0, toy: true },
+  { id: 'pet_cat', name: 'Cat', description: 'A proper house cat. Wanders, hops and bats the ball around.', price: 450000, category: 'pets', rarity: 'rare', glyph: '🐱', model: 'pet_cat', footprint: { w: 0.5, d: 0.5 }, height: 0.5, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 5, pet: 'cat' },
+  { id: 'pet_dog', name: 'Dog', description: 'Loyal and energetic. Goes for the ball first.', price: 900000, category: 'pets', rarity: 'epic', glyph: '🐶', model: 'pet_dog', footprint: { w: 0.7, d: 0.7 }, height: 0.7, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 7, pet: 'dog' },
+  { id: 'pet_lion', name: 'Lion', description: 'A young lion. Slow, heavy and very much a flex.', price: 12000000, category: 'pets', rarity: 'epic', glyph: '🦁', model: 'pet_lion', footprint: { w: 1.2, d: 1.2 }, height: 1.1, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 10, pet: 'lion' },
   // ---- Sleep
   { id: 'foam_mattress', name: 'Foam mattress', description: 'Thin and firm. Beats the floor.', price: 35000, category: 'sleep', rarity: 'common', glyph: '🛏️', model: 'foam_mattress', footprint: { w: 1.0, d: 1.9 }, height: 0.25, placement: floor, style: 1, sleepRate: 0.6, use: { label: 'Sleep', seconds: 0, effects: {}, sleep: true, pose: 'sleep' } },
   { id: 'bed', name: 'Wooden bed', description: 'Proper frame, proper mattress, two pillows.', price: 180000, category: 'sleep', rarity: 'uncommon', glyph: '🛌', model: 'bed', footprint: { w: 1.6, d: 2.0 }, height: 0.9, placement: floor, style: 4, sleepRate: 1, use: { label: 'Sleep', seconds: 0, effects: {}, sleep: true, pose: 'sleep' } },
@@ -113,6 +132,7 @@ const byId = new Map(FURNITURE.map((f) => [f.id, f]));
 export const getFurniture = (id: string) => byId.get(id);
 
 export const ITEM_CATEGORIES: { id: ItemCategory; label: string; icon: string }[] = [
+  { id: 'pets', label: 'Pets', icon: '🐾' },
   { id: 'storage', label: 'Storage', icon: '🗄️' },
   { id: 'designs', label: 'Designs', icon: '🎨' },
   { id: 'sleep', label: 'Sleep', icon: '😴' },

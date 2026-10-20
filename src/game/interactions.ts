@@ -13,6 +13,9 @@ import { toast, useUiStore } from '@/stores/uiStore';
 import { FOODS } from '@/data/foods';
 import { getActiveHome } from './active';
 import { usePowerStore } from '@/stores/powerStore';
+import { blockedReason, findUse, needsMenu, usesOf } from '@/data/activities';
+import { useSkillStore } from '@/stores/skillStore';
+import type { UseDef } from '@/data/items';
 
 /** Sum of comfort bonuses (fan, AC...) in the active home. */
 const comfort = () => {
@@ -30,16 +33,46 @@ export const carriedFood = () => FOODS.filter((f) => useInventoryStore.getState(
 export function interactWith(item: PlacedItem) {
   const def = getFurniture(item.defId);
   if (def?.opensApp) { useBoutiqueNav.getState().setOwnedOnly(true); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp(def.opensApp); sfx.click(); return; }
+  if (def?.pet) { toast(PET_SOUND[def.pet]); return; }
+  if (def?.toy) { toast('Your pets will play with this on their own.'); return; }
   if (def?.power) { tapBackupPower(def.power, def.name); return; }
-  if (!def?.use) { toast(def?.name ?? 'Nothing to do here'); return; }
+  const uses = usesOf(def);
+  if (!def || !uses.length) { toast(def?.name ?? 'Nothing to do here'); return; }
+  if (useStatsStore.getState().activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }
+  // Several choices: let the player pick. One choice: go straight there, exactly as before.
+  if (needsMenu(def)) { useUiStore.getState().setActionMenu(item.uid); sfx.click(); return; }
+  beginUse(item, uses[0]);
+}
+
+/** Pre-flight checks that give instant feedback; nothing is charged yet (that happens on arrival in startUse). */
+function canBegin(u: UseDef): boolean {
   const stats = useStatsStore.getState();
-  if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }
-  const u = def.use;
-  if (u.needsFood && !carriedFood().length) { sfx.error(); toast('Nothing to eat. Order food on your phone.', 'bad'); return; }
-  if (u.sleep && 100 - stats.stats.energy < 8) { toast('You are not tired yet.'); return; }
-  if (u.cost && useEconomyStore.getState().money < u.cost) { sfx.error(); toast(copy.broke(), 'bad'); return; }
+  if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return false; }
+  const placed = getActiveHome()?.placed ?? [];
+  const why = blockedReason(u, placed, (id) => useSkillStore.getState().level(id));
+  if (why) { sfx.error(); toast(why, 'bad'); return false; }
+  if (u.needsFood && !carriedFood().length) { sfx.error(); toast('Nothing to eat. Order food on your phone.', 'bad'); return false; }
+  if (u.sleep && 100 - stats.stats.energy < 8) { toast('You are not tired yet.'); return false; }
+  if (u.cost && useEconomyStore.getState().money < u.cost) { sfx.error(); toast(copy.broke(), 'bad'); return false; }
+  return true;
+}
+
+/** Which activity the player picked for each object (read on arrival). */
+const chosen = new Map<string, string>();
+
+function beginUse(item: PlacedItem, u: UseDef) {
+  if (!canBegin(u)) return;
+  if (u.id) chosen.set(item.uid, u.id); else chosen.delete(item.uid);
   useActorStore.getState().useItem(item.uid);
   sfx.click();
+}
+
+/** The player picked an activity from the action menu. */
+export function chooseActivity(item: PlacedItem, activityId: string) {
+  const def = getFurniture(item.defId);
+  const u = usesOf(def).find((x) => x.id === activityId);
+  useUiStore.getState().setActionMenu(null);
+  if (u) beginUse(item, u);
 }
 
 /** Player tapped the floor: stop whatever is running (cleanly) and walk there. */
@@ -51,10 +84,14 @@ export function walkTo(x: number, z: number) {
 /** Called by the scene once the avatar has arrived at the object and faces it. Runs the original use logic. */
 export function startUse(item: PlacedItem) {
   const def = getFurniture(item.defId);
-  if (!def?.use) return;
+  const u = findUse(def, chosen.get(item.uid));
+  chosen.delete(item.uid);
+  if (!def || !u) return;
   const stats = useStatsStore.getState();
   if (stats.activity) return;
-  const u = def.use;
+  // Re-check on arrival: the speaker may have been removed, or the skill level may not be enough after all.
+  const why = blockedReason(u, getActiveHome()?.placed ?? [], (id) => useSkillStore.getState().level(id));
+  if (why) { sfx.error(); toast(why, 'bad'); return; }
   if (u.needsFood) {
     if (!carriedFood().length) { sfx.error(); toast('Nothing to eat. Order food on your phone.', 'bad'); return; }
     useUiStore.getState().setFoodPicker(item.uid);
@@ -69,7 +106,7 @@ export function startUse(item: PlacedItem) {
     effects = { energy: gain, hunger: -6, thirst: -6, bladder: -8 };
   }
   if (u.cost && !useEconomyStore.getState().debit(u.cost, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return; }
-  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party });
+  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party, payout: u.payout });
 }
 
 export function eatFood(foodId: string, targetUid?: string): boolean {
@@ -79,6 +116,8 @@ export function eatFood(foodId: string, targetUid?: string): boolean {
   if (!ok) useInventoryStore.getState().add(foodId);
   return ok;
 }
+
+const PET_SOUND = { cat: 'Meow. 🐱', dog: 'Woof woof! 🐶', lion: 'The lion looks at you. You look away first. 🦁' } as const;
 
 /** Tapping a backup power item. Only the manual set (Ibeta) does anything, and only while NEPA is out. */
 function tapBackupPower(kind: 'manual' | 'auto' | 'solar', name: string) {

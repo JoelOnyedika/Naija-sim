@@ -11,6 +11,7 @@ import { toast, useUiStore } from '@/stores/uiStore';
 import { findFreeSpot, fixturesOf, getTransform, resolvePlacement, validatePlacement, type Pose } from '@/world/placement';
 import { getActiveHome, setPlaced } from './active';
 import { priceOf } from './pricing';
+import { PETS } from '@/data/balance';
 import { useCameraStore } from '@/stores/cameraStore';
 import { fireTask } from './tasks';
 
@@ -24,11 +25,19 @@ function revalidate(draft: Draft, pose: Pose): Draft {
   return { ...draft, pose, valid: validatePlacement(def, home.layout, pose, others) };
 }
 
+/** Home-wide caps on animated pets and toys (performance). */
+export function petLimitOk(placed: { defId: string }[], kind: 'pet' | 'toy' | null): boolean {
+  if (!kind) return true;
+  const n = placed.filter((p) => { const d = getFurniture(p.defId); return kind === 'pet' ? !!d?.pet : !!d?.toy; }).length;
+  return n < (kind === 'pet' ? PETS.maxPerHome : PETS.maxBallsPerHome);
+}
+
 /** Pick something from the catalog (or inventory): show the ghost. */
 export function beginPlace(defId: string): boolean {
   useCameraStore.getState().clearFocus();
   const home = getActiveHome(); const def = getFurniture(defId);
   if (!home || !def) return false;
+  if (!petLimitOk(home.placed, def.pet ? 'pet' : def.toy ? 'toy' : null)) { sfx.error(); toast(def.pet ? `Only ${PETS.maxPerHome} pets per home.` : `Only ${PETS.maxBallsPerHome} balls per home.`, 'bad'); return false; }
   useFinishStore.getState().clearPreview(); // one thing at a time: placing furniture drops any floor/wall try-on
   const owned = useInventoryStore.getState().count(defId) > 0;
   const pose = findFreeSpot(def, home.layout, home.placed) ?? resolvePlacement(def, home.layout, 0, 0, 0);

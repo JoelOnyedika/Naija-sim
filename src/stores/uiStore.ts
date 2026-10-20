@@ -27,6 +27,9 @@ interface UiState {
   detailPropertyId: string | null;
   housesAreaFilter: string | null;
   foodPickerUid: string | null;
+  /** Placed item whose action menu is open (items with several activities). */
+  actionMenuUid: string | null;
+  setActionMenu: (uid: string | null) => void;
   online: number;
   toasts: Toast[];
   banner: { id: number; title: string; body: string; icon: string } | null;
@@ -51,7 +54,7 @@ interface UiState {
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
   mode: 'home', taskPanelOpen: true, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
-  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null,
+  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),
   toggleTasks: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
