@@ -1,3 +1,24 @@
+# Nigeria Life - v8 part 3: catalogue and map
+
+## Catalogue (23 new items, 74 in total)
+- New models in `three/models/catalogue.tsx`, each with its own silhouette (no recolours): armchair, office chair, dining chair, bar stool (seating is now six distinct designs with the plastic chair and sofa); brass side table, steel locker, open shelving, shoe rack; round, runner and Persian-style rugs; abstract canvas, photo cluster, slatted wood panel, wall clock, gold mirror, neon sign; ring light, camera and tripod, DJ deck; bedside lamp; pet bed and pet bowls.
+- Quality tiers: average price rises with tier (common 38k, uncommon 103k, rare 280k, epic 933k) without being strict (cheap epics and dearer commons exist). Every price goes through the shared pricing function. All new items are placeable in all six homes.
+- Functional ones plug into the activity table: ring light (record content needs the camera; practise presenting), camera (film a video, needs the ring light), DJ deck (mix music, needs a speaker). Everything else is labelled decorative in the information panel.
+- Fixed a mirror that rendered black.
+
+## Map
+- Camera tilt 0.38 to 0.75 rad (43 degrees from straight down). Still locked, so pan, tap and the fly-to-landmark behaviour are unchanged (checked by tapping a landmark in a real browser).
+- Water: the shader that drew crossing stripe lines is replaced by a calm blue surface (slow wide tone changes, faint glints). Same component is used for water zones around homes.
+- Billboards are drawn 2.6x bigger (`MAP.billboardScale` in balance.ts), with their frames, posts, lamps and click-to-open-ad behaviour intact. No two enlarged boards overlap each other (tested).
+
+## Checks
+`npm run test:catalogue`, `npm run test:map` (both in `test:all`).
+
+## Honest limits
+- Billboard placement relative to roads and buildings was judged from screenshots only; a few boards stand close to buildings and pins. Positions are data in `content/lagos/billboards.ts`.
+- The Google Ads / AdMob provider abstraction, wall patterns and the House Design tab are not done.
+- Item models were checked at game camera distance only.
+
 # Nigeria Life - v8 part 2: pets, activities, stats
 
 ## Pets (new)

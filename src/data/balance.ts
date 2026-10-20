@@ -62,3 +62,11 @@ export const PETS = {
   /** A pet will not go back to the ball for this many seconds after playing. */
   playCooldown: 10,
 } as const;
+
+/** World map presentation. */
+export const MAP = {
+  /** Camera tilt in radians from straight down. Was 0.38 (nearly top-down). 0.75 is an angled, isometric-like view; still never side-on. */
+  polar: 0.75,
+  /** Roadside billboards are drawn this many times bigger than their 1.4-1.9 m definitions, so they read at map distance. */
+  billboardScale: 2.6,
+} as const;

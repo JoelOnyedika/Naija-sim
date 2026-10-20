@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { CanvasTexture, SRGBColorSpace, MeshStandardMaterial, BoxGeometry, CylinderGeometry, TextureLoader } from 'three';
+import { MAP } from '@/data/balance';
 import { effectiveStatus } from '@/game/ads/slots';
 import { useAdsStore } from '@/stores/adsStore';
 import { useAdsUiStore } from '@/stores/adsUiStore';
@@ -58,7 +59,7 @@ function Board({ def }: { def: BillboardDefinition }) {
   const open = (e: ThreeEvent<MouseEvent>) => { if (e.delta > 6 || useUiStore.getState().mode !== 'map') return; e.stopPropagation(); useAdsUiStore.getState().openSheet({ type: 'billboard', slotId: def.id }); };
   const light = [-w * 0.4, 0, w * 0.4];
   return (
-    <group position={[def.position[0], 0.07, def.position[1]]} rotation={[0, def.rotationY, 0]} onClick={open}
+    <group position={[def.position[0], 0.07, def.position[1]]} rotation={[0, def.rotationY, 0]} scale={MAP.billboardScale} onClick={open}
       onPointerOver={() => { if (useUiStore.getState().mode === 'map') document.body.style.cursor = 'pointer'; }} onPointerOut={() => { document.body.style.cursor = ''; }}>
       {[-w * 0.32, w * 0.32].map((x) => <mesh key={x} geometry={POST} material={FRAME_MAT} position={[x, y / 2, -0.04]} scale={[1, y, 1]} castShadow />)}
       <mesh geometry={FRAME} material={FRAME_MAT} position={[0, y + h / 2, -0.03]} scale={[w + 0.1, h + 0.1, 0.06]} castShadow />

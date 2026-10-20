@@ -6,7 +6,7 @@ import type { Action } from './navigation';
  */
 export const BUBBLE_BY_ITEM: Record<string, string> = {
   bed: '💤', king_bed: '💤', foam_mattress: '💤', tv: '📺', sofa: '😌', chair: '😌', desk: '💻', gaming_setup: '🎮', toilet: '🚽',
-  cooker: '🍳', fridge: '😋', dispenser: '💧', bookshelf: '📖', piano: '🎹', speaker: '🎶', disco_light: '🪩', washbasin: '🧼', bucket: '🪣',
+  cooker: '🍳', fridge: '😋', dispenser: '💧', bookshelf: '📖', piano: '🎹', speaker: '🎶', disco_light: '🪩', armchair: '😌', dining_chair: '😌', office_chair: '😌', stool: '😌', ring_light: '🎥', camera_tripod: '🎥', dj_deck: '🎧', washbasin: '🧼', bucket: '🪣',
   shower: '🚿', bathtub: '🛁', jacuzzi: '🛁', gym_rug: '💪',
 };
 const BUBBLE_BY_ACTION: Partial<Record<Action, string>> = { eat: '😋', cook: '🍳', type: '💻', dance: '🎶', shower: '🚿', pushup: '💪', tv: '📺', read: '📖', piano: '🎹', drink: '💧', wash: '🧼' };

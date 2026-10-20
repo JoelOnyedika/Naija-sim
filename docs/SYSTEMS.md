@@ -220,3 +220,7 @@ All tunables for these live in `src/data/balance.ts`.
 * **Pets**: `data/items.ts` (`pet`, `toy`), `world/petBrain.ts` (behaviour, pure), `three/models/pets.tsx` (models), `three/property/Pets.tsx` (scene layer). Home-wide limits in `PETS`. **Implemented**, no stat effects, no imported animation assets.
 * **Activities**: `data/activities.ts` (`ACTIVITY_SETS`, `usesOf`, `blockedReason`), `game/interactions.ts` (`chooseActivity`, `startUse`), `features/game/ActionMenu.tsx`, `game/itemInfo.ts` (`describeUse`). **Implemented** for desk, speaker and disco light; other objects keep their single `use` and can be moved into the table one by one.
 * Money costs and payouts are a local simulation. A multiplayer server must own rewards, costs and durations.
+
+## J. Catalogue and map (v8 part 3)
+* **Catalogue**: models `three/models/catalogue.tsx`, definitions `data/items.ts`, activities `data/activities.ts`, usable spots `world/navigation.ts#SPECS`, bubbles `world/bubbles.ts`. Adding an item = one model, one row in `items.ts`, one line in `registry.tsx` (the catalogue test checks all three agree).
+* **Map**: `MAP` in `data/balance.ts` (tilt and billboard scale), water in `three/world/Water.tsx`.

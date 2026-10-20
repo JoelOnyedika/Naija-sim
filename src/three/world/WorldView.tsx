@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useRef } from 'react';
 import { MOUSE, TOUCH, Vector3 } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { MAP } from '@/data/balance';
 import { getState } from '@/world/registry';
 import { getScene } from './sceneRegistry';
 
@@ -18,8 +19,8 @@ interface Props {
   showNames?: boolean;
 }
 
-/** Camera tilt of the map: nearly top-down (radians from straight up). The map is never rotated by the player. */
-const MAP_POLAR = 0.38;
+/** Camera tilt of the map (radians from straight up), set in data/balance.ts. The map is never rotated by the player. */
+const MAP_POLAR = MAP.polar;
 
 function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' | 'selected' | 'calm'>) {
   const state = getState(stateId)!;
@@ -143,7 +144,7 @@ export function WorldView(props: Props) {
   return (
     <Canvas dpr={[1, 1.6]} camera={{ fov: 42, near: 0.5, far: 520 }} gl={{ antialias: true }}>
       <color attach="background" args={[skyBottom]} />
-      <fog attach="fog" args={[skyBottom, 120, 300]} />
+      <fog attach="fog" args={[skyBottom, 170, 360]} />
       <hemisphereLight args={[skyTop, '#C9B58A', 0.9]} />
       <directionalLight position={[30, 40, 20]} intensity={1.6} color="#FFE7B8" />
       <Suspense fallback={null}>{Scene && <Scene state={state} />}</Suspense>

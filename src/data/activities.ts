@@ -12,9 +12,23 @@ import { skillName, type SkillId } from '@/stores/skillStore';
  * All numbers are balance values in one place so they can be tuned (and later served from an admin dashboard).
  * Money rewards and costs are local simulation only: a multiplayer server must own them.
  */
+const SPEAKER_REQ = { anyOf: ['speaker'], hint: 'The decks need a speaker or it is just you and silence. Buy a speaker first.' };
 const SPEAKER = { anyOf: ['speaker'], hint: 'No speaker for this dancefloor oh! Buy a speaker and place it in the house first.' };
 
+const TRIPOD = { anyOf: ['camera_tripod'], hint: 'You need a camera and tripod in the house to record. Buy one first.' };
+const RING = { anyOf: ['ring_light'], hint: 'Set up a ring light first, the lighting will be bad without it.' };
+
 export const ACTIVITY_SETS: Record<string, UseDef[]> = {
+  ring_light: [
+    { id: 'record_content', label: 'Record content', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [TRIPOD] },
+    { id: 'practise_presenting', label: 'Practise presenting', seconds: 10, effects: { energy: -4, happiness: -1, charisma: 1 }, pose: 'stand', skill: { id: 'communication', xp: 6 } },
+  ],
+  camera_tripod: [
+    { id: 'film_video', label: 'Film a video', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [RING] },
+  ],
+  dj_deck: [
+    { id: 'mix_music', label: 'Mix music', seconds: 12, effects: { happiness: 12, energy: -5 }, pose: 'stand', skill: { id: 'creativity', xp: 6 }, requires: [SPEAKER_REQ] },
+  ],
   desk: [
     { id: 'learn_code', label: 'Learn to code', seconds: 14, effects: { energy: -5, happiness: -1 }, pose: 'sit', skill: { id: 'coding', xp: 6 }, event: 'use:study' },
     { id: 'practice_code', label: 'Practise coding', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 10 }, event: 'use:study' },
