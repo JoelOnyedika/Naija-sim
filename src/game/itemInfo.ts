@@ -9,6 +9,7 @@ const STAT_LABEL: Record<string, string> = {
 
 export interface InfoActivity {
   label: string;
+  glyph: string;
   /** Seconds, or null when the duration depends on the player (sleep, picking food). */
   seconds: number | null;
   cost: number;
@@ -36,7 +37,7 @@ export function describeUse(u: UseDef): InfoActivity {
   if (u.sleep) effects.push({ label: 'Energy', delta: 100 });
   if (u.payout) effects.push({ label: 'Money (paid when finished)', delta: u.payout });
   return {
-    label: u.label.replace(/ \(₦[\d,]+\)/, ''), seconds: u.sleep || u.needsFood ? null : u.seconds, cost: u.cost ?? 0, effects,
+    glyph: u.glyph ?? '✨', label: u.label.replace(/ \(₦[\d,]+\)/, ''), seconds: u.sleep || u.needsFood ? null : u.seconds, cost: u.cost ?? 0, effects,
     skill: u.skill ? `${skillName(u.skill.id)} +${u.skill.xp} XP when finished` : undefined, requires,
   };
 }
@@ -49,7 +50,7 @@ export function describeItem(def: FurnitureDef): ItemInfo {
     activities.push(describeUse(u));
     if (u.party) passive.push('Starts a house party: the disco lights switch on while it runs.');
   }
-  if (def.opensApp === 'boutique') activities.push({ label: 'Change outfit', seconds: null, cost: 0, effects: [], requires: ['Clothes you own'] });
+  if (def.opensApp === 'boutique') activities.push({ glyph: '👗', label: 'Change outfit', seconds: null, cost: 0, effects: [], requires: ['Clothes you own'] });
   if (def.comfort) passive.push('Improves how well you sleep in this home.');
   if (def.power === 'manual') passive.push('Backup power: when NEPA takes light you must tap it to start it. Until then the house stays dim.');
   if (def.power === 'auto') passive.push('Backup power: starts by itself when NEPA takes light and restores the house lights.');

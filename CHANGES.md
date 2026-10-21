@@ -1,6 +1,19 @@
+# Nigeria Life - v8 part 5: House Design tab and wall patterns
+
+- **House Design tab** right after Storage. Floors and Walls now live inside it behind a Floors / Walls switch (no separate tabs). Saved floors, walls and previews work as before (the internal tab ids are unchanged). Pets moved to the end of the category tabs so Storage is first.
+- **Walls: 9 options became 53.** 17 paints, 7 stripes, 9 geometric, 7 textured, 4 panels, 6 classic, 3 marble, with category chips. 22 original procedural patterns (pinstripes, wide stripes, chevron, herringbone, trellis, checks, grid, waves, scallop, art deco fans, damask, panels, arches, painted brick, bamboo, Ankara blooms, linen, speckle, plaster, plus the old stripes, dots and diamond). The **diamond wallpaper is unchanged** (same id, colours, price).
+- Patterns are drawn on one 256px canvas per colour/pattern, 2 m x 2 m per tile (same scale as before), with shapes redrawn across tile edges so tiles join without seams. No image files. Shop swatches and the confirm bar show the real pattern.
+- `npm run test:walls` checks the catalogue, ids, categories, the drawing routines, the tab order and the unchanged diamond. Patterns were also rendered in a real browser and viewed tiled 2x2.
+- Correction: the furniture catalogue has 64 items (was 35), not 74 as I wrote earlier.
+
+# Nigeria Life - v8 part 4: info panel bug and action menu redesign
+
+- **Bug fixed: the item information panel (eye icon) could not be closed.** It was mounted inside a layer that ignores taps, so the X, the dark backdrop and "Back to the catalogue" never received them. The overlay now accepts taps. It also closes on Escape, when you leave Buy mode and when you start placing something. Reproduced and re-verified with real mouse clicks in a browser; `npm run test:ui` guards it.
+- **Action menu redesigned**: a compact bottom sheet with a swipeable row of cards (icon, name, time, stat changes, XP, cost/payout, a Start button; locked cards show why). Touch swipe, mouse drag and the wheel all scroll it; dots show position.
+
 # Nigeria Life - v8 part 3: catalogue and map
 
-## Catalogue (23 new items, 74 in total)
+## Catalogue (23 new items; 64 furniture items in total, up from 35)
 - New models in `three/models/catalogue.tsx`, each with its own silhouette (no recolours): armchair, office chair, dining chair, bar stool (seating is now six distinct designs with the plastic chair and sofa); brass side table, steel locker, open shelving, shoe rack; round, runner and Persian-style rugs; abstract canvas, photo cluster, slatted wood panel, wall clock, gold mirror, neon sign; ring light, camera and tripod, DJ deck; bedside lamp; pet bed and pet bowls.
 - Quality tiers: average price rises with tier (common 38k, uncommon 103k, rare 280k, epic 933k) without being strict (cheap epics and dearer commons exist). Every price goes through the shared pricing function. All new items are placeable in all six homes.
 - Functional ones plug into the activity table: ring light (record content needs the camera; practise presenting), camera (film a video, needs the ring light), DJ deck (mix music, needs a speaker). Everything else is labelled decorative in the information panel.

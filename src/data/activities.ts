@@ -20,27 +20,27 @@ const RING = { anyOf: ['ring_light'], hint: 'Set up a ring light first, the ligh
 
 export const ACTIVITY_SETS: Record<string, UseDef[]> = {
   ring_light: [
-    { id: 'record_content', label: 'Record content', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [TRIPOD] },
-    { id: 'practise_presenting', label: 'Practise presenting', seconds: 10, effects: { energy: -4, happiness: -1, charisma: 1 }, pose: 'stand', skill: { id: 'communication', xp: 6 } },
+    { id: 'record_content', glyph: '🎬', label: 'Record content', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [TRIPOD] },
+    { id: 'practise_presenting', glyph: '🎤', label: 'Practise presenting', seconds: 10, effects: { energy: -4, happiness: -1, charisma: 1 }, pose: 'stand', skill: { id: 'communication', xp: 6 } },
   ],
   camera_tripod: [
-    { id: 'film_video', label: 'Film a video', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [RING] },
+    { id: 'film_video', glyph: '📸', label: 'Film a video', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [RING] },
   ],
   dj_deck: [
-    { id: 'mix_music', label: 'Mix music', seconds: 12, effects: { happiness: 12, energy: -5 }, pose: 'stand', skill: { id: 'creativity', xp: 6 }, requires: [SPEAKER_REQ] },
+    { id: 'mix_music', glyph: '🎧', label: 'Mix music', seconds: 12, effects: { happiness: 12, energy: -5 }, pose: 'stand', skill: { id: 'creativity', xp: 6 }, requires: [SPEAKER_REQ] },
   ],
   desk: [
-    { id: 'learn_code', label: 'Learn to code', seconds: 14, effects: { energy: -5, happiness: -1 }, pose: 'sit', skill: { id: 'coding', xp: 6 }, event: 'use:study' },
-    { id: 'practice_code', label: 'Practise coding', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 10 }, event: 'use:study' },
-    { id: 'code_task', label: 'Work on a coding task', seconds: 18, effects: { energy: -10, happiness: -3 }, pose: 'sit', skill: { id: 'coding', xp: 14 }, payout: 3500, minSkill: { id: 'coding', level: 2 }, event: 'use:study' },
-    { id: 'social_media', label: 'Browse social media', seconds: 10, effects: { happiness: 9, social: 6, energy: -2 }, pose: 'sit', skill: { id: 'communication', xp: 2 } },
+    { id: 'learn_code', glyph: '📘', label: 'Learn to code', seconds: 14, effects: { energy: -5, happiness: -1 }, pose: 'sit', skill: { id: 'coding', xp: 6 }, event: 'use:study' },
+    { id: 'practice_code', glyph: '⌨️', label: 'Practise coding', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 10 }, event: 'use:study' },
+    { id: 'code_task', glyph: '💼', label: 'Work on a coding task', seconds: 18, effects: { energy: -10, happiness: -3 }, pose: 'sit', skill: { id: 'coding', xp: 14 }, payout: 3500, minSkill: { id: 'coding', level: 2 }, event: 'use:study' },
+    { id: 'social_media', glyph: '📱', label: 'Browse social media', seconds: 10, effects: { happiness: 9, social: 6, energy: -2 }, pose: 'sit', skill: { id: 'communication', xp: 2 } },
   ],
   speaker: [
-    { id: 'party', label: 'Start a party', seconds: 14, effects: { happiness: 20, social: 6, energy: -4 }, pose: 'stand', party: true, event: 'use:party' },
-    { id: 'dance', label: 'Dance', seconds: 12, effects: { happiness: 14, social: 3, energy: -8, hygiene: -3 }, pose: 'stand', skill: { id: 'fitness', xp: 3 } },
+    { id: 'party', glyph: '🎉', label: 'Start a party', seconds: 14, effects: { happiness: 20, social: 6, energy: -4 }, pose: 'stand', party: true, event: 'use:party' },
+    { id: 'dance', glyph: '💃', label: 'Dance', seconds: 12, effects: { happiness: 14, social: 3, energy: -8, hygiene: -3 }, pose: 'stand', skill: { id: 'fitness', xp: 3 } },
   ],
   disco_light: [
-    { id: 'dance_floor', label: 'Dance under the lights', seconds: 12, effects: { happiness: 16, social: 4, energy: -9, hygiene: -3 }, pose: 'stand', party: true, skill: { id: 'fitness', xp: 3 }, requires: [SPEAKER] },
+    { id: 'dance_floor', glyph: '🪩', label: 'Dance under the lights', seconds: 12, effects: { happiness: 16, social: 4, energy: -9, hygiene: -3 }, pose: 'stand', party: true, skill: { id: 'fitness', xp: 3 }, requires: [SPEAKER] },
   ],
 };
 

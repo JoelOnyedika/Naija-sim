@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { Lock, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { blockedReason, usesOf } from '@/data/activities';
 import { getFurniture } from '@/data/items';
 import { formatNaira } from '@/core/format';
@@ -10,46 +11,90 @@ import { useEconomyStore } from '@/stores/economyStore';
 import { useSkillStore } from '@/stores/skillStore';
 import { useUiStore } from '@/stores/uiStore';
 
+const CARD_W = 232; // px; the next card peeks in from the right so it is obvious the row scrolls
+
 /**
- * The action menu for objects with several activities (desk, speaker, disco light). It shows what each choice costs, needs,
- * changes and pays BEFORE the player starts it. Choices that cannot start say why and are disabled. Nothing is charged here:
- * the cost is taken and the effects applied only once the character has walked over and the activity really starts.
+ * The action menu for objects with several activities. A short bottom sheet with a swipeable row of cards: swipe sideways
+ * to browse, tap Start on the one you want. Each card shows what it costs, needs, changes and pays BEFORE you start, and a
+ * locked card says what is missing. Nothing is charged here: the cost is taken, and effects applied, only once the character
+ * has walked over and the activity really starts.
  */
 export function ActionMenu() {
   const uid = useUiStore((s) => s.actionMenuUid);
   const close = () => useUiStore.getState().setActionMenu(null);
   const home = useActiveHome();
   const money = useEconomyStore((s) => s.money);
-  const skills = useSkillStore((s) => s.xp); // re-render when XP changes (level gates)
-  void skills;
+  useSkillStore((s) => s.xp); // re-render when XP changes (level gates)
   const item = uid ? home?.placed.find((p) => p.uid === uid) : undefined;
   const def = item ? getFurniture(item.defId) : undefined;
+  const uses = usesOf(def);
+  const row = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => { setPage(0); }, [uid]);
+  useEffect(() => {
+    if (!uid) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [uid]);
+  // the menu must go away if the object was sold, moved to storage or the player left the home
+  useEffect(() => { if (uid && !item) close(); }, [uid, item]);
+
+  const onScroll = () => { const r = row.current; if (r) setPage(Math.min(uses.length - 1, Math.round(r.scrollLeft / (CARD_W + 12)))); };
+  // Touch scrolls the row natively. On desktop, drag with the mouse and turn the wheel into sideways scrolling as well.
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => { if (e.pointerType === 'mouse' && row.current) drag.current = { x: e.clientX, left: row.current.scrollLeft, moved: false }; };
+  const onPointerMove = (e: React.PointerEvent) => { const d = drag.current; if (!d || !row.current) return; if (Math.abs(e.clientX - d.x) > 4) d.moved = true; if (d.moved) { row.current.style.scrollSnapType = 'none'; row.current.style.scrollBehavior = 'auto'; row.current.scrollLeft = d.left - (e.clientX - d.x); } };
+  const endDrag = () => { if (row.current) { row.current.style.scrollSnapType = ''; row.current.style.scrollBehavior = ''; } drag.current = null; };
+  const onWheel = (e: React.WheelEvent) => { if (row.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) row.current.scrollLeft += e.deltaY; };
+  const goTo = (i: number) => row.current?.scrollTo({ left: i * (CARD_W + 12), behavior: 'smooth' });
+
   return (
     <AnimatePresence>
       {item && def && (
-        <motion.div key="menu" className="absolute inset-0 z-[75] flex items-end justify-center bg-black/40 px-3 pb-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
-          <motion.div role="dialog" aria-label={`${def.name} actions`} onClick={(e) => e.stopPropagation()} className="panel max-h-[80vh] w-full max-w-md overflow-y-auto rounded-xl p-4" initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{def.glyph}</span>
-              <div className="min-w-0 flex-1 font-display text-[17px] font-extrabold leading-tight">{def.name}</div>
-              <button onClick={close} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10"><X size={18} /></button>
+        <motion.div key="menu" className="pointer-events-auto absolute inset-0 z-[75] flex items-end justify-center bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+          <motion.div role="dialog" aria-label={`${def.name} actions`} onClick={(e) => e.stopPropagation()} className="pb-safe mb-[5.4rem] w-full max-w-md rounded-2xl border border-white/10 bg-night/95 pb-3 pt-3 shadow-glass backdrop-blur" initial={{ y: 120, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 120, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}>
+            <div className="flex items-center gap-2.5 px-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-xl">{def.glyph}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-display text-[16px] font-extrabold leading-tight">{def.name}</div>
+                <div className="text-[12px] text-white/55">{uses.length} things to do · swipe to browse</div>
+              </div>
+              <button onClick={close} aria-label="Close actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 active:bg-white/20"><X size={18} /></button>
             </div>
-            <div className="mt-3 space-y-2">
-              {usesOf(def).map((u) => {
+
+            <div ref={row} onScroll={onScroll} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerLeave={endDrag} onWheel={onWheel} className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollPaddingLeft: 16 }}>
+              {uses.map((u) => {
                 const d = describeUse(u);
-                const why = blockedReason(u, home?.placed ?? [], (id) => useSkillStore.getState().level(id)) ?? (u.cost && money < u.cost ? 'You cannot afford this.' : null);
+                const why = blockedReason(u, home?.placed ?? [], (id) => useSkillStore.getState().level(id)) ?? (u.cost && money < u.cost ? 'You cannot afford this yet.' : null);
+                const shown = d.effects.slice(0, 4), more = d.effects.length - shown.length;
                 return (
-                  <button key={u.id ?? u.label} disabled={!!why} onClick={() => chooseActivity(item, u.id ?? '')} className={`w-full rounded-lg bg-white/[0.07] px-3 py-2.5 text-left active:scale-[0.98] ${why ? 'opacity-55' : ''}`}>
-                    <div className="flex items-center justify-between text-[14px] font-bold"><span>{d.label}</span><span className="text-[12px] font-semibold text-white/60">{u.seconds}s</span></div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {d.effects.map((e) => <span key={e.label} className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${e.delta > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{e.delta > 0 ? '+' : ''}{e.label.startsWith('Money') ? formatNaira(e.delta) : e.delta} {e.label}</span>)}
-                      {d.skill && <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11.5px] font-semibold text-sky-300">{d.skill}</span>}
+                  <div key={u.id ?? u.label} style={{ width: CARD_W }} className={`relative flex shrink-0 snap-start flex-col rounded-2xl border p-3 ${why ? 'border-white/5 bg-white/[0.04]' : 'border-white/10 bg-white/[0.08]'}`}>
+                    <div className="flex items-start justify-between">
+                      <span className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl ${why ? 'bg-white/5 grayscale' : 'bg-accent/25'}`}>{d.glyph}</span>
+                      <span className="rounded-full bg-black/30 px-2 py-0.5 text-[11.5px] font-semibold text-white/70">{u.seconds}s</span>
                     </div>
-                    {d.cost > 0 && <div className="mt-1 text-[12px] text-rose-300">Costs {formatNaira(d.cost)}</div>}
-                    {why && <div className="mt-1 text-[12px] font-semibold text-amber-300">{why}</div>}
-                  </button>
+                    <div className={`mt-2 min-h-[2.4rem] text-[15px] font-bold leading-tight ${why ? 'text-white/55' : ''}`}>{d.label}</div>
+                    <div className="mt-1.5 flex min-h-[3.1rem] flex-wrap content-start gap-1">
+                      {shown.map((e) => <span key={e.label} className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${e.delta > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{e.label.startsWith('Money') ? `+${formatNaira(e.delta)}` : `${e.delta > 0 ? '+' : ''}${e.delta} ${e.label}`}</span>)}
+                      {more > 0 && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-semibold text-white/70">+{more} more</span>}
+                      {d.skill && <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11.5px] font-semibold text-sky-300">{d.skill.replace(' when finished', '')}</span>}
+                    </div>
+                    {d.cost > 0 && <div className="mt-1 text-[12px] font-semibold text-rose-300">Costs {formatNaira(d.cost)}</div>}
+                    {why ? (
+                      <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-2 text-[12px] font-semibold leading-snug text-amber-300"><Lock size={14} className="mt-0.5 shrink-0" />{why}</div>
+                    ) : (
+                      <button onClick={() => chooseActivity(item, u.id ?? '')} className="mt-2 h-11 w-full rounded-xl bg-accent text-[14px] font-extrabold shadow-lg active:scale-95">Start</button>
+                    )}
+                  </div>
                 );
               })}
+              <div className="w-1 shrink-0" aria-hidden />
+            </div>
+
+            <div className="mt-2 flex justify-center gap-1.5" aria-hidden>
+              {uses.map((u, i) => <button key={u.id ?? i} tabIndex={-1} onClick={() => goTo(i)} className={`h-1.5 rounded-full transition-all ${i === page ? 'w-5 bg-accent' : 'w-1.5 bg-white/25'}`} />)}
             </div>
           </motion.div>
         </motion.div>

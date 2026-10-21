@@ -24,6 +24,8 @@ export interface UseDef {
   party?: boolean;
   /** Stable id inside the item's activity list (data/activities.ts). */
   id?: string;
+  /** Emoji shown on the activity's card in the action menu. */
+  glyph?: string;
   /** Equipment that must be in the active home. Each entry is satisfied by ANY of its item ids. `hint` is the message when it is missing. */
   requires?: { anyOf: string[]; hint: string }[];
   /** Minimum skill level before this can be started. */
@@ -156,7 +158,6 @@ const byId = new Map(FURNITURE.map((f) => [f.id, f]));
 export const getFurniture = (id: string) => byId.get(id);
 
 export const ITEM_CATEGORIES: { id: ItemCategory; label: string; icon: string }[] = [
-  { id: 'pets', label: 'Pets', icon: '🐾' },
   { id: 'storage', label: 'Storage', icon: '🗄️' },
   { id: 'designs', label: 'Designs', icon: '🎨' },
   { id: 'sleep', label: 'Sleep', icon: '😴' },
@@ -165,6 +166,7 @@ export const ITEM_CATEGORIES: { id: ItemCategory; label: string; icon: string }[
   { id: 'comfort', label: 'Comfort', icon: '🛋️' },
   { id: 'fun', label: 'Fun', icon: '🎮' },
   { id: 'skills', label: 'Skills', icon: '📖' },
+  { id: 'pets', label: 'Pets', icon: '🐾' },
 ];
 
 export const RARITY_COLOR: Record<Rarity, string> = { common: '#9BB3A8', uncommon: '#4ADE80', rare: '#38BDF8', epic: '#C084FC' };

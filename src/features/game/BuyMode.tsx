@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Eye, RotateCcw, RotateCw, Trash2, Undo2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { CONFIG } from '@/data/config';
 import { FURNITURE, ITEM_CATEGORIES, RARITY_COLOR, getFurniture, type ItemCategory } from '@/data/items';
-import { FINISH_TABS, FLOORS, WALLS, getFinish, type FinishDef } from '@/data/finishes';
+import { FLOORS, WALLS, WALL_CATEGORIES, getFinish, type FinishDef, type WallCategory } from '@/data/finishes';
+import { wallThumb } from '@/three/textures';
 import { useFinishStore } from '@/stores/finishStore';
 import { applyFinish, cancelFinishPreview, finishCost, previewFinish } from '@/game/finishes';
 import { roomsOf } from '@/world/layoutGeometry';
@@ -114,12 +115,27 @@ function FinishGrid({ tab }: { tab: 'floors' | 'walls' }) {
   const rooms = home ? roomsOf(home.layout) : [];
   const ap = home ? applied[home.property.id] : undefined;
   const current = tab === 'floors' ? (room === 'all' ? ap?.floor : ap?.rooms?.[room]) : ap?.wall;
-  const items: FinishDef[] = tab === 'floors' ? FLOORS : WALLS;
+  const [cat, setCat] = useState<'all' | WallCategory>('all');
+  const items: FinishDef[] = tab === 'floors' ? FLOORS : cat === 'all' ? WALLS : WALLS.filter((w) => w.category === cat);
+  const setTab = useUiStore((s) => s.setCatalogTab);
+  const seg = (id: 'floors' | 'walls', label: string) => (
+    <button key={id} onClick={() => { sfx.click(); setTab(id); }} aria-pressed={tab === id} className={`flex-1 rounded-md py-1.5 text-[13px] font-bold ${tab === id ? 'bg-accent text-white' : 'text-white/65'}`}>{label}</button>
+  );
+  const catChip = (id: 'all' | WallCategory, label: string, n: number) => (
+    <button key={id} onClick={() => setCat(id)} aria-pressed={cat === id} className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ${cat === id ? 'bg-accent text-white ring-accent' : 'bg-white/[0.08] text-white/75 ring-white/10'}`}>{label} <span className="opacity-60">{n}</span></button>
+  );
   const chip = (id: string, label: string) => (
     <button key={id} onClick={() => useFinishStore.getState().setFloorRoom(id)} aria-pressed={room === id} className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ${room === id ? 'bg-accent text-white ring-accent' : 'bg-white/[0.08] text-white/80 ring-white/10'}`}>{label}</button>
   );
   return (
     <>
+      <div className="col-span-full flex gap-1 rounded-lg bg-white/[0.06] p-1">{seg('floors', 'Floors')}{seg('walls', 'Walls')}</div>
+      {tab === 'walls' && (
+        <div className="no-scrollbar col-span-full -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {catChip('all', 'All', WALLS.length)}
+          {WALL_CATEGORIES.map((c) => catChip(c.id, c.label, WALLS.filter((w) => w.category === c.id).length))}
+        </div>
+      )}
       {tab === 'floors' && (
         <div className="col-span-full -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {chip('all', 'Living & bedrooms')}
@@ -131,7 +147,7 @@ function FinishGrid({ tab }: { tab: 'floors' | 'walls' }) {
         const isOwned = owned.includes(f.id) || f.price === 0, on = preview[kind] === f.id, worn = current === f.id;
         return (
           <button key={f.id} onClick={() => previewFinish(f.id)} aria-pressed={on} className={`panel-solid relative flex flex-col items-center rounded-lg border-t-2 p-2 text-center active:scale-95 ${on ? 'border-accent ring-2 ring-accent' : 'border-white/10'}`}>
-            <span className="h-9 w-full rounded-md ring-1 ring-white/15" style={{ background: f.swatch }} />
+            <span className="h-11 w-full rounded-md ring-1 ring-white/15" style={f.kind === 'wall' && f.pattern ? { backgroundColor: f.swatch, backgroundImage: `url(${wallThumb(f.color, f.accent ?? '#999999', f.pattern)})`, backgroundSize: 'cover' } : { background: f.swatch }} />
             <span className="mt-1 line-clamp-2 min-h-[2rem] text-[11.5px] font-semibold leading-tight">{f.name}</span>
             <span className={`text-[12px] font-bold tabular-nums ${isOwned ? 'text-accent-glow' : money >= f.price ? 'text-white' : 'text-rose-300'}`}>{isOwned ? (f.price === 0 ? 'Included' : 'Owned') : formatNaira(f.price)}</span>
             {worn && <span className="absolute right-1 top-1.5 rounded bg-accent px-1.5 text-[10px] font-bold">In use</span>}
@@ -156,7 +172,7 @@ function FinishBar({ id }: { id: string }) {
     <motion.div className="pb-safe absolute inset-x-0 bottom-0 z-[65] px-2" initial={{ y: 200 }} animate={{ y: 0 }} exit={{ y: 200 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
       <div className="panel mx-auto max-w-md rounded-xl p-3">
         <div className="mb-2.5 flex items-center gap-2.5">
-          <span className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/20" style={{ background: def.swatch }} />
+          <span className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/20" style={def.kind === 'wall' && def.pattern ? { backgroundColor: def.swatch, backgroundImage: `url(${wallThumb(def.color, def.accent ?? '#999999', def.pattern)})`, backgroundSize: 'cover' } : { background: def.swatch }} />
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-[15px] font-bold leading-tight">{def.name}</div>
             <div className="text-[11.5px] text-white/60">{def.kind === 'floor' ? floorScope : 'All interior walls'} · {homeName}</div>
@@ -180,12 +196,18 @@ function FinishBar({ id }: { id: string }) {
 function ItemInfoSheet() {
   const id = useUiStore((s) => s.infoItemId);
   const close = () => useUiStore.getState().setInfoItem(null);
+  useEffect(() => {
+    if (!id) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
   const def = id ? getFurniture(id) : undefined;
   const info = def ? describeItem(def) : null;
   return (
     <AnimatePresence>
       {info && def && (
-        <motion.div key="info" className="absolute inset-0 z-[70] flex items-end justify-center bg-black/45 px-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+        <motion.div key="info" className="pointer-events-auto absolute inset-0 z-[70] flex items-end justify-center bg-black/45 px-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
           <motion.div role="dialog" aria-label={`${info.name} information`} onClick={(e) => e.stopPropagation()} className="panel pb-safe mb-2 max-h-[78vh] w-full max-w-md overflow-y-auto rounded-xl p-4" initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
             <div className="flex items-start gap-3">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/10 text-2xl">{def.glyph}</span>
@@ -232,10 +254,16 @@ function Catalog() {
   const inv = useInventoryStore((s) => s.items);
   const tab = useUiStore((s) => s.catalogTab) as Tab;
   const setTab = useUiStore((s) => s.setCatalogTab);
+  const lastHouse = useRef<'floors' | 'walls'>('walls');
+  if (tab === 'floors' || tab === 'walls') lastHouse.current = tab;
   const counts = useMemo(() => Object.fromEntries(ITEM_CATEGORIES.map((c) => [c.id, FURNITURE.filter((f) => f.category === c.id).length])) as Record<ItemCategory, number>, []);
   const ownedCount = FURNITURE.reduce((n, f) => n + (inv[f.id] ?? 0), 0);
   const list = tab === 'floors' || tab === 'walls' ? [] : tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab).sort((a, b) => priceOf(a.price) - priceOf(b.price));
-  const tabs: { id: Tab; label: string; icon: string }[] = [...ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon })), { id: 'owned', label: `Owned ${ownedCount}`, icon: '🎒' }, ...FINISH_TABS.map((t) => ({ id: t.id as Tab, label: t.label, icon: t.icon }))];
+  const catTabs: { id: Tab; label: string; icon: string }[] = ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon }));
+  // House Design (floors and walls) sits right after Storage. Internally it is the 'floors' / 'walls' tab pair, so saved finishes and previews work as before.
+  const houseTab: { id: Tab; label: string; icon: string } = { id: lastHouse.current, label: `House Design ${FLOORS.length + WALLS.length}`, icon: '🏠' };
+  const si = catTabs.findIndex((c) => c.id === 'storage');
+  const tabs: { id: Tab; label: string; icon: string }[] = [...catTabs.slice(0, si + 1), houseTab, ...catTabs.slice(si + 1), { id: 'owned', label: `Owned ${ownedCount}`, icon: '🎒' }];
 
   return (
     <>
@@ -244,7 +272,7 @@ function Catalog() {
           <div className="mb-2 flex items-center gap-2">
             <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="Furniture categories">
               {tabs.map((c) => {
-                const on = tab === c.id;
+                const on = c.id === houseTab.id ? (tab === 'floors' || tab === 'walls') : tab === c.id;
                 return (
                   <button key={c.id} role="tab" aria-selected={on} onClick={() => { sfx.click(); setTab(c.id); }} className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-[12.5px] font-semibold transition-colors ${on ? 'bg-accent text-white shadow-accent' : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.1]'}`}>
                     {c.icon} {c.label}
@@ -254,7 +282,7 @@ function Catalog() {
             </div>
             <button onClick={() => { sfx.close(); setOpen(false); }} aria-label="Close catalogue" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"><X size={18} /></button>
           </div>
-          <div className="no-scrollbar grid max-h-[30vh] grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pb-1 sm:grid-cols-4">
+          <div className={`no-scrollbar grid ${tab === 'floors' || tab === 'walls' ? 'max-h-[42vh]' : 'max-h-[30vh]'} grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pb-1 sm:grid-cols-4`}>
             {(tab === 'floors' || tab === 'walls') && <FinishGrid tab={tab} />}
             {tab !== 'floors' && tab !== 'walls' && list.length === 0 && <p className="col-span-full py-8 text-center text-sm text-white/55">Nothing here yet.</p>}
             {tab !== 'floors' && tab !== 'walls' && list.map((f) => {
@@ -310,7 +338,9 @@ export function BuyMode() {
   const finishId = useFinishStore((s) => s.preview.floor ?? s.preview.wall);
 
   // Whatever way Buy mode ends, an unconfirmed preview (furniture or finish) must not outlive it.
-  useEffect(() => { if (mode !== 'buy') { useEditorStore.setState({ draft: null, dragging: false }); useFinishStore.getState().clearPreview(); } }, [mode]);
+  useEffect(() => { if (mode !== 'buy') { useEditorStore.setState({ draft: null, dragging: false }); useFinishStore.getState().clearPreview(); useUiStore.getState().setInfoItem(null); } }, [mode]);
+  // starting a placement or a finish try-on always dismisses an open information panel
+  useEffect(() => { if (draft || finishId) useUiStore.getState().setInfoItem(null); }, [draft, finishId]);
 
   return (
     <AnimatePresence>

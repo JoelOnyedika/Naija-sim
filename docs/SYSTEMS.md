@@ -224,3 +224,6 @@ All tunables for these live in `src/data/balance.ts`.
 ## J. Catalogue and map (v8 part 3)
 * **Catalogue**: models `three/models/catalogue.tsx`, definitions `data/items.ts`, activities `data/activities.ts`, usable spots `world/navigation.ts#SPECS`, bubbles `world/bubbles.ts`. Adding an item = one model, one row in `items.ts`, one line in `registry.tsx` (the catalogue test checks all three agree).
 * **Map**: `MAP` in `data/balance.ts` (tilt and billboard scale), water in `three/world/Water.tsx`.
+
+## K. House Design (v8 part 5)
+`data/finishes.ts` (WALLS, WALL_CATEGORIES), `three/textures.ts` (drawPattern, WALL_PATTERNS, wallThumb), `features/game/BuyMode.tsx` (FinishGrid, House Design tab). Add a wall = one row in WALLS; add a pattern = one `case` in drawPattern and its name in WallPattern/WALL_PATTERNS (the wall test checks both exist).
