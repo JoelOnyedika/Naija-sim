@@ -144,7 +144,7 @@ export function sellItem(itemUid: string) {
   const home = getActiveHome(); const item = home?.placed.find((p) => p.uid === itemUid); const def = item && getFurniture(item.defId);
   if (!home || !item || !def) return;
   const refund = Math.round(priceOf(def.price) * CONFIG.sellRefund);
-  useEconomyStore.getState().credit(refund, `Sold ${def.name}`, 'income');
+  useEconomyStore.getState().credit(refund, `Sold ${def.name}`, 'refund');
   useUiStore.getState().addSpent(-refund);
   setPlaced(home.property.id, home.placed.filter((p) => p.uid !== itemUid));
   useEditorStore.getState().setDraft(null);

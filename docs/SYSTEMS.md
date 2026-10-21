@@ -227,3 +227,8 @@ All tunables for these live in `src/data/balance.ts`.
 
 ## K. House Design (v8 part 5)
 `data/finishes.ts` (WALLS, WALL_CATEGORIES), `three/textures.ts` (drawPattern, WALL_PATTERNS, wallThumb), `features/game/BuyMode.tsx` (FinishGrid, House Design tab). Add a wall = one row in WALLS; add a pattern = one `case` in drawPattern and its name in WallPattern/WALL_PATTERNS (the wall test checks both exist).
+
+## L. Pet stats, referrals, ad providers (v8 part 6)
+* **Pets**: `stores/petStore.ts`, `game/petCare.ts`, `data/activities.ts` (petSet), `world/navigation.ts` (livePetPos), `PET_CARE` in balance.ts.
+* **Referrals**: `game/referrals.ts` (pure rules), `stores/referralStore.ts`, `features/phone/apps/Invite.tsx`, `REFERRAL` in balance.ts. A server must own code issuing/uniqueness, invitation counts, qualification checks and payouts; the client only queues `outbox` claims and accepts validated `applyServerReward` calls.
+* **Ad providers**: `game/ads/providers.ts`, `docs/ADS_PROVIDERS.md`.

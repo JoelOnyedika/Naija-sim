@@ -22,7 +22,7 @@ ok(getFurniture('pet_cat')!.price < getFurniture('pet_dog')!.price && getFurnitu
 ok(pets.every((p) => p.price >= 300000), 'pets are valuable items');
 ok([...pets, ...toys].every((p) => priceOf(p.price) > 0), 'pet prices go through the shared pricing function');
 ok([...pets, ...toys].every((p) => !blocksWalking({ uid: 'u', defId: p.id, x: 0, z: 0, rotation: 0 })), 'pets and toys never block walking');
-ok(pets.every((p) => describeItem(p).functional && describeItem(p).passive.join(' ').includes('no stat effects yet')), 'the info panel is honest: pets have no stat effects yet');
+ok(pets.every((p) => describeItem(p).functional && describeItem(p).passive.join(' ').includes('Bond and Hunger')), 'the info panel explains the pet care stats (bond and hunger)');
 ok(petLimitOk([], 'pet') && !petLimitOk(Array.from({ length: PETS.maxPerHome }, () => ({ defId: 'pet_cat' })), 'pet') && !petLimitOk(Array.from({ length: PETS.maxBallsPerHome }, () => ({ defId: 'pet_ball' })), 'toy'), 'per-home caps on pets and balls work');
 
 console.log('Pet behaviour');

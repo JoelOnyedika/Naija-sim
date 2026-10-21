@@ -18,6 +18,10 @@ import { fireTask } from './tasks';
 import { getActiveHome } from './active';
 import { backupIn, powerMode } from './power';
 import { usePowerStore } from '@/stores/powerStore';
+import { finishPetAction, stepPets } from './petCare';
+import { makeCode } from './referrals';
+import { useReferralStore } from '@/stores/referralStore';
+import { useAuthStore } from '@/stores/authStore';
 
 function onFinished(a: Activity) {
   if (a.payout) {
@@ -31,6 +35,7 @@ function onFinished(a: Activity) {
     const { before, after } = useSkillStore.getState().add(a.skill.id, a.skill.xp);
     toast(after > before ? `${skillName(a.skill.id)} level ${after}! +${a.skill.xp} XP` : `${skillName(a.skill.id)} +${a.skill.xp} XP`, 'good');
   }
+  if (a.petAction) finishPetAction(a.targetUid, a.petAction);
   if (a.event) fireTask(a.event);
 }
 
@@ -59,6 +64,8 @@ export function advance(dt: number) {
   useClockStore.getState().advance(dt);
   runDueEvents();
   stepPower(dt);
+  stepPets(dt);
+  if (useReferralStore.getState().referredBy) { const e = useEconomyStore.getState(); useReferralStore.getState().absorb(e.transactions, e.seq, makeCode(useAuthStore.getState().session ?? 'player')); }
 
   // food deliveries
   const now = Date.now();

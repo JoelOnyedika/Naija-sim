@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
-import { useAuthStore } from '@/stores/authStore';
-import { toast } from '@/stores/uiStore';
 import { VEHICLES } from '@/data/vehicles';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { Btn, Card, Row, Title } from '../ui';
@@ -32,18 +30,6 @@ export function HelpApp() {
       <Acc q="Why can I not see my cars?" a="Cars need parking. Homes with a garage or parking space show them. Move to a bigger place." />
       <Acc q="Sound is too loud" a="Open Settings on your phone and switch sound effects or music off." />
       <Card className="text-center text-sm text-slate-500">Need more help? support@nigerialife.example (placeholder)</Card>
-    </div>
-  );
-}
-
-export function InviteApp() {
-  const me = useAuthStore((s) => s.session) ?? 'player';
-  const code = `${me.slice(0, 4).toUpperCase()}-${(me.length * 7919 % 9000 + 1000)}`;
-  return (
-    <div className="space-y-3 p-3">
-      <Card className="bg-violet-50 text-center"><p className="text-sm text-slate-600">Your invite code</p><p className="font-display text-3xl font-extrabold tracking-wider">{code}</p>
-        <Btn className="mt-3" onClick={() => { void navigator.clipboard?.writeText(`Join me on Nigeria Life! Code ${code}`); toast('Invite copied', 'good'); }}>Copy invite</Btn></Card>
-      <Card><Row glyph="👥" title="Friends joined" sub="0 so far. Rewards arrive with multiplayer." /></Card>
     </div>
   );
 }

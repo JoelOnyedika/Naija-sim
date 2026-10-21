@@ -21,6 +21,7 @@ import { useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { useFinishStore } from '@/stores/finishStore';
+import { usePetStore } from '@/stores/petStore';
 import { useSkillStore } from '@/stores/skillStore';
 import { useFlowStore } from '@/stores/flowStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
@@ -58,6 +59,7 @@ export function startNewLife(type: LifeTypeId) {
   usePropertyStore.getState().reset();
   useFinishStore.getState().reset();
   useSkillStore.getState().reset();
+  usePetStore.getState().reset();
   usePropertyStore.getState().own(propertyId);
   usePropertyStore.getState().setActive(propertyId);
   const { placed, leftover } = autoPlace(layout, def.startingFurniture);

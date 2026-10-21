@@ -32,6 +32,8 @@ export interface UseDef {
   minSkill?: { id: SkillId; level: number };
   /** Money paid ONCE when the activity finishes (never when it is cancelled). */
   payout?: number;
+  /** Pet care activity: updates the pet's bond / hunger when it finishes (game/petCare.ts). */
+  petAction?: 'pet' | 'feed' | 'play';
 }
 
 export interface FurnitureDef {

@@ -1,3 +1,23 @@
+# Nigeria Life - v8 part 6: pet stats, referrals, ads providers
+
+## Pet stats
+- Each live pet has **Bond** (0-100) and **Hunger** (0 full, 100 starving) and a mood (Hungry / Content / Happy / Devoted). Records are saved, follow the pet if you store it and place it again, and reset on a new life. Pets never die or leave: neglect only stops bond growing and slowly lowers it while starving.
+- Tapping a pet opens the action menu with a status strip: **Pet it** (free), **Give pet food** (cat/dog/lion cost differently, refused if the pet is not hungry), **Play with it** (needs a pet ball, refused if the pet is starving; trains fitness). Bond grows per action with a cooldown so it cannot be spammed, and a hungry pet gives half. Bond makes your happiness gain from pet activities up to +50% bigger.
+- The avatar walks to where the pet actually is now (pets roam), and the pet stays put while you are with it. All numbers are in `PET_CARE` (balance.ts).
+
+## Referrals
+- New Invite screen: your code (NL-XXXXXX, stable per username), copy code / copy link / share, four counters, "enter a friend's code" with validation, progress toward the qualifying spend, rules, and an in-game-only notice. A `?ref=CODE` link is remembered and only applied when you confirm it.
+- Rules (config in `REFERRAL`): the friend must spend ₦15,000 on purchases, food and visits; you earn ₦1,000. Transfers, savings, bonds, bets, investments, bills and tax do not count, and selling something back takes that money off the total (selling now records a refund). One code per account, never your own, one claim per friend.
+- **What does not work without a backend:** the inviter's counts and rewards. Your device can only record that YOU qualified and queue a claim. `applyServerReward` / `applyServerSummary` are the hand-off for a server: they validate the code, the amount, self-referral and duplicates, and pay once (idempotency key). Nothing is ever paid for a click or an account. Real-money payouts are not implemented and the screen says rewards are in-game only.
+- Onboarding task "Learn how invites work": tap it in the task panel and the phone opens on the Invite screen; opening it completes the task. The first three starter tasks are unchanged.
+
+## Ads providers
+- `game/ads/providers.ts`: billboards now ask a provider chain (player advertiser, then Google, then default artwork). A throwing or empty provider can never blank a board; images must be small raster data URLs; the advertiser flow, validation and expiry are unchanged.
+- **Google is inert on purpose.** AdMob is a mobile-app SDK; AdSense policies forbid altering ad code or delivery, so a Google ad cannot be drawn onto a 3D billboard texture. The provider reports why it is unavailable. Details, links and what might be allowed (needs Google's sign-off) are in `docs/ADS_PROVIDERS.md`. No secrets in the bundle (tested), no impression or click counting.
+
+## New checks
+`test:petstats`, `test:referrals`, `test:adsproviders` (all in `test:all`).
+
 # Nigeria Life - v8 part 5: House Design tab and wall patterns
 
 - **House Design tab** right after Storage. Floors and Walls now live inside it behind a Floors / Walls switch (no separate tabs). Saved floors, walls and previews work as before (the internal tab ids are unchanged). Pets moved to the end of the category tabs so Storage is first.

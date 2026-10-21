@@ -70,3 +70,38 @@ export const MAP = {
   /** Roadside billboards are drawn this many times bigger than their 1.4-1.9 m definitions, so they read at map distance. */
   billboardScale: 2.6,
 } as const;
+
+/** Pet care (see game/petCare.ts). Pets never die or leave: neglect only lowers bond and mood. */
+export const PET_CARE = {
+  /** Hunger (0 = full, 100 = starving) rises this much per second of play: empty in about 42 minutes. */
+  hungerPerSecond: 0.04,
+  /** Feeding removes this much hunger. */
+  feedRelief: 70,
+  /** Refuse feeding below this hunger, and refuse playing above `playMaxHunger`. */
+  feedMinHunger: 20,
+  playMaxHunger: 85,
+  /** Bond (0..100) gained per action, and the cooldown (seconds) before the same action on the same pet earns bond again. */
+  bondGain: { pet: 2, feed: 4, play: 5 },
+  bondCooldownSeconds: { pet: 45, feed: 120, play: 60 },
+  /** Bond lost per second while the pet is starving (hunger 100). */
+  starvingBondLoss: 1 / 60,
+  /** Bond raises the happiness a pet activity gives the player by up to this fraction (at bond 100). */
+  bondHappinessBonus: 0.5,
+  /** Price of a serving of pet food by species (base price, goes through the shared pricing function). */
+  foodCost: { cat: 1500, dog: 2500, lion: 12000 },
+} as const;
+
+/**
+ * Invitation rewards. In-game naira only: nothing here can be withdrawn or turned into real money. A real-money referral
+ * programme would need its own backend, fraud controls, terms and legal / payment-provider review.
+ */
+export const REFERRAL = {
+  /** The referred player must spend at least this much in the game before the invite counts. */
+  minSpend: 15_000,
+  /** What the inviter earns for each qualifying friend. */
+  reward: 1_000,
+  /** Which kinds of money going out count as spending. Transfers, savings, bonds, bets and investments do NOT (they can be cycled). */
+  spendKinds: ['purchase', 'food', 'visit'] as readonly string[],
+  /** Money coming back for these kinds is taken off the spend (selling an item back must not count as spending). */
+  refundKinds: ['refund'] as readonly string[],
+} as const;

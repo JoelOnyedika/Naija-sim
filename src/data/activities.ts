@@ -1,5 +1,6 @@
 import { getFurniture, type FurnitureDef, type UseDef } from './items';
 import { skillName, type SkillId } from '@/stores/skillStore';
+import { PET_CARE } from './balance';
 
 /**
  * Central activity definitions. One table, keyed by furniture id: what each object lets the player do, how long it takes,
@@ -18,7 +19,17 @@ const SPEAKER = { anyOf: ['speaker'], hint: 'No speaker for this dancefloor oh! 
 const TRIPOD = { anyOf: ['camera_tripod'], hint: 'You need a camera and tripod in the house to record. Buy one first.' };
 const RING = { anyOf: ['ring_light'], hint: 'Set up a ring light first, the lighting will be bad without it.' };
 
+const BALL = { anyOf: ['pet_ball'], hint: 'You need a pet ball in the house to play fetch. Buy one first.' };
+const petSet = (food: number): UseDef[] => [
+  { id: 'pet_it', glyph: '🤚', label: 'Pet it', seconds: 6, effects: { happiness: 6, social: 1 }, pose: 'stand', petAction: 'pet' },
+  { id: 'feed_pet', glyph: '🍖', label: 'Give pet food', seconds: 5, effects: { happiness: 2 }, pose: 'stand', cost: food, petAction: 'feed' },
+  { id: 'play_pet', glyph: '🎾', label: 'Play with it', seconds: 9, effects: { happiness: 10, energy: -3 }, pose: 'stand', skill: { id: 'fitness', xp: 2 }, requires: [BALL], petAction: 'play' },
+];
+
 export const ACTIVITY_SETS: Record<string, UseDef[]> = {
+  pet_cat: petSet(PET_CARE.foodCost.cat),
+  pet_dog: petSet(PET_CARE.foodCost.dog),
+  pet_lion: petSet(PET_CARE.foodCost.lion),
   ring_light: [
     { id: 'record_content', glyph: '🎬', label: 'Record content', seconds: 14, effects: { energy: -6, happiness: 4, social: 3 }, pose: 'stand', skill: { id: 'creativity', xp: 8 }, requires: [TRIPOD] },
     { id: 'practise_presenting', glyph: '🎤', label: 'Practise presenting', seconds: 10, effects: { energy: -4, happiness: -1, charisma: 1 }, pose: 'stand', skill: { id: 'communication', xp: 6 } },

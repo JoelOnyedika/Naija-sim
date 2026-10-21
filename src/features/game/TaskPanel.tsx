@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ListChecks } from 'lucide-react';
 import { sfx } from '@/audio/sfx';
 import { TASKS } from '@/data/tasks';
+import { usePhoneStore } from '@/stores/phoneStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -21,7 +22,7 @@ export function TaskPanel() {
           </div>
           <AnimatePresence initial={false}>
             {tasks.map((t) => (
-              <motion.div key={t.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex items-start gap-2 border-t border-white/[0.07] px-1.5 py-1.5">
+              <motion.div key={t.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex items-start gap-2 border-t border-white/[0.07] px-1.5 py-1.5" onClick={t.action ? () => { sfx.open(); const ph = usePhoneStore.getState(); ph.openPhone(); ph.openApp(t.action!.app); } : undefined} role={t.action ? 'button' : undefined} tabIndex={t.action ? 0 : undefined} aria-label={t.action ? `${t.title}: open ${t.action.app}` : undefined}>
                 <span className="text-base leading-none">{t.icon}</span>
                 <div className="min-w-0"><div className="text-[12px] font-semibold leading-tight">{t.title}</div><div className="mt-0.5 text-[10.5px] font-medium text-accent-glow">{t.rewardLabel}</div></div>
               </motion.div>

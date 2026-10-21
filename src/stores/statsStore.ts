@@ -25,6 +25,8 @@ export interface Activity {
   careerId?: string;
   /** Paid out at the end (jobs). */
   payout?: number;
+  /** Pet care action to record when this finishes. */
+  petAction?: 'pet' | 'feed' | 'play';
   slept?: boolean;
   /** Skill XP granted on completion (practice items). */
   skill?: { id: SkillId; xp: number };

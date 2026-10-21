@@ -171,6 +171,9 @@ export const SPECS: Record<string, Spec> = {
   washbasin: { pose: 'stand', action: 'wash', mode: 'front' },
   speaker: { pose: 'stand', action: 'dance', mode: 'front' },
   disco_light: { pose: 'stand', action: 'dance', mode: 'front' },
+  pet_cat: { pose: 'stand', action: 'idle', mode: 'front' },
+  pet_dog: { pose: 'stand', action: 'idle', mode: 'front' },
+  pet_lion: { pose: 'stand', action: 'idle', mode: 'front' },
   armchair: { pose: 'sit', action: 'idle', mode: 'on', top: 0.45 },
   dining_chair: { pose: 'sit', action: 'idle', mode: 'on', top: 0.46 },
   office_chair: { pose: 'sit', action: 'idle', mode: 'on', top: 0.5 },
@@ -221,11 +224,22 @@ function seatSpot(g: NavGrid, item: PlacedItem): Spot | null {
 }
 
 /** Where to stand/sit/lie to use `item`. Null when no reachable spot exists (the caller then uses the clipping fallback). */
+/** Where each live pet is right now (written by the pet layer every frame). Pets roam, so their placed position is only a starting point. */
+export const livePetPos = new Map<string, { x: number; z: number; yaw: number }>();
+
 export function interactionSpot(layout: PropertyLayout, items: PlacedItem[], item: PlacedItem): Spot | null {
   const def = getFurniture(item.defId), spec = SPECS[item.defId];
   if (!def || !spec) return null;
   void layout;
   const g = buildNavGrid(layout, items);
+  if (def.pet) {
+    // stand a little in front of the pet's face, looking at it
+    const lp = livePetPos.get(item.uid) ?? { x: item.x, z: item.z, yaw: 0 };
+    const d = def.pet === 'lion' ? 1.15 : 0.75;
+    const want = { x: lp.x + Math.sin(lp.yaw) * d, z: lp.z + Math.cos(lp.yaw) * d };
+    const approach = nearestFree(g, want, 8); if (!approach) return null;
+    return { pose: spec.pose, action: spec.action, bathing: false, y: 0, approach, final: approach, yaw: yawOf(lp.x - approach.x, lp.z - approach.z) };
+  }
   const ry = getTransform(def, item).rotationY, f = fwd(ry);
   const faceItem = (p: Pt) => yawOf(item.x - p.x, item.z - p.z);
   const base = { pose: spec.pose, action: spec.action, bathing: !!spec.bathing, y: 0 };

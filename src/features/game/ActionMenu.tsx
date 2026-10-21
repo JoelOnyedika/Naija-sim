@@ -8,6 +8,8 @@ import { useActiveHome } from '@/game/active';
 import { chooseActivity } from '@/game/interactions';
 import { describeUse } from '@/game/itemInfo';
 import { useEconomyStore } from '@/stores/economyStore';
+import { MOOD_LABEL, petBlockedReason, petMood } from '@/game/petCare';
+import { usePetStore } from '@/stores/petStore';
 import { useSkillStore } from '@/stores/skillStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -28,6 +30,7 @@ export function ActionMenu() {
   const item = uid ? home?.placed.find((p) => p.uid === uid) : undefined;
   const def = item ? getFurniture(item.defId) : undefined;
   const uses = usesOf(def);
+  const pet = usePetStore((s) => (uid ? s.pets[uid] : undefined));
   const row = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
 
@@ -64,10 +67,19 @@ export function ActionMenu() {
               <button onClick={close} aria-label="Close actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 active:bg-white/20"><X size={18} /></button>
             </div>
 
+            {pet && (
+              <div className="mx-4 mt-2.5 rounded-xl bg-white/[0.06] px-3 py-2" aria-label="Pet status">
+                <div className="flex items-center justify-between text-[13px] font-bold"><span>{pet.name}</span><span className="text-[12px] font-semibold text-white/70">{MOOD_LABEL[petMood(pet)].glyph} {MOOD_LABEL[petMood(pet)].label}</span></div>
+                <div className="mt-1.5 grid grid-cols-2 gap-3 text-[11.5px] text-white/65">
+                  <div>Bond <span className="font-semibold text-pink-300">{Math.round(pet.bond)}</span><div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-pink-400" style={{ width: `${pet.bond}%` }} /></div></div>
+                  <div>Hunger <span className="font-semibold text-amber-300">{Math.round(pet.hunger)}</span><div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-amber-400" style={{ width: `${pet.hunger}%` }} /></div></div>
+                </div>
+              </div>
+            )}
             <div ref={row} onScroll={onScroll} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerLeave={endDrag} onWheel={onWheel} className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollPaddingLeft: 16 }}>
               {uses.map((u) => {
                 const d = describeUse(u);
-                const why = blockedReason(u, home?.placed ?? [], (id) => useSkillStore.getState().level(id)) ?? (u.cost && money < u.cost ? 'You cannot afford this yet.' : null);
+                const why = blockedReason(u, home?.placed ?? [], (id) => useSkillStore.getState().level(id)) ?? (item ? petBlockedReason(u, item.uid) : null) ?? (u.cost && money < u.cost ? 'You cannot afford this yet.' : null);
                 const shown = d.effects.slice(0, 4), more = d.effects.length - shown.length;
                 return (
                   <div key={u.id ?? u.label} style={{ width: CARD_W }} className={`relative flex shrink-0 snap-start flex-col rounded-2xl border p-3 ${why ? 'border-white/5 bg-white/[0.04]' : 'border-white/10 bg-white/[0.08]'}`}>
@@ -82,11 +94,11 @@ export function ActionMenu() {
                       {d.skill && <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11.5px] font-semibold text-sky-300">{d.skill.replace(' when finished', '')}</span>}
                     </div>
                     {d.cost > 0 && <div className="mt-1 text-[12px] font-semibold text-rose-300">Costs {formatNaira(d.cost)}</div>}
-                    {why ? (
-                      <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-2 text-[12px] font-semibold leading-snug text-amber-300"><Lock size={14} className="mt-0.5 shrink-0" />{why}</div>
+                    <div className="mt-auto pt-2">{why ? (
+                      <div className="flex items-start gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-2 text-[12px] font-semibold leading-snug text-amber-300"><Lock size={14} className="mt-0.5 shrink-0" />{why}</div>
                     ) : (
-                      <button onClick={() => chooseActivity(item, u.id ?? '')} className="mt-2 h-11 w-full rounded-xl bg-accent text-[14px] font-extrabold shadow-lg active:scale-95">Start</button>
-                    )}
+                      <button onClick={() => chooseActivity(item, u.id ?? '')} className="h-11 w-full rounded-xl bg-accent text-[14px] font-extrabold shadow-lg active:scale-95">Start</button>
+                    )}</div>
                   </div>
                 );
               })}

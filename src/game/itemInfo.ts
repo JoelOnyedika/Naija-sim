@@ -55,7 +55,7 @@ export function describeItem(def: FurnitureDef): ItemInfo {
   if (def.power === 'manual') passive.push('Backup power: when NEPA takes light you must tap it to start it. Until then the house stays dim.');
   if (def.power === 'auto') passive.push('Backup power: starts by itself when NEPA takes light and restores the house lights.');
   if (def.power === 'solar') passive.push('Backup power: keeps the house lit all the time. NEPA outages do not touch it, nothing to switch on.');
-  if (def.pet) passive.push('A live pet. It wanders the home on its own, never blocks your way, and plays with a ball if you own one. It has no stat effects yet.');
+  if (def.pet) passive.push('A live pet. It wanders the home on its own, never blocks your way and plays with a ball if you own one. It has Bond and Hunger: pet it, feed it and play with it to grow its bond, which makes your time together up to 50% happier. It never dies or leaves; neglect only lowers its mood.');
   if (def.toy) passive.push('A toy. Pets walk to it and bat it around.');
   if (def.id === 'disco_light') passive.push('Lights up when a party is running (start one with a speaker).');
   if (def.id === 'lamp') passive.push('During a NEPA outage it makes the house a little brighter.');

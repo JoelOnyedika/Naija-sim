@@ -1,12 +1,14 @@
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { getFurniture } from '@/data/items';
 import { interactWith } from '@/game/interactions';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout } from '@/types/world';
-import { buildNavGrid, nearestFree, type NavGrid, type Pt } from '@/world/navigation';
+import { buildNavGrid, livePetPos, nearestFree, type NavGrid, type Pt } from '@/world/navigation';
+import { useActorStore } from '@/stores/actorStore';
+import { useStatsStore } from '@/stores/statsStore';
 import { initBrain, stepPet, type PetBrain } from '@/world/petBrain';
 import { PetBall, PetModel, type PetAnim } from '../models/pets';
 
@@ -45,7 +47,12 @@ function PetActor({ item, species, grid, balls }: { item: PlacedItem; species: '
   const gridRef = useRef(grid); gridRef.current = grid;
   useFrame((_, dt) => {
     const b = brain.current; if (!g.current) return;
-    const r = stepPet(b, species, dt, { grid: gridRef.current, ball: nearestBall(balls, b) });
+    // While the player is walking to this pet or caring for it, it stays put (and the avatar's target follows its live position).
+    const order = useActorStore.getState().order;
+    const engaged = (order?.kind === 'use' && order.uid === item.uid) || useStatsStore.getState().activity?.targetUid === item.uid;
+    if (engaged) { b.path = []; b.mode = 'idle'; b.t = Math.max(b.t, 1.5); }
+    const r = engaged ? {} as { kickBallTo?: Pt } : stepPet(b, species, dt, { grid: gridRef.current, ball: nearestBall(balls, b) });
+    livePetPos.set(item.uid, { x: b.x, z: b.z, yaw: b.yaw });
     if (r.kickBallTo) {
       const ball = nearestBall(balls, b);
       for (const s of balls.values()) if (s === ball) { s.fx = s.x; s.fz = s.z; s.tx = r.kickBallTo.x; s.tz = r.kickBallTo.z; s.t = 0; }
@@ -53,6 +60,7 @@ function PetActor({ item, species, grid, balls }: { item: PlacedItem; species: '
     g.current.position.set(b.x, b.y, b.z); g.current.rotation.y = b.yaw;
     anim.current.walking = b.mode === 'walk'; anim.current.playing = b.mode === 'play';
   });
+  useEffect(() => () => { livePetPos.delete(item.uid); }, [item.uid]);
   const onClick = (e: ThreeEvent<MouseEvent>) => { if (e.delta > 6) return; e.stopPropagation(); interactWith(item); };
   return <group ref={g} position={[item.x, 0, item.z]} onClick={onClick}><PetModel species={species} anim={anim} /></group>;
 }

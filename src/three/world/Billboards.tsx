@@ -2,7 +2,8 @@ import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { CanvasTexture, SRGBColorSpace, MeshStandardMaterial, BoxGeometry, CylinderGeometry, TextureLoader } from 'three';
 import { MAP } from '@/data/balance';
-import { effectiveStatus } from '@/game/ads/slots';
+import { resolveCreative } from '@/game/ads/providers';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useAdsStore } from '@/stores/adsStore';
 import { useAdsUiStore } from '@/stores/adsUiStore';
 import { useBillboardStore } from '@/stores/billboardStore';
@@ -40,21 +41,21 @@ function panelTexture(c: BillboardContent, aspect: number): CanvasTexture {
   return t;
 }
 
-/** The live purchased ad on a board, if any. Selecting the submission object keeps re-renders to real changes. */
-function useLiveAd(slotId: string) {
-  return useAdsStore((s) => s.submissions.find((x) => x.kind === 'billboard' && x.slotId === slotId && effectiveStatus(x, Date.now()) === 'active'));
-}
-
 function Board({ def }: { def: BillboardDefinition }) {
   const override = useBillboardStore((s) => s.overrides[def.id]);
-  const ad = useLiveAd(def.id);
-  const content = useMemo(() => ({ ...def.content, ...override }), [def.content, override]);
+  const submissions = useAdsStore((s) => s.submissions);
+  const consent = useSettingsStore((s) => s.adConsent);
+  // Which creative to show comes from the provider layer (game/ads/providers.ts): player advertiser first, then any
+  // network provider that is genuinely available, then the board's default artwork.
+  const { creative } = useMemo(() => resolveCreative({ def, submissions, now: Date.now(), override, consent }), [def, submissions, override, consent]);
   const [w, h] = SIZE[def.format];
+  const content = creative.kind === 'text' ? creative.content : def.content;
   const tex = useMemo(() => panelTexture(content, w / h), [content, w, h]);
-  // a purchased ad replaces the placeholder artwork; the image keeps its own proportions inside the board
-  const adTex = useMemo(() => { if (!ad) return null; const t = new TextureLoader().load(ad.imageDataUrl); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; return t; }, [ad?.imageDataUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ad = creative.kind === 'image' ? creative : null;
+  // an image creative replaces the default artwork; the image keeps its own proportions inside the board
+  const adTex = useMemo(() => { if (!ad) return null; const t = new TextureLoader().load(ad.dataUrl); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; return t; }, [ad?.dataUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => adTex?.dispose(), [adTex]);
-  const aw = ad ? Math.min(w, h * (ad.imageWidth / ad.imageHeight)) : w, ah = ad ? aw / (ad.imageWidth / ad.imageHeight) : h;
+  const aw = ad ? Math.min(w, h * (ad.width / ad.height)) : w, ah = ad ? aw / (ad.width / ad.height) : h;
   const y = 1.0;
   const open = (e: ThreeEvent<MouseEvent>) => { if (e.delta > 6 || useUiStore.getState().mode !== 'map') return; e.stopPropagation(); useAdsUiStore.getState().openSheet({ type: 'billboard', slotId: def.id }); };
   const light = [-w * 0.4, 0, w * 0.4];
