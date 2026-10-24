@@ -25,6 +25,8 @@ export interface Activity {
   careerId?: string;
   /** Paid out at the end (jobs). */
   payout?: number;
+  /** `itemId:activityId` of the activity table entry this came from, so its payout is settled by game/authority.ts. */
+  activityKey?: string;
   /** Pet care action to record when this finishes. */
   petAction?: 'pet' | 'feed' | 'play';
   slept?: boolean;

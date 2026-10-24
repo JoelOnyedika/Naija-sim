@@ -85,7 +85,35 @@ export function PortCrane() { // Apapa quay: a container gantry crane
   );
 }
 
+
+function Church() { // a long nave with a pitched roof, a square bell tower and a cross
+  return (
+    <group>
+      <B size={[1.5, 0.7, 2.2]} pos={[0, 0.35, 0]} color="#EFE6D2" radius={0.02} />
+      <B size={[1.62, 0.08, 1.2]} pos={[0, 0.88, 0.55]} rot={[0, 0, 0.55]} color="#7A4A26" />
+      <B size={[1.62, 0.08, 1.2]} pos={[0, 0.88, -0.55]} rot={[0, 0, -0.55]} color="#7A4A26" />
+      <B size={[0.7, 1.7, 0.7]} pos={[-0.55, 0.85, 1.25]} color="#F6F2E8" radius={0.02} />
+      <B size={[0.82, 0.1, 0.82]} pos={[-0.55, 1.75, 1.25]} color="#7A4A26" />
+      <B size={[0.06, 0.5, 0.06]} pos={[-0.55, 2.05, 1.25]} color="#C9A24A" metal={0.7} />
+      <B size={[0.3, 0.06, 0.06]} pos={[-0.55, 2.15, 1.25]} color="#C9A24A" metal={0.7} />
+      <B size={[0.3, 0.45, 0.04]} pos={[0.1, 0.3, 1.12]} color="#3A5BA0" radius={0.01} shadow={false} />
+    </group>
+  );
+}
+function PolancoMotors() { // glass-fronted showroom with a sign and two cars inside
+  return (
+    <group>
+      <B size={[2.6, 0.9, 1.4]} pos={[0, 0.45, 0]} color="#ECEEF0" radius={0.02} />
+      <B size={[2.4, 0.6, 0.04]} pos={[0, 0.42, 0.71]} color="#9FD3F0" metal={0.3} rough={0.15} shadow={false} />
+      <B size={[2.8, 0.08, 1.6]} pos={[0, 0.94, 0]} color="#1F3D6B" />
+      <B size={[1.5, 0.3, 0.06]} pos={[0, 1.2, 0.7]} color="#1F3D6B" emissive="#3A5BA0" emissiveIntensity={0.4} />
+      <B size={[0.55, 0.16, 0.3]} pos={[-0.6, 0.22, 0.3]} color="#C9CED1" radius={0.05} />
+      <B size={[0.55, 0.16, 0.3]} pos={[0.6, 0.22, 0.3]} color="#B83A2E" radius={0.05} />
+    </group>
+  );
+}
+
 export const LANDMARK_MODELS_3: Record<string, ComponentType> = {
   secretariat: Secretariat, tafawaBalewa: TafawaBalewa, lagosHouse: LagosHouse, federalSecretariat: FederalSecretariat,
-  ekoHotel: EkoHotel, airportTerminal: AirportTerminal, portCrane: PortCrane,
+  ekoHotel: EkoHotel, airportTerminal: AirportTerminal, portCrane: PortCrane, church: Church, polancoMotors: PolancoMotors,
 };

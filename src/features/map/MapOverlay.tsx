@@ -16,6 +16,8 @@ import { POSITIONING_LABEL } from '@/world/labels';
 import { getArea, getLandmark, getState, propertiesOfState } from '@/world/registry';
 import { AdSheet } from './ads/AdSheet';
 import { AdWizard } from './ads/AdWizard';
+import { interiorKindForLandmark } from '@/data/interiors';
+import { travelToVenue } from '@/game/interiors';
 import { MapTopBar } from './MapTopBar';
 import { CategorySheet } from './CategorySheet';
 
@@ -43,6 +45,11 @@ export function MapOverlay() {
   const visit = () => {
     if (!landmark) return;
     const v = landmark.visit;
+    if (interiorKindForLandmark(landmark.id)) {
+      selectLandmark(null);
+      const r = travelToVenue(landmark.id); if (!r.ok) { sfx.error(); toast(r.reason, 'bad'); }
+      return;
+    }
     if (useStatsStore.getState().activity) { sfx.error(); return toast('Finish what you are doing first', 'bad'); }
     if (v.cost > 0 && !useEconomyStore.getState().debit(v.cost, `Visit: ${landmark.name}`, 'visit')) { sfx.error(); return toast(copy.broke(), 'bad'); }
     sfx.open(); setTravel(landmark.name);

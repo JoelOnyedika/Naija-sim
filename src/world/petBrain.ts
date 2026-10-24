@@ -7,6 +7,8 @@ import { findPath, isFree, nearestFree, type NavGrid, type Pt } from './navigati
  * The brain only decides WHERE and WHEN; the scene (three/property/Pets.tsx) draws it.
  */
 export type PetSpecies = 'cat' | 'dog' | 'lion';
+/** Anything the brain can drive: the pets and the people (NPCs) in public interiors. */
+export type BrainKind = PetSpecies | 'npc';
 export type PetMode = 'idle' | 'walk' | 'play' | 'hop';
 
 export interface SpeciesCfg {
@@ -16,11 +18,14 @@ export interface SpeciesCfg {
   wanderRadius: number;
   hopHeight: number;
   idleSeconds: [number, number];
+  /** Chance to hop when choosing what to do next. */
+  hopChance: number;
 }
-export const SPECIES: Record<PetSpecies, SpeciesCfg> = {
-  cat: { speed: 0.9, turnRate: 6, playChance: 0.55, wanderRadius: 3.5, hopHeight: 0.32, idleSeconds: [2, 6] },
-  dog: { speed: 1.25, turnRate: 5, playChance: 0.8, wanderRadius: 4.5, hopHeight: 0.22, idleSeconds: [1.5, 4] },
-  lion: { speed: 0.75, turnRate: 3, playChance: 0.4, wanderRadius: 4, hopHeight: 0.15, idleSeconds: [3, 8] },
+export const SPECIES: Record<BrainKind, SpeciesCfg> = {
+  npc: { speed: 0.95, turnRate: 6, playChance: 0, wanderRadius: 5, hopHeight: 0, idleSeconds: [2, 7], hopChance: 0 },
+  cat: { speed: 0.9, turnRate: 6, playChance: 0.55, wanderRadius: 3.5, hopHeight: 0.32, idleSeconds: [2, 6], hopChance: 0.15 },
+  dog: { speed: 1.25, turnRate: 5, playChance: 0.8, wanderRadius: 4.5, hopHeight: 0.22, idleSeconds: [1.5, 4], hopChance: 0.15 },
+  lion: { speed: 0.75, turnRate: 3, playChance: 0.4, wanderRadius: 4, hopHeight: 0.15, idleSeconds: [3, 8], hopChance: 0.15 },
 };
 
 export interface PetBrain {
@@ -47,11 +52,11 @@ function turnToward(b: PetBrain, yaw: number, rate: number, dt: number): number 
   return Math.abs(d - step);
 }
 
-export interface StepCtx { grid: NavGrid; ball: Pt | null; rnd?: () => number }
+export interface StepCtx { grid: NavGrid; ball: Pt | null; rnd?: () => number; /** Reject wander targets (keep people from crowding each other or the player). */ avoid?: (p: Pt) => boolean }
 export interface StepResult { kickBallTo?: Pt }
 
 /** Advance one pet by dt seconds. Returns a ball position when the pet just batted the ball somewhere. */
-export function stepPet(b: PetBrain, species: PetSpecies, dt: number, ctx: StepCtx): StepResult {
+export function stepPet(b: PetBrain, species: BrainKind, dt: number, ctx: StepCtx): StepResult {
   const cfg = SPECIES[species], rnd = ctx.rnd ?? Math.random;
   dt = Math.min(dt, 0.1);
   b.cooldown = Math.max(0, b.cooldown - dt);
@@ -76,12 +81,12 @@ export function stepPet(b: PetBrain, species: PetSpecies, dt: number, ctx: StepC
       if (path && path.length) { b.path = path; b.mode = 'walk'; b.goingToBall = true; return {}; }
     }
     const r = rnd();
-    if (r < 0.15) { b.mode = 'hop'; b.t = 0; return {}; }
+    if (r < cfg.hopChance) { b.mode = 'hop'; b.t = 0; return {}; }
     if (r < 0.8) {
       for (let i = 0; i < 6; i++) {
         const a = rnd() * Math.PI * 2, d = 0.8 + rnd() * cfg.wanderRadius;
         const to = { x: b.x + Math.cos(a) * d, z: b.z + Math.sin(a) * d };
-        if (!isFree(ctx.grid, to)) continue;
+        if (!isFree(ctx.grid, to) || ctx.avoid?.(to)) continue;
         const path = findPath(ctx.grid, b, to);
         if (path && path.length) { b.path = path; b.mode = 'walk'; b.goingToBall = false; return {}; }
       }

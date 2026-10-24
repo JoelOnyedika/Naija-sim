@@ -232,3 +232,6 @@ All tunables for these live in `src/data/balance.ts`.
 * **Pets**: `stores/petStore.ts`, `game/petCare.ts`, `data/activities.ts` (petSet), `world/navigation.ts` (livePetPos), `PET_CARE` in balance.ts.
 * **Referrals**: `game/referrals.ts` (pure rules), `stores/referralStore.ts`, `features/phone/apps/Invite.tsx`, `REFERRAL` in balance.ts. A server must own code issuing/uniqueness, invitation counts, qualification checks and payouts; the client only queues `outbox` claims and accepts validated `applyServerReward` calls.
 * **Ad providers**: `game/ads/providers.ts`, `docs/ADS_PROVIDERS.md`.
+
+## M. Venues, NPCs, chat, crime, club, showroom (v8 part 7, in progress)
+See `docs/NEXT_CHAT_HANDOFF.md` sections 3 and 6 for the file map and the backend hand-off points. Tests: `npm run test:venues`.

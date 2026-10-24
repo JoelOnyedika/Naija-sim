@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
 import { PLACE_FOCUS } from '@/data/balance';
+import { useInteriorStore } from '@/stores/interiorStore';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
 import { houseBounds } from '@/world/layoutGeometry';
@@ -21,13 +22,16 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const curPolar = useRef(DEFAULT_POLAR);
   const lastFocus = useRef<import('@/stores/cameraStore').CameraFocus | null>(null);
   const blend = useRef(0); // 0 = normal view, 1 = fully focused on the placed item
+  const inVenue = useInteriorStore((st) => !!st.current);
   const aspect = size.width / Math.max(size.height, 1);
   // MVP framing, applied to every home: distance grows with the house side, pulled back a little on portrait screens.
   // Only the house is framed and centred; the parking pad is separate and may run off screen.
   const { tx, ty, tz, fit } = useMemo(() => {
     const h = houseBounds(layout), span = Math.max(h.w, h.d) + 3.2; // fixed margin, so every home is framed alike
-    return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (span * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
-  }, [layout, aspect]);
+    // public venues are wider than homes and viewed corner-on, so frame their diagonal as well (homes stay exactly as before)
+    const venueSpan = inVenue ? (h.w + h.d) * 0.78 + 3.2 : 0;
+    return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (Math.max(span, venueSpan) * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
+  }, [layout, aspect, inVenue]);
 
   // New home: back to the default orientation, instantly.
   useEffect(() => {

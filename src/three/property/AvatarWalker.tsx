@@ -1,3 +1,4 @@
+import { livePlayer } from '@/world/npcLive';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { MathUtils, type Group, type Mesh } from 'three';
@@ -67,6 +68,7 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     const stats = useStatsStore.getState(), actor = useActorStore.getState();
     let activity = stats.activity;
     const here: Pt = { x: g.position.x, z: g.position.z };
+    livePlayer.x = here.x; livePlayer.z = here.z; livePlayer.set = true;
     let p = plan.current;
 
     // ---- new order from the player

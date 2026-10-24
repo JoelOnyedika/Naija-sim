@@ -15,6 +15,9 @@ import { Dock } from './Dock';
 import { FoodPicker } from './FoodPicker';
 import { ActionMenu } from './ActionMenu';
 import { Hud } from './Hud';
+import { InteriorShell } from './InteriorShell';
+import { InteriorChat } from './InteriorChat';
+import { ClubBanner, ClubMenu, NpcSheet, ReceiptSheet, VehicleSheet } from './VenueSheets';
 import { LoadingOverlay } from './LoadingOverlay';
 import { RotateButton } from './RotateButton';
 import { ProfileSheet } from './ProfileSheet';
@@ -44,6 +47,13 @@ export function GameScreen() {
       <PhoneOverlay />
       <FoodPicker />
       <ActionMenu />
+      <InteriorShell />
+      <InteriorChat />
+      <NpcSheet />
+      <ClubMenu />
+      <ReceiptSheet />
+      <ClubBanner />
+      <VehicleSheet />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

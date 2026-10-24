@@ -19,14 +19,19 @@ import { getActiveHome } from './active';
 import { backupIn, powerMode } from './power';
 import { usePowerStore } from '@/stores/powerStore';
 import { finishPetAction, stepPets } from './petCare';
+import { stepJail } from './crime';
+import { stepChatter } from './chatter';
 import { makeCode } from './referrals';
+import { getAuthority } from './authority';
 import { useReferralStore } from '@/stores/referralStore';
 import { useAuthStore } from '@/stores/authStore';
 
 function onFinished(a: Activity) {
-  if (a.payout) {
-    useEconomyStore.getState().credit(a.payout, a.label, 'salary');
-    toast(copy.workDone(formatNaira(a.payout)), 'good');
+  // activities with a key (venue hustles, the coding task) are paid what the authority says, never what the running activity claims
+  const paid = a.activityKey ? getAuthority().approvePayout(a.activityKey, a.payout ?? 0) : a.payout;
+  if (paid) {
+    useEconomyStore.getState().credit(paid, a.label, 'salary');
+    toast(copy.workDone(formatNaira(paid)), 'good');
     sfx.coin();
     if (a.careerId) completeCareerShift(a.careerId);
   } else if (a.doneMessage) toast(a.doneMessage, 'good');
@@ -65,6 +70,8 @@ export function advance(dt: number) {
   runDueEvents();
   stepPower(dt);
   stepPets(dt);
+  stepJail();
+  stepChatter();
   if (useReferralStore.getState().referredBy) { const e = useEconomyStore.getState(); useReferralStore.getState().absorb(e.transactions, e.seq, makeCode(useAuthStore.getState().session ?? 'player')); }
 
   // food deliveries

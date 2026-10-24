@@ -26,7 +26,29 @@ const petSet = (food: number): UseDef[] => [
   { id: 'play_pet', glyph: '🎾', label: 'Play with it', seconds: 9, effects: { happiness: 10, energy: -3 }, pose: 'stand', skill: { id: 'fitness', xp: 2 }, requires: [BALL], petAction: 'play' },
 ];
 
+const SPEAKER_STACK = { anyOf: ['v_speaker_stack', 'speaker'], hint: 'No speaker here to play music through.' };
 export const ACTIVITY_SETS: Record<string, UseDef[]> = {
+  // ---- Public venues. Money rewards below are balance values; a server must own them (game/authority.ts).
+  v_stall: [
+    { id: 'sell_wares', glyph: '🧺', label: 'Sell wares', seconds: 30, effects: { energy: -8, happiness: 2, social: 3 }, pose: 'stand', payout: 5000, skill: { id: 'communication', xp: 3 } },
+    { id: 'haggle', glyph: '🗣️', label: 'Haggle for a trader', seconds: 25, effects: { energy: -6, charisma: 1 }, pose: 'stand', payout: 3500, skill: { id: 'communication', xp: 4 } },
+    { id: 'carry_loads', glyph: '📦', label: 'Carry loads', seconds: 20, effects: { energy: -12, hygiene: -3 }, pose: 'stand', payout: 2500, skill: { id: 'fitness', xp: 3 } },
+  ],
+  v_altar: [
+    { id: 'pray', glyph: '🙏', label: 'Pray', seconds: 20, effects: { happiness: 10 }, pose: 'stand' },
+    { id: 'candle', glyph: '🕯️', label: 'Light a candle', seconds: 6, effects: { happiness: 4 }, cost: 500, pose: 'stand' },
+    { id: 'offering', glyph: '🪙', label: 'Give an offering', seconds: 8, effects: { happiness: 8, social: 2 }, cost: 2000, pose: 'stand' },
+  ],
+  v_pew: [{ id: 'sit_pew', glyph: '🪑', label: 'Sit and reflect', seconds: 10, effects: { happiness: 3, energy: 3 }, pose: 'sit' }],
+  v_plinth: [
+    { id: 'study_art', glyph: '🖼️', label: 'Study the artwork', seconds: 15, effects: { happiness: 4 }, pose: 'stand', skill: { id: 'creativity', xp: 4 } },
+    { id: 'discuss_art', glyph: '💬', label: 'Talk about the art', seconds: 12, effects: { social: 5 }, pose: 'stand', skill: { id: 'communication', xp: 3 } },
+  ],
+  v_bleachers: [{ id: 'cheer', glyph: '📣', label: 'Cheer for the team', seconds: 15, effects: { happiness: 12, social: 4, energy: -6 }, pose: 'stand' }],
+  v_kiosk: [{ id: 'buy_snack', glyph: '🥤', label: 'Buy a snack', seconds: 6, effects: { hunger: 25, thirst: 15 }, cost: 1500, pose: 'stand' }],
+  v_dj_booth: [{ id: 'club_mix', glyph: '🎧', label: 'Take over the decks', seconds: 12, effects: { happiness: 12, social: 3, energy: -5 }, pose: 'stand', party: true, skill: { id: 'creativity', xp: 6 }, requires: [SPEAKER_STACK] }],
+  v_speaker_stack: [{ id: 'club_dance', glyph: '💃', label: 'Dance', seconds: 14, effects: { happiness: 16, social: 5, energy: -9, hygiene: -3 }, pose: 'stand', party: true, skill: { id: 'fitness', xp: 3 } }],
+  v_cell_bed: [{ id: 'rest', glyph: '🛏️', label: 'Rest on the bunk', seconds: 10, effects: { energy: 6 }, pose: 'sit' }],
   pet_cat: petSet(PET_CARE.foodCost.cat),
   pet_dog: petSet(PET_CARE.foodCost.dog),
   pet_lion: petSet(PET_CARE.foodCost.lion),

@@ -72,8 +72,12 @@ export interface FurnitureDef {
   power?: 'manual' | 'auto' | 'solar';
   /** A live pet (see world/petBrain.ts). It wanders the home on its own instead of standing where it was placed. */
   pet?: 'cat' | 'dog' | 'lion';
+  /** Belongs to a public interior (market stall, pew, bar...). Never sold in the shop. */
+  venue?: boolean;
   /** A pet toy: pets walk to it and play. */
   toy?: boolean;
+  /** Tapping it opens a venue screen instead of the activity menu (club menu, showroom). */
+  venueAction?: 'club_bar' | 'showroom';
 }
 
 const floor = { surface: 'floor', collides: true, rotatable: true } as const;
@@ -103,6 +107,20 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'bedside_lamp', name: 'Bedside lamp', description: 'Small, warm, brass stem.', price: 18000, category: 'designs', rarity: 'common', glyph: '🛋️', model: 'bedside_lamp', footprint: { w: 0.3, d: 0.3 }, height: 0.4, placement: floor, place: 'any', style: 1 },
   { id: 'pet_bed', name: 'Pet bed', description: 'Round and padded.', price: 30000, category: 'pets', rarity: 'common', glyph: '🛏️', model: 'pet_bed', footprint: { w: 0.7, d: 0.7 }, height: 0.14, placement: { surface: 'floor', collides: false, rotatable: true }, style: 1 },
   { id: 'pet_bowl', name: 'Pet bowls', description: 'Food and water.', price: 9000, category: 'pets', rarity: 'common', glyph: '🥣', model: 'pet_bowl', footprint: { w: 0.4, d: 0.2 }, height: 0.07, placement: { surface: 'floor', collides: false, rotatable: true }, style: 0 },
+  // ---- Venue furniture for public interiors (not sold; models in three/models/venue.tsx)
+  { id: 'v_stall', name: 'Market stall', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🛍️', model: 'v_stall', footprint: { w: 1.9, d: 1.0 }, height: 2.2, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_sacks', name: 'Sacks of goods', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '📦', model: 'v_sacks', footprint: { w: 1.0, d: 0.6 }, height: 0.8, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_pew', name: 'Church pew', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🪑', model: 'v_pew', footprint: { w: 1.9, d: 0.5 }, height: 1.1, placement: { surface: 'floor', collides: false, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_altar', name: 'Altar', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '⛪', model: 'v_altar', footprint: { w: 2.0, d: 0.9 }, height: 1.8, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_plinth', name: 'Sculpture plinth', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🗿', model: 'v_plinth', footprint: { w: 0.7, d: 0.7 }, height: 1.4, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_bleachers', name: 'Stadium seating', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🏟️', model: 'v_bleachers', footprint: { w: 3.0, d: 1.8 }, height: 1.3, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_kiosk', name: 'Snack kiosk', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🥤', model: 'v_kiosk', footprint: { w: 1.3, d: 0.9 }, height: 1.9, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_club_bar', name: 'Club bar', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🍾', model: 'v_club_bar', venueAction: 'club_bar', footprint: { w: 3.1, d: 0.9 }, height: 2.0, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_dj_booth', name: 'DJ booth', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🎧', model: 'v_dj_booth', footprint: { w: 2.2, d: 0.9 }, height: 1.6, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_speaker_stack', name: 'Speaker stack', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🔊', model: 'v_speaker_stack', footprint: { w: 0.8, d: 0.6 }, height: 2.4, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_podium', name: 'Showroom podium', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🚗', model: 'v_podium', venueAction: 'showroom', footprint: { w: 3.4, d: 3.4 }, height: 0.22, placement: { surface: 'floor', collides: false, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_cell_bed', name: 'Cell bunk', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '🛏️', model: 'v_cell_bed', footprint: { w: 1.0, d: 2.0 }, height: 0.6, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
+  { id: 'v_bars', name: 'Cell bars', description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: '⛓️', model: 'v_bars', footprint: { w: 3.0, d: 0.2 }, height: 2.1, placement: { surface: 'floor', collides: true, rotatable: true }, place: 'any', style: 0, venue: true },
   // ---- Pets: valuable, animated, never block walking
   { id: 'pet_ball', name: 'Pet ball', description: 'A rubber ball. Pets love chasing it.', price: 8000, category: 'pets', rarity: 'common', glyph: '🎾', model: 'pet_ball', footprint: { w: 0.25, d: 0.25 }, height: 0.2, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 0, toy: true },
   { id: 'pet_cat', name: 'Cat', description: 'A proper house cat. Wanders, hops and bats the ball around.', price: 450000, category: 'pets', rarity: 'rare', glyph: '🐱', model: 'pet_cat', footprint: { w: 0.5, d: 0.5 }, height: 0.5, placement: { surface: 'floor', collides: false, rotatable: false }, place: 'any', style: 5, pet: 'cat' },

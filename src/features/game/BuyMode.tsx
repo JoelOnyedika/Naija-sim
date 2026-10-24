@@ -256,9 +256,9 @@ function Catalog() {
   const setTab = useUiStore((s) => s.setCatalogTab);
   const lastHouse = useRef<'floors' | 'walls'>('walls');
   if (tab === 'floors' || tab === 'walls') lastHouse.current = tab;
-  const counts = useMemo(() => Object.fromEntries(ITEM_CATEGORIES.map((c) => [c.id, FURNITURE.filter((f) => f.category === c.id).length])) as Record<ItemCategory, number>, []);
+  const counts = useMemo(() => Object.fromEntries(ITEM_CATEGORIES.map((c) => [c.id, FURNITURE.filter((f) => f.category === c.id && !f.venue).length])) as Record<ItemCategory, number>, []);
   const ownedCount = FURNITURE.reduce((n, f) => n + (inv[f.id] ?? 0), 0);
-  const list = tab === 'floors' || tab === 'walls' ? [] : tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab).sort((a, b) => priceOf(a.price) - priceOf(b.price));
+  const list = tab === 'floors' || tab === 'walls' ? [] : tab === 'owned' ? FURNITURE.filter((f) => (inv[f.id] ?? 0) > 0) : FURNITURE.filter((f) => f.category === tab && !f.venue).sort((a, b) => priceOf(a.price) - priceOf(b.price));
   const catTabs: { id: Tab; label: string; icon: string }[] = ITEM_CATEGORIES.map((c) => ({ id: c.id as Tab, label: `${c.label} ${counts[c.id]}`, icon: c.icon }));
   // House Design (floors and walls) sits right after Storage. Internally it is the 'floors' / 'walls' tab pair, so saved finishes and previews work as before.
   const houseTab: { id: Tab; label: string; icon: string } = { id: lastHouse.current, label: `House Design ${FLOORS.length + WALLS.length}`, icon: '🏠' };

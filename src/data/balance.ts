@@ -105,3 +105,22 @@ export const REFERRAL = {
   /** Money coming back for these kinds is taken off the spend (selling an item back must not count as spending). */
   refundKinds: ['refund'] as readonly string[],
 } as const;
+
+/** NPCs in public interiors (world/petBrain.ts drives them with the same navigation grid as the player). */
+export const NPC = { minSpacing: 1.1, chatterSeconds: [18, 40] as [number, number] };
+
+/**
+ * Crime and jail. Fictional gameplay. `baseSuccess` is the chance a first pickpocket attempt works; every point of criminality
+ * (wanted level) lowers it by `penaltyPerPoint` down to `minSuccess` and makes sentences longer. A success adds
+ * `criminalityPerSuccess`, an arrest adds `criminalityPerArrest`. Serving a full sentence takes `reliefPerSentence` off.
+ * Local simulation only: a multiplayer server must roll the dice, set sentences and own the clock (see game/crime.ts).
+ */
+export const CRIME = {
+  baseSuccess: 0.5, penaltyPerPoint: 0.02, minSuccess: 0.15,
+  criminalityPerSuccess: 1, criminalityPerArrest: 2, reliefPerSentence: 1, maxCriminality: 30,
+  walletRange: [2000, 12000] as [number, number],
+  /** A successful theft takes this share of the NPC's wallet. */
+  takeShare: [0.5, 1] as [number, number],
+  sentenceBaseMinutes: 10, sentencePerPointMinutes: 5, maxSentenceMinutes: 120,
+  cooldownSeconds: 20,
+} as const;

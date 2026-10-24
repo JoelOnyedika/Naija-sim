@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type { Group, PointLight } from 'three';
+import { useInteriorStore } from '@/stores/interiorStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { B, Cyl, Sph } from './primitives';
 
@@ -98,7 +99,8 @@ export function WallShelf() {
  * coloured point light cycles hue. Idle, it costs nothing (no light, no per-frame work beyond one cheap check).
  */
 export function DiscoLight() {
-  const party = useStatsStore((s) => !!s.activity?.party);
+  const nightclub = useInteriorStore((s) => s.current?.kind === 'club');
+  const party = useStatsStore((s) => !!s.activity?.party) || nightclub;
   const ball = useRef<Group>(null);
   const light = useRef<PointLight>(null);
   useFrame(({ clock }, dt) => {

@@ -3,6 +3,10 @@ import type { LandmarkDefinition } from '@/types/world';
 type Base = Omit<LandmarkDefinition, 'stateId'>;
 
 export const LANDMARKS: Base[] = [
+  { id: 'lagos.cathedral', areaId: 'lagos.lagos-island', name: 'Cathedral Church of Christ', category: 'culture', icon: '⛪', modelId: 'church', position: [5.2, 1.2],
+    tagline: 'Peace in the middle of the city.', description: 'A quiet church on the Island. Pray, reflect, or just sit in the cool.', activities: ['Pray', 'Light a candle', 'Sit and reflect'], visit: { cost: 0, seconds: 6, effects: { happiness: 6 }, taskEvent: 'church' } },
+  { id: 'lagos.polanco', areaId: 'lagos.victoria-island', name: 'Polanco Motors', category: 'business', icon: '🚗', modelId: 'polancoMotors', position: [10.2, 15.6],
+    tagline: 'Drive something worth talking about.', description: 'The showroom for new and nearly-new cars. Look, compare and buy.', activities: ['Browse cars', 'Buy a car'], visit: { cost: 0, seconds: 6, effects: { happiness: 4 }, taskEvent: 'showroom' } },
   { id: 'lagos.quilox', areaId: 'lagos.victoria-island', name: 'Quilox', category: 'club', icon: '🪩', modelId: 'quilox', position: [6, 11.5],
     tagline: 'Create your Lagos story.', description: 'Hang out at Quilox, meet real players and gist.', visit: { cost: 15000, seconds: 8, effects: { social: 25, happiness: 18, energy: -12, hygiene: -6 }, taskEvent: 'club' } },
   { id: 'lagos.balogun', areaId: 'lagos.lagos-island', name: 'Balogun Market', category: 'market', icon: '🛍️', modelId: 'balogun', position: [2, -0.5],

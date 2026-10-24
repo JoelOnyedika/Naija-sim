@@ -1,3 +1,11 @@
+# Nigeria Life - v8 part 7: venues (work in progress, see docs/NEXT_CHAT_HANDOFF.md)
+
+Built and unit-tested (`npm run test:venues`) but NOT yet checked in a browser except entering the club:
+- Public interiors for seven venues sharing one framework (market, church, gallery, stadium, club, showroom, jail), opened from their map landmarks, capacity 10 per copy with NPCs filling free places.
+- NPCs, scoped local/global chat (offline stubs), market and church hustles paid once via a reward authority, pickpocketing and jail with real timestamps (keeps running while the game is closed), club spending with receipts and announcements, Polanco Motors showroom with placeholder cars and a phone app that sends you there.
+- Everything involving other players, money authority, chat delivery or jail time is a local simulation with hand-off points listed in the handoff document.
+- Known gaps: venue visuals and the new sheets have not been reviewed on screen; the club needs real nightlife styling.
+
 # Nigeria Life - v8 part 6: pet stats, referrals, ads providers
 
 ## Pet stats
