@@ -19,12 +19,16 @@ import { bondMultiplier, petBlockedReason } from './petCare';
 import { podiumIndexOf, slotVehicle } from '@/data/showroom';
 import { useInteriorStore } from '@/stores/interiorStore';
 import type { UseDef } from '@/data/items';
+import { QUEUE_LIMIT, useQueueStore } from '@/stores/queueStore';
 
 /** Sum of comfort bonuses (fan, AC...) in the active home. */
 const comfort = () => {
   const h = getActiveHome();
   return h ? h.placed.reduce((s, p) => s + (getFurniture(p.defId)?.comfort ?? 0), 0) : 0;
 };
+
+/** Busy = an activity is running, or the avatar is on its way to start one. Tapping something else then lines it up instead of redirecting. */
+const isBusy = () => !!useStatsStore.getState().activity || useActorStore.getState().order?.kind === 'use';
 
 /** Foods the player is carrying. */
 export const carriedFood = () => FOODS.filter((f) => useInventoryStore.getState().count(f.id) > 0);
@@ -42,16 +46,17 @@ export function interactWith(item: PlacedItem) {
   if (def?.venueAction === 'showroom') { const v = slotVehicle(podiumIndexOf(item.uid)); if (v) { sfx.click(); useUiStore.getState().setShowroomVehicle(v.id); } return; }
   const uses = usesOf(def);
   if (!def || !uses.length) { toast(def?.name ?? 'Nothing to do here'); return; }
-  if (useStatsStore.getState().activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return; }
+  // Busy: a menu still opens (the pick is queued); a single-choice object is queued straight away.
+  if (isBusy() && !needsMenu(def)) { enqueueUse(item, uses[0]); return; }
   // Several choices: let the player pick. One choice: go straight there, exactly as before.
   if (needsMenu(def)) { useUiStore.getState().setActionMenu(item.uid); sfx.click(); return; }
   beginUse(item, uses[0]);
 }
 
 /** Pre-flight checks that give instant feedback; nothing is charged yet (that happens on arrival in startUse). */
-function canBegin(u: UseDef, uid?: string): boolean {
+function canBegin(u: UseDef, uid?: string, queued = false): boolean {
   const stats = useStatsStore.getState();
-  if (stats.activity) { sfx.error(); toast('Finish what you are doing first', 'bad'); return false; }
+  if (stats.activity && !queued) { sfx.error(); toast('Finish what you are doing first', 'bad'); return false; }
   const placed = getActiveHome()?.placed ?? [];
   const why = blockedReason(u, placed, (id) => useSkillStore.getState().level(id));
   if (why) { sfx.error(); toast(why, 'bad'); return false; }
@@ -78,11 +83,33 @@ export function chooseActivity(item: PlacedItem, activityId: string) {
   const def = getFurniture(item.defId);
   const u = usesOf(def).find((x) => x.id === activityId);
   useUiStore.getState().setActionMenu(null);
-  if (u) beginUse(item, u);
+  if (!u) return;
+  if (isBusy()) enqueueUse(item, u); else beginUse(item, u);
+}
+
+/** Tapped while busy: line it up to run when the current activity ends. */
+export function enqueueUse(item: PlacedItem, u: UseDef) {
+  if (!canBegin(u, item.uid, true)) return;
+  if (!useQueueStore.getState().push({ uid: item.uid, activityId: u.id, label: u.label.replace(/ \(₦\d+\)/, ''), glyph: u.glyph })) { sfx.error(); toast(`You can only line up ${QUEUE_LIMIT} things.`, 'bad'); return; }
+  sfx.click(); toast(`Next: ${u.label.replace(/ \(₦\d+\)/, '')}`);
+}
+
+/** The activity ended (or was cancelled): start the next queued one that still makes sense. */
+export function runNextQueued() {
+  const q = useQueueStore.getState();
+  for (let guard = 0; guard < QUEUE_LIMIT + 1; guard++) {
+    const next = q.shift(); if (!next) return;
+    const item = getActiveHome()?.placed.find((p) => p.uid === next.uid); if (!item) continue;
+    const uses = usesOf(getFurniture(item.defId));
+    const u = uses.find((x) => x.id === next.activityId) ?? uses[0]; if (!u) continue;
+    if (useStatsStore.getState().activity) return;
+    const before = useActorStore.getState().seq; beginUse(item, u); if (useActorStore.getState().seq !== before) return; // only stop once an order was really given
+  }
 }
 
 /** Player tapped the floor: stop whatever is running (cleanly) and walk there. */
 export function walkTo(x: number, z: number) {
+  useQueueStore.getState().clear();
   if (useStatsStore.getState().activity) useStatsStore.getState().stop();
   useActorStore.getState().walkTo(x, z);
 }
@@ -116,7 +143,7 @@ export function startUse(item: PlacedItem) {
   // a pet you are bonded with makes time together happier: up to +50% happiness at full bond
   if (u.petAction && effects.happiness) effects = { ...effects, happiness: Math.round(effects.happiness * bondMultiplier(item.uid)) };
   if (u.cost && !useEconomyStore.getState().debit(u.cost, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return; }
-  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party, payout: u.payout, petAction: u.petAction, activityKey: u.id ? `${def.id}:${u.id}` : undefined });
+  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), glyph: u.glyph ?? def.glyph, seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party, risk: u.risk, payout: u.payout, petAction: u.petAction, activityKey: u.id ? `${def.id}:${u.id}` : undefined });
 }
 
 export function eatFood(foodId: string, targetUid?: string): boolean {

@@ -1,3 +1,5 @@
+import { INTERIORS, type InteriorKind } from '@/data/interiors';
+import { VenueSurround } from './VenueSurround';
 import { useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import { BoxGeometry, CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
@@ -17,7 +19,7 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
   const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0;
   const finish = useZoneFloor(layout, zone);
   const kind = finish?.floor ?? zone.floor;
-  const club = layout.id === 'interior.club'; // the nightclub floor is dark and glossy so the coloured lights show
+  const vd = layout.id.startsWith('interior.') ? INTERIORS[layout.id.slice(9) as InteriorKind] : undefined; // venues can tint and polish their floor (a dark club, sand)
   const tex = useMemo(() => {
     if (kind === 'water') return null;
     const t = floorTexture(kind).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t;
@@ -31,7 +33,7 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
       {zone.indoor && <mesh position={[cx, -0.08, cz]} receiveShadow><boxGeometry args={[w, 0.16, d]} /><meshStandardMaterial color="#B9AD94" roughness={1} /></mesh>}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.003, cz]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial map={tex ?? undefined} color={club ? '#3A3350' : finish?.tint ?? '#ffffff'} roughness={club ? 0.18 : finish?.rough ?? (kind === 'marble' ? 0.25 : kind === 'ceramic' || kind === 'diamond' ? 0.3 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
+        <meshStandardMaterial map={tex ?? undefined} color={vd?.floorTint ?? finish?.tint ?? '#ffffff'} roughness={vd?.floorRough ?? finish?.rough ?? (kind === 'marble' ? 0.25 : kind === 'ceramic' || kind === 'diamond' ? 0.3 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
       </mesh>
     </group>
   );
@@ -146,9 +148,10 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
   const { plot } = layout;
   const sky = useMemo(() => skylineTexture(), []);
   const cx = (plot.x0 + plot.x1) / 2, cz = (plot.z0 + plot.z1) / 2;
+  const venue = layout.id.startsWith('interior.'); // public venues sit in a real 3D street, not on the home's lawn
   return (
     <group>
-      <GroundDisc layout={layout} />
+      {venue ? <VenueSurround layout={layout} /> : <GroundDisc layout={layout} />}
       {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} layout={layout} />)}
       <ParkingPad layout={layout} />
       <Rim layout={layout} />
@@ -157,8 +160,8 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       {layout.decor.map((dec, i) => <DecorItem key={i} d={dec} />)}
       <Vehicles layout={layout} />
       <ParkingSign layout={layout} />
-      <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>
-      <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>
+      {!venue && <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}
+      {!venue && <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}
     </group>
   );
 }

@@ -1,6 +1,7 @@
 import { getFurniture, type FurnitureDef, type UseDef } from './items';
 import { skillName, type SkillId } from '@/stores/skillStore';
 import { PET_CARE } from './balance';
+import { KIT_ACTIVITIES } from './venueKit';
 
 /**
  * Central activity definitions. One table, keyed by furniture id: what each object lets the player do, how long it takes,
@@ -27,7 +28,7 @@ const petSet = (food: number): UseDef[] => [
 ];
 
 const SPEAKER_STACK = { anyOf: ['v_speaker_stack', 'speaker'], hint: 'No speaker here to play music through.' };
-export const ACTIVITY_SETS: Record<string, UseDef[]> = {
+const BASE_ACTIVITY_SETS: Record<string, UseDef[]> = {
   // ---- Public venues. Money rewards below are balance values; a server must own them (game/authority.ts).
   v_stall: [
     { id: 'sell_wares', glyph: '🧺', label: 'Sell wares', seconds: 30, effects: { energy: -8, happiness: 2, social: 3 }, pose: 'stand', payout: 5000, skill: { id: 'communication', xp: 3 } },
@@ -68,6 +69,22 @@ export const ACTIVITY_SETS: Record<string, UseDef[]> = {
     { id: 'code_task', glyph: '💼', label: 'Work on a coding task', seconds: 18, effects: { energy: -10, happiness: -3 }, pose: 'sit', skill: { id: 'coding', xp: 14 }, payout: 3500, minSkill: { id: 'coding', level: 2 }, event: 'use:study' },
     { id: 'social_media', glyph: '📱', label: 'Browse social media', seconds: 10, effects: { happiness: 9, social: 6, energy: -2 }, pose: 'sit', skill: { id: 'communication', xp: 2 } },
   ],
+  student_desk: [
+    { id: 'sd_study', glyph: '📘', label: 'Study on the laptop', seconds: 12, effects: { energy: -5, happiness: -1 }, pose: 'sit', skill: { id: 'coding', xp: 7 }, event: 'use:study' },
+    { id: 'sd_social', glyph: '📱', label: 'Browse social media', seconds: 10, effects: { happiness: 9, social: 6, energy: -2 }, pose: 'sit', skill: { id: 'communication', xp: 2 } },
+  ],
+  standing_desk: [
+    { id: 'st_code', glyph: '⌨️', label: 'Work standing up', seconds: 12, effects: { energy: -5, happiness: -1 }, pose: 'stand', skill: { id: 'coding', xp: 9 }, event: 'use:study' },
+    { id: 'st_task', glyph: '💼', label: 'Do a coding task', seconds: 18, effects: { energy: -9, happiness: -3 }, pose: 'stand', skill: { id: 'coding', xp: 13 }, payout: 4000, minSkill: { id: 'coding', level: 2 }, event: 'use:study' },
+  ],
+  workstation: [
+    { id: 'ws_code', glyph: '⌨️', label: 'Code on two screens', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 13 }, event: 'use:study' },
+    { id: 'ws_task', glyph: '💼', label: 'Freelance coding job', seconds: 18, effects: { energy: -11, happiness: -3 }, pose: 'sit', skill: { id: 'coding', xp: 16 }, payout: 6500, minSkill: { id: 'coding', level: 3 }, event: 'use:study' },
+    { id: 'ws_edit', glyph: '🎬', label: 'Edit a video', seconds: 16, effects: { energy: -8, happiness: 6 }, pose: 'sit', skill: { id: 'creativity', xp: 9 } },
+  ],
+  printer_station: [
+    { id: 'pr_print', glyph: '🖨️', label: 'Print documents', seconds: 8, effects: { energy: -1, happiness: 2 }, pose: 'stand', skill: { id: 'communication', xp: 3 } },
+  ],
   speaker: [
     { id: 'party', glyph: '🎉', label: 'Start a party', seconds: 14, effects: { happiness: 20, social: 6, energy: -4 }, pose: 'stand', party: true, event: 'use:party' },
     { id: 'dance', glyph: '💃', label: 'Dance', seconds: 12, effects: { happiness: 14, social: 3, energy: -8, hygiene: -3 }, pose: 'stand', skill: { id: 'fitness', xp: 3 } },
@@ -76,6 +93,8 @@ export const ACTIVITY_SETS: Record<string, UseDef[]> = {
     { id: 'dance_floor', glyph: '🪩', label: 'Dance under the lights', seconds: 12, effects: { happiness: 16, social: 4, energy: -9, hygiene: -3 }, pose: 'stand', party: true, skill: { id: 'fitness', xp: 3 }, requires: [SPEAKER] },
   ],
 };
+
+export const ACTIVITY_SETS: Record<string, UseDef[]> = { ...BASE_ACTIVITY_SETS, ...KIT_ACTIVITIES };
 
 /** The activities an object offers: the central table first, then the item's own `use`, else none. */
 export function usesOf(def: FurnitureDef | undefined): UseDef[] {

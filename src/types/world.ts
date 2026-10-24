@@ -192,6 +192,8 @@ export interface MapLayout {
 }
 
 export interface StateMapData {
+  /** How much wider the map is than the camera's default framing: the map camera starts this much further out. */
+  viewScale?: number;
   layout?: MapLayout;
   center: [number, number];
   billboards?: BillboardDefinition[];

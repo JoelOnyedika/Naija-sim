@@ -1,3 +1,4 @@
+import { SPREAD } from '../src/content/lagos/spread';
 import './mockStorage';
 import { registerContent } from '../src/content';
 import { CITY_CATALOG } from '../src/content/cities';
@@ -29,7 +30,7 @@ for (const e of layout.edges) {
 }
 for (const l of lagos.mapData.landmarks) {
   ok(isOnLand(layout, l.position[0], l.position[1], 0.1), `landmark ${l.id} is on land`);
-  ok(nearestRoad(layout, l.position[0], l.position[1]).d < 5.5, `landmark ${l.id} is near a road (${nearestRoad(layout, l.position[0], l.position[1]).d.toFixed(1)})`);
+  ok(nearestRoad(layout, l.position[0], l.position[1]).d < 5.5 * SPREAD, `landmark ${l.id} is near a road (${nearestRoad(layout, l.position[0], l.position[1]).d.toFixed(1)})`);
 }
 for (const b of lagos.mapData.billboards ?? []) {
   const d = nearestRoad(layout, b.position[0], b.position[1]).d;

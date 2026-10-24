@@ -12,10 +12,11 @@ registerContent();
 let fails = 0;
 const ok = (c: boolean, m: string) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fails++; };
 const registry = readFileSync('src/three/models/registry.tsx', 'utf8');
+const kitSrc = readFileSync('src/three/models/kit.tsx', 'utf8'); // the venue prop kit registers its models in its own file
 
 console.log('Catalogue integrity');
 ok(new Set(FURNITURE.map((f) => f.id)).size === FURNITURE.length, `${FURNITURE.length} items with unique ids`);
-const missing = FURNITURE.filter((f) => !new RegExp(`\\b${f.model}\\s*:`).test(registry));
+const missing = FURNITURE.filter((f) => !new RegExp(`\\b${f.model}\\s*:`).test(registry + kitSrc));
 ok(missing.length === 0, `every item's model is registered${missing.length ? ' (missing: ' + missing.map((m) => m.id).join(', ') + ')' : ''}`);
 const dupModels = FURNITURE.map((f) => f.model).filter((m, i, a) => a.indexOf(m) !== i);
 ok(dupModels.length === 0, `no two items share a model, so none is just a recolour${dupModels.length ? ' (' + dupModels.join(', ') + ')' : ''}`);

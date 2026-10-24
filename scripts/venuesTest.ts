@@ -6,6 +6,7 @@ import { ACTIVITY_SETS, usesOf } from '../src/data/activities';
 import { CLUB, CLUB_OPTIONS } from '../src/data/club';
 import { INTERIOR_LIST, INTERIORS, LANDMARK_INTERIORS, type InteriorKind } from '../src/data/interiors';
 import { getFurniture } from '../src/data/items';
+import { LANDMARKS } from '../src/content/lagos/landmarks';
 import { makeNpcs } from '../src/data/npcs';
 import { VEHICLE_MODELS, hasRealModel, podiumIndexOf, slotVehicle } from '../src/data/showroom';
 import { VEHICLES } from '../src/data/vehicles';
@@ -46,7 +47,8 @@ const E = () => useEconomyStore.getState(), J = () => useJailStore.getState(), I
 const fresh = () => { startNewLife('nepo'); E().credit(900_000_000, 'test'); useChatStore.getState().reset(); useClubStore.getState().reset(); useJailStore.getState().reset(); useVehicleStore.getState().reset(); };
 
 console.log('Venues');
-ok(INTERIOR_LIST.length === 7 && (['market', 'church', 'gallery', 'stadium', 'club', 'showroom', 'jail'] as InteriorKind[]).every((k) => INTERIORS[k]), 'seven venue templates exist: market, church, gallery, stadium, club, showroom, jail');
+ok(INTERIOR_LIST.length === 22 && (['market', 'church', 'gallery', 'stadium', 'club', 'showroom', 'jail', 'viewing', 'eatery', 'bank', 'mall', 'cinema', 'concert', 'hotel', 'techhub', 'park', 'beach', 'recreation', 'government', 'business', 'airport', 'port'] as InteriorKind[]).every((k) => INTERIORS[k]), 'twenty-two venue templates exist');
+ok(LANDMARKS.every((l) => !!LANDMARK_INTERIORS[l.id]), `every one of the ${LANDMARKS.length} landmarks on the map opens an interior`);
 for (const d of INTERIOR_LIST) {
   const L = interiorLayout(d), items = venueItems(d), g = buildNavGrid(L, items);
   ok(items.every((i) => !!getFurniture(i.defId) && i.x > 0 && i.x < d.w && i.z > 0 && i.z < d.d), `${d.id}: ${items.length} items, all known and inside the room`);
@@ -152,6 +154,22 @@ ok(E().money === m1, 'a cancelled hustle pays nothing');
 ok(getAuthority().approvePayout('v_stall:sell_wares', 99_999_999) === 5000 && getAuthority().approvePayout('v_stall:made_up', 5000) === 0 && !getAuthority().authoritative, 'the client-claimed amount is ignored; unknown activities pay 0; the local authority says it is not authoritative');
 chooseActivity(stall, 'haggle'); ok(!!useUiStore.getState() && true, 'the stall offers more than one hustle (menu)');
 ok(usesOf(getFurniture('v_stall')).map((u) => u.seconds).every((s) => s >= 20), 'hustles take time (20+ seconds each)');
+leaveInterior();
+
+console.log('Gambles at the viewing centre');
+fresh(); enterInterior('viewing');
+const bench = venueItems(INTERIORS.viewing).find((i) => i.defId === 'v_view_bench')!;
+const realRandom = Math.random;
+const stat = (k: 'charisma' | 'health') => useStatsStore.getState().stats[k];
+useStatsStore.getState().apply({ charisma: -50, health: -20 }); const ch0 = stat('charisma'), hp0 = stat('health');
+Math.random = () => 0.01; chooseActivity(bench, 'fight_agbero'); useActorStore.getState().clearOrder(); startUse(bench); finish();
+ok(stat('charisma') > ch0, 'winning the fight with the Agbero raises charisma');
+const h1 = stat('health');
+Math.random = () => 0.99; chooseActivity(bench, 'fight_agbero'); useActorStore.getState().clearOrder(); startUse(bench); finish();
+ok(stat('health') < h1 && h1 >= hp0, 'losing the fight costs health');
+Math.random = realRandom;
+chooseActivity(bench, 'argue_football'); useActorStore.getState().clearOrder(); startUse(bench); finish();
+ok(usesOf(getFurniture('v_view_bench')).some((u) => u.id === 'fight_agbero' && !!u.risk && u.risk.winChance > 0 && u.risk.winChance < 1), 'the fight is a real gamble (win chance between 0 and 1)');
 leaveInterior();
 
 console.log('Crime and jail');

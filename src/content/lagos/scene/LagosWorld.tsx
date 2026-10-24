@@ -4,6 +4,8 @@ import { Billboards } from '@/three/world/Billboards';
 import { SeaAds } from '@/three/world/SeaAds';
 import { Water } from '@/three/world/Water';
 import type { StateDefinition } from '@/types/world';
+import { SPREAD } from '../spread';
+import { LAGOS_LAYOUT } from '../map/layout';
 import { Airport } from './airport';
 import { Buildings, Land } from './districts';
 import { LANDMARK_MODELS } from './landmarks';
@@ -26,8 +28,8 @@ export function LagosWorld({ state }: { state: StateDefinition }) {
       <Land layout={layout} />
       <Roads layout={layout} />
       <Buildings layout={layout} avoid={avoid} />
-      <Airport />
-      <Port layout={layout} />
+      {/* the airport and port scenery is drawn at the old coordinates, stretched in x and z to match the spread land */}
+      <group scale={[SPREAD, 1, SPREAD]}><Airport /><Port layout={LAGOS_LAYOUT} /></group>
       {state.areas.map((a) => (
         <mesh key={a.id} rotation={[-Math.PI / 2, 0, 0]} position={[a.mapData.position[0], 0.09, a.mapData.position[1]]}>
           <circleGeometry args={[a.mapData.radius, 40]} /><meshBasicMaterial color={a.mapData.color} transparent opacity={0.28} depthWrite={false} />

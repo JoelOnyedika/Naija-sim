@@ -29,7 +29,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const { tx, ty, tz, fit } = useMemo(() => {
     const h = houseBounds(layout), span = Math.max(h.w, h.d) + 3.2; // fixed margin, so every home is framed alike
     // public venues are wider than homes and viewed corner-on, so frame their diagonal as well (homes stay exactly as before)
-    const venueSpan = inVenue ? (h.w + h.d) * 0.78 + 3.2 : 0;
+    const venueSpan = inVenue ? (h.w + h.d) * 0.74 + 3.0 : 0;
     return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (Math.max(span, venueSpan) * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
   }, [layout, aspect, inVenue]);
 

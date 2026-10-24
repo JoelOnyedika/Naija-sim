@@ -9,7 +9,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { PropertyScene } from '@/three/property/PropertyScene';
 import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Toasts } from '@/ui/Toasts';
-import { ActivityBanner } from './ActivityBanner';
+import { ActivityChip } from './ActivityChip';
 import { BuyMode } from './BuyMode';
 import { Dock } from './Dock';
 import { FoodPicker } from './FoodPicker';
@@ -37,7 +37,7 @@ export function GameScreen() {
       <ErrorBoundary inline label="The 3D home"><PropertyScene /></ErrorBoundary>
       <Hud />
       <RotateButton />
-      <ActivityBanner />
+      <ActivityChip />
       {mode === 'home' && <TaskPanel />}
       <AnimatePresence>{mode === 'home' && <StatsWidget key="stats" />}</AnimatePresence>
       <BuyMode />

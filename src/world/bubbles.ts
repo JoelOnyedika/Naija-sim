@@ -5,7 +5,7 @@ import type { Action } from './navigation';
  * with a fallback per animation. Pure data: add a row when you add a usable object.
  */
 export const BUBBLE_BY_ITEM: Record<string, string> = {
-  bed: '💤', king_bed: '💤', foam_mattress: '💤', tv: '📺', sofa: '😌', chair: '😌', desk: '💻', gaming_setup: '🎮', toilet: '🚽',
+  bed: '💤', king_bed: '💤', foam_mattress: '💤', tv: '📺', sofa: '😌', chair: '😌', desk: '💻', student_desk: '📘', standing_desk: '💻', workstation: '🖥️', printer_station: '🖨️', gaming_setup: '🎮', toilet: '🚽',
   cooker: '🍳', fridge: '😋', dispenser: '💧', bookshelf: '📖', piano: '🎹', speaker: '🎶', disco_light: '🪩', v_stall: '🛍️', v_altar: '🙏', v_pew: '🙏', v_plinth: '🖼️', v_bleachers: '📣', v_kiosk: '🥤', v_dj_booth: '🎧', v_cell_bed: '😴', armchair: '😌', dining_chair: '😌', office_chair: '😌', stool: '😌', ring_light: '🎥', camera_tripod: '🎥', dj_deck: '🎧', washbasin: '🧼', bucket: '🪣',
   shower: '🚿', bathtub: '🛁', jacuzzi: '🛁', gym_rug: '💪',
 };

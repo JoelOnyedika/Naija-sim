@@ -30,6 +30,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
   /** True while the camera glides to a selected place; any touch or drag by the player cancels it so panning never fights it. */
   const flying = useRef(false);
   const lim = state.mapData.layout?.sea;
+  const K = state.mapData.viewScale ?? 1;
 
   useEffect(() => {
     const c = state.mapData.center;
@@ -37,7 +38,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
     flying.current = false;
     if (mode === 'map') {
       // top-down: straight above the centre, tilted back a touch so buildings read as 3D
-      const r = 118;
+      const r = 118 * K;
       camera.position.set(c[0], r * Math.cos(MAP_POLAR), c[1] + r * Math.sin(MAP_POLAR));
     } else {
       const r = 72;
@@ -45,7 +46,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
     }
     controls.current?.target.copy(focus.current);
     controls.current?.update();
-  }, [camera, state, mode]);
+  }, [camera, state, mode, K]);
 
   useEffect(() => {
     if (mode !== 'map') return;
@@ -86,7 +87,7 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
         enableRotate={false} enablePan enableZoom screenSpacePanning panSpeed={1.1} zoomSpeed={0.9}
         mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
         touches={{ ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN }}
-        minDistance={14} maxDistance={140} minPolarAngle={MAP_POLAR} maxPolarAngle={MAP_POLAR} minAzimuthAngle={0} maxAzimuthAngle={0}
+        minDistance={14} maxDistance={140 * K} minPolarAngle={MAP_POLAR} maxPolarAngle={MAP_POLAR} minAzimuthAngle={0} maxAzimuthAngle={0}
       />
     );
   }
@@ -142,9 +143,9 @@ export function WorldView(props: Props) {
   if (!state) return null;
   const { skyTop, skyBottom } = state.visualData;
   return (
-    <Canvas dpr={[1, 1.6]} camera={{ fov: 42, near: 0.5, far: 520 }} gl={{ antialias: true }}>
+    <Canvas dpr={[1, 1.6]} camera={{ fov: 42, near: 0.5, far: 520 * (state.mapData.viewScale ?? 1) }} gl={{ antialias: true }}>
       <color attach="background" args={[skyBottom]} />
-      <fog attach="fog" args={[skyBottom, 170, 360]} />
+      <fog attach="fog" args={[skyBottom, 170 * (state.mapData.viewScale ?? 1), 360 * (state.mapData.viewScale ?? 1)]} />
       <hemisphereLight args={[skyTop, '#C9B58A', 0.9]} />
       <directionalLight position={[30, 40, 20]} intensity={1.6} color="#FFE7B8" />
       <Suspense fallback={null}>{Scene && <Scene state={state} />}</Suspense>

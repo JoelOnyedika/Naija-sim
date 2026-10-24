@@ -1,5 +1,6 @@
 import type { SkillId } from '@/stores/skillStore';
 import type { Effects } from '@/types/game';
+import { KIT_ITEMS } from './venueKit';
 
 export type ItemCategory = 'pets' | 'storage' | 'designs' | 'sleep' | 'kitchen' | 'bathroom' | 'comfort' | 'fun' | 'skills';
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
@@ -34,6 +35,8 @@ export interface UseDef {
   payout?: number;
   /** Pet care activity: updates the pet's bond / hunger when it finishes (game/petCare.ts). */
   petAction?: 'pet' | 'feed' | 'play';
+  /** A gamble: when the activity ends it is won or lost. `winEffects`/`loseEffects` are applied then (and a lost one earns no XP or pay). Random outcomes must be decided by a server in a real game. */
+  risk?: { winChance: number; winEffects: Effects; loseEffects: Effects; winMessage: string; loseMessage: string };
 }
 
 export interface FurnitureDef {
@@ -82,7 +85,7 @@ export interface FurnitureDef {
 
 const floor = { surface: 'floor', collides: true, rotatable: true } as const;
 
-export const FURNITURE: FurnitureDef[] = [
+const BASE_FURNITURE: FurnitureDef[] = [
   // ---- v8 catalogue (models in three/models/catalogue.tsx)
   { id: 'dining_chair', name: 'Dining chair', description: 'Slatted wood back. Pulls up to any table.', price: 20000, category: 'comfort', rarity: 'common', glyph: '🪑', model: 'dining_chair', footprint: { w: 0.45, d: 0.45 }, height: 0.95, placement: floor, place: 'any', style: 1, use: { label: 'Sit', seconds: 5, effects: { happiness: 3 }, pose: 'sit' } },
   { id: 'stool', name: 'Bar stool', description: 'Steel legs, round painted seat.', price: 12000, category: 'comfort', rarity: 'common', glyph: '🪑', model: 'stool', footprint: { w: 0.4, d: 0.4 }, height: 0.68, placement: floor, style: 1, use: { label: 'Sit', seconds: 5, effects: { happiness: 2 }, pose: 'sit' } },
@@ -157,6 +160,10 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'piano', name: 'Keyboard piano', description: 'Weighted keys and a proper stand.', price: 900000, category: 'fun', rarity: 'epic', glyph: '🎹', model: 'piano', footprint: { w: 1.4, d: 0.5 }, height: 0.95, placement: floor, style: 8, use: { label: 'Play keys', seconds: 10, effects: { happiness: 10, charisma: 2, energy: -3 }, pose: 'stand' } },
   // ---- Skills
   { id: 'desk', name: 'Desk and laptop', description: 'A proper desk and a laptop that can actually code.', price: 140000, category: 'skills', rarity: 'uncommon', glyph: '💻', model: 'desk', footprint: { w: 1.2, d: 0.6 }, height: 1.2, placement: floor, style: 4, use: { label: 'Practise coding', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 10 }, event: 'use:study' } },
+  { id: 'student_desk', name: 'Student desk', description: 'A cheap desk, a secondhand laptop and a bright plastic chair. Enough to learn on.', price: 65000, category: 'skills', rarity: 'common', glyph: '🖥️', model: 'student_desk', footprint: { w: 1.0, d: 0.55 }, height: 1.1, placement: floor, style: 2, use: { label: 'Study on the laptop', seconds: 12, effects: { energy: -5, happiness: -1 }, pose: 'sit', skill: { id: 'coding', xp: 7 }, event: 'use:study' } },
+  { id: 'standing_desk', name: 'Standing desk', description: 'Height-adjustable, so you can hustle on your feet. Laptop on a riser.', price: 280000, category: 'skills', rarity: 'uncommon', glyph: '🧍', model: 'standing_desk', footprint: { w: 1.3, d: 0.65 }, height: 1.15, placement: floor, style: 5, use: { label: 'Work standing up', seconds: 12, effects: { energy: -5, happiness: -1 }, pose: 'stand', skill: { id: 'coding', xp: 9 }, event: 'use:study' } },
+  { id: 'workstation', name: 'Dual-monitor workstation', description: 'Two screens, a tower with lights and a proper chair. For serious coding and editing.', price: 620000, category: 'skills', rarity: 'rare', glyph: '🖥️', model: 'workstation', footprint: { w: 1.4, d: 0.65 }, height: 1.25, placement: floor, style: 8, use: { label: 'Code on two screens', seconds: 12, effects: { energy: -6, happiness: -2 }, pose: 'sit', skill: { id: 'coding', xp: 13 }, event: 'use:study' } },
+  { id: 'printer_station', name: 'Printer and scanner', description: 'Print CVs, forms and school work without queueing at a cyber cafe.', price: 45000, category: 'skills', rarity: 'common', glyph: '🖨️', model: 'printer_station', footprint: { w: 0.62, d: 0.5 }, height: 0.9, placement: floor, style: 2, use: { label: 'Print documents', seconds: 8, effects: { energy: -1, happiness: 2 }, pose: 'stand', skill: { id: 'communication', xp: 3 } } },
   // ---- Designs
   { id: 'rug', name: 'Ankara rug', description: 'Bold pattern that ties the room together.', price: 35000, category: 'designs', rarity: 'common', glyph: '🟧', model: 'rug', footprint: { w: 2.0, d: 1.4 }, height: 0.03, placement: { surface: 'floor', collides: false, rotatable: true }, style: 2 },
   { id: 'wall_frame', name: 'Wall frame', description: 'Sunset over the lagoon, framed.', price: 25000, category: 'designs', rarity: 'common', glyph: '🖼️', model: 'wall_frame', footprint: { w: 0.8, d: 0.06 }, height: 0.6, placement: { surface: 'wall', collides: true, rotatable: false, mountHeight: 1.5 }, style: 2 },
@@ -174,6 +181,7 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'disco_light', name: 'Disco light', description: 'Spins colour across the room. Only when there is a party.', price: 120000, category: 'fun', rarity: 'rare', glyph: '🪩', model: 'disco_light', footprint: { w: 0.4, d: 0.4 }, height: 1.4, placement: floor, style: 4 },
 ];
 
+export const FURNITURE: FurnitureDef[] = [...BASE_FURNITURE, ...KIT_ITEMS];
 const byId = new Map(FURNITURE.map((f) => [f.id, f]));
 export const getFurniture = (id: string) => byId.get(id);
 

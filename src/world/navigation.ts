@@ -1,3 +1,4 @@
+import { KIT_SPECS } from '@/data/venueKit';
 import { getFurniture } from '@/data/items';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout } from '@/types/world';
@@ -163,6 +164,10 @@ export const SPECS: Record<string, Spec> = {
   tv: { pose: 'sit', action: 'tv', mode: 'watch' },
   gaming_setup: { pose: 'sit', action: 'type', mode: 'work' },
   desk: { pose: 'sit', action: 'type', mode: 'work' },
+  student_desk: { pose: 'sit', action: 'type', mode: 'work' },
+  workstation: { pose: 'sit', action: 'type', mode: 'work' },
+  standing_desk: { pose: 'stand', action: 'type', mode: 'front' },
+  printer_station: { pose: 'stand', action: 'idle', mode: 'front' },
   cooker: { pose: 'stand', action: 'cook', mode: 'front' },
   fridge: { pose: 'stand', action: 'eat', mode: 'front' },
   dispenser: { pose: 'stand', action: 'drink', mode: 'front' },
@@ -171,6 +176,7 @@ export const SPECS: Record<string, Spec> = {
   washbasin: { pose: 'stand', action: 'wash', mode: 'front' },
   speaker: { pose: 'stand', action: 'dance', mode: 'front' },
   disco_light: { pose: 'stand', action: 'dance', mode: 'front' },
+  ...KIT_SPECS,
   v_stall: { pose: 'stand', action: 'idle', mode: 'front' },
   v_altar: { pose: 'stand', action: 'idle', mode: 'front' },
   v_pew: { pose: 'sit', action: 'idle', mode: 'on', top: 0.46 },

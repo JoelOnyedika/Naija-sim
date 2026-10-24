@@ -27,6 +27,11 @@ import { useReferralStore } from '@/stores/referralStore';
 import { useAuthStore } from '@/stores/authStore';
 
 function onFinished(a: Activity) {
+  // a gamble: lost means no pay, no XP, and a penalty; won adds a bonus
+  if (a.risk) {
+    if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); return; }
+    useStatsStore.getState().apply(a.risk.winEffects); toast(a.risk.winMessage, 'good');
+  }
   // activities with a key (venue hustles, the coding task) are paid what the authority says, never what the running activity claims
   const paid = a.activityKey ? getAuthority().approvePayout(a.activityKey, a.payout ?? 0) : a.payout;
   if (paid) {

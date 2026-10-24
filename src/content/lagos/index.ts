@@ -5,6 +5,7 @@ import { LAGOS_ADS } from './ads';
 import { LANDMARKS } from './landmarks';
 import { LAGOS_LAYOUT } from './map/layout';
 import { ENTRIES } from './properties';
+import { SPREAD, sp, spreadAreas, spreadBillboard, spreadLandmark, spreadLayout } from './spread';
 
 const STATE_ID = 'lagos';
 
@@ -14,7 +15,7 @@ export const lagos: StateDefinition = {
   name: 'Lagos',
   country: 'Nigeria',
   tagline: 'Create your Lagos story.',
-  areas: AREAS.map((a) => ({
+  areas: AREAS.map(spreadAreas).map((a) => ({
     ...a,
     stateId: STATE_ID,
     propertyIds: ENTRIES.filter((e) => e.property.areaId === a.id).map((e) => e.property.id),
@@ -22,11 +23,12 @@ export const lagos: StateDefinition = {
   properties: ENTRIES.map((e) => ({ ...e.property, stateId: STATE_ID, layoutId: e.property.id })),
   layouts: ENTRIES.map((e) => e.layout(e.property.id)),
   mapData: {
-    layout: LAGOS_LAYOUT,
-    center: [2, -2],
-    bounds: 62,
-    landmarks: LANDMARKS.map((l) => ({ ...l, stateId: STATE_ID })),
-    billboards: BILLBOARDS.map((b) => ({ ...b, stateId: STATE_ID })),
+    layout: spreadLayout(LAGOS_LAYOUT),
+    center: sp([2, -2]),
+    bounds: Math.round(62 * SPREAD),
+    viewScale: SPREAD,
+    landmarks: LANDMARKS.map(spreadLandmark).map((l) => ({ ...l, stateId: STATE_ID })),
+    billboards: BILLBOARDS.map(spreadBillboard).map((b) => ({ ...b, stateId: STATE_ID })),
   },
   ads: LAGOS_ADS,
   visualData: { sceneId: 'lagos', skyTop: '#2B7FBF', skyBottom: '#F7D7A0', accent: '#FFC21A' },

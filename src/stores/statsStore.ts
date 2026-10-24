@@ -1,3 +1,4 @@
+import type { UseDef } from '@/data/items';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { clamp } from '@/core/format';
@@ -10,6 +11,8 @@ export const FRESH_STATS: Stats = { hunger: 80, thirst: 80, bladder: 85, happine
 export interface Activity {
   id: string;
   label: string;
+  /** Emoji shown on the small progress circle. */
+  glyph?: string;
   seconds: number;
   elapsed: number;
   /** Totals spread evenly over the duration. */
@@ -32,6 +35,8 @@ export interface Activity {
   slept?: boolean;
   /** Skill XP granted on completion (practice items). */
   skill?: { id: SkillId; xp: number };
+  /** A gamble resolved when it finishes (see UseDef.risk). */
+  risk?: UseDef['risk'];
   /** True while a house party is running. */
   party?: boolean;
 }

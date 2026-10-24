@@ -14,7 +14,7 @@
     "test:nav": "tsx scripts/navTest.ts",
     "test:economy": "tsx scripts/economyTest.ts",
     "test:settings": "tsx scripts/settingsTest.ts",
-    "test:all": "npm run typecheck && npm run validate:content && npm run smoke && npm run test:nav && npm run test:ads && npm run test:careers && npm run test:social && npm run test:hustle && npm run test:empire && npm run test:legal && npm run test:shop && npm run test:phone && npm run test:economy && npm run test:settings && npm run test:persist && npm run test:v8 && npm run test:pets && npm run test:petstats && npm run test:activities && npm run test:catalogue && npm run test:map && npm run test:ui && npm run test:walls && npm run test:adsproviders && npm run test:referrals && npm run test:venues",
+    "test:all": "npm run typecheck && npm run validate:content && npm run smoke && npm run test:nav && npm run test:ads && npm run test:careers && npm run test:social && npm run test:hustle && npm run test:empire && npm run test:legal && npm run test:shop && npm run test:phone && npm run test:economy && npm run test:settings && npm run test:persist && npm run test:v8 && npm run test:pets && npm run test:petstats && npm run test:activities && npm run test:catalogue && npm run test:map && npm run test:ui && npm run test:walls && npm run test:adsproviders && npm run test:referrals && npm run test:venues && npm run test:houses",
     "test:persist": "tsx scripts/persistTest.ts",
     "test:careers": "tsx scripts/careersTest.ts",
     "test:social": "tsx scripts/socialTest.ts",
@@ -33,7 +33,8 @@
     "test:adsproviders": "tsx scripts/adsProvidersTest.ts",
     "test:petstats": "tsx scripts/petStatsTest.ts",
     "test:referrals": "tsx scripts/referralsTest.ts",
-    "test:venues": "tsx scripts/venuesTest.ts"
+    "test:venues": "tsx scripts/venuesTest.ts",
+    "test:houses": "tsx scripts/houseRulesTest.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
