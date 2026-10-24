@@ -17,6 +17,7 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
   const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0;
   const finish = useZoneFloor(layout, zone);
   const kind = finish?.floor ?? zone.floor;
+  const club = layout.id === 'interior.club'; // the nightclub floor is dark and glossy so the coloured lights show
   const tex = useMemo(() => {
     if (kind === 'water') return null;
     const t = floorTexture(kind).clone(); t.repeat.set(w / 2, d / 2); t.needsUpdate = true; return t;
@@ -30,7 +31,7 @@ function ZoneFloor({ zone, layout }: { zone: Zone; layout: PropertyLayout }) {
       {zone.indoor && <mesh position={[cx, -0.08, cz]} receiveShadow><boxGeometry args={[w, 0.16, d]} /><meshStandardMaterial color="#B9AD94" roughness={1} /></mesh>}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.003, cz]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial map={tex ?? undefined} color={finish?.tint ?? '#ffffff'} roughness={finish?.rough ?? (kind === 'marble' ? 0.25 : kind === 'ceramic' || kind === 'diamond' ? 0.3 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
+        <meshStandardMaterial map={tex ?? undefined} color={club ? '#3A3350' : finish?.tint ?? '#ffffff'} roughness={club ? 0.18 : finish?.rough ?? (kind === 'marble' ? 0.25 : kind === 'ceramic' || kind === 'diamond' ? 0.3 : 0.85)} metalness={kind === 'marble' ? 0.06 : 0} />
       </mesh>
     </group>
   );
