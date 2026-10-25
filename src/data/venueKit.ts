@@ -96,6 +96,17 @@ export const KIT: Kit[] = [
   { id: 'v_container', name: 'Shipping containers', glyph: '📦', w: 2.6, d: 1.2, h: 2.4 },
   { id: 'v_pallet', name: 'Cargo pallets', glyph: '📦', w: 1.6, d: 1.2, h: 1.0, spec: stand, uses: [U('load_cargo', '📦', 'Load cargo', 22, { energy: -12, hygiene: -3 }, { payout: 4000, skill: { id: 'fitness', xp: 4 } })] },
   { id: 'v_crane', name: 'Dock crane', glyph: '🏗️', w: 1.2, d: 1.2, h: 5.0 },
+  // ---- church, market and showroom extras
+  { id: 'v_candle_rack', name: 'Candle stand', glyph: '🕯️', w: 1.0, d: 0.6, h: 1.3, spec: stand, uses: [U('light_candle_rack', '🕯️', 'Light a candle', 6, { happiness: 5 }, { cost: 500 })] },
+  { id: 'v_choir', name: 'Choir stand', glyph: '🎶', w: 2.6, d: 1.0, h: 1.6, spec: stand, uses: [U('sing_choir', '🎶', 'Sing with the choir', 14, { happiness: 12, social: 4, energy: -3 }, { skill: { id: 'creativity', xp: 4 } })] },
+  { id: 'v_flower_stand', name: 'Flower stand', glyph: '💐', w: 0.9, d: 0.9, h: 1.5 },
+  { id: 'v_fruit_stand', name: 'Fruit stand', glyph: '🍉', w: 1.8, d: 0.9, h: 2.2, spec: stand, uses: [U('buy_fruit', '🍉', 'Buy fruit', 5, { hunger: 18, thirst: 10, happiness: 3 }, { cost: 1200 })] },
+  { id: 'v_fabric_rack', name: 'Fabric rack', glyph: '🧵', w: 1.8, d: 0.8, h: 2.0, spec: stand, uses: [U('browse_fabric', '🧵', 'Browse the fabrics', 12, { happiness: 5 }, { skill: { id: 'creativity', xp: 2 } }), U('pick_ankara', '👗', 'Pick an Ankara print', 10, { happiness: 6, charisma: 1 })] },
+  { id: 'v_spec_board', name: 'Car spec board', glyph: '📋', w: 1.6, d: 0.3, h: 2.0, spec: stand, uses: [U('read_specs', '📋', 'Compare the specs', 10, { happiness: 3 }, { skill: { id: 'driving', xp: 3 } })] },
+  { id: 'v_sculpture', name: 'Large sculpture', glyph: '🗿', w: 1.6, d: 1.6, h: 3.0, spec: stand, uses: [U('study_sculpture', '🗿', 'Study the sculpture', 10, { happiness: 4 }, { skill: { id: 'creativity', xp: 4 } }), U('sketch_sculpture', '✏️', 'Sketch it', 12, { energy: -3, happiness: 3 }, { skill: { id: 'creativity', xp: 6 } })] },
+  { id: 'v_gallery_bench', name: 'Gallery bench', glyph: '🪑', w: 1.8, d: 0.6, h: 0.5, solid: false, spec: seat(0.44), uses: [U('rest_reflect', '🤔', 'Rest and reflect', 10, { happiness: 3, energy: 5 }, { pose: 'sit' })] },
+  { id: 'v_goal', name: 'Goal posts', glyph: '🥅', w: 3.6, d: 0.6, h: 2.4, spec: stand, uses: [U('take_penalty', '⚽', 'Take a penalty', 8, { happiness: 8, energy: -4 }, { skill: { id: 'fitness', xp: 3 } })] },
+  { id: 'v_lifeguard', name: 'Lifeguard tower', glyph: '🛟', w: 1.4, d: 1.4, h: 2.8, spec: stand, uses: [U('watch_waves', '🌊', 'Watch the waves', 10, { happiness: 5, energy: 4 })] },
   // ---- viewing centre
   { id: 'v_big_screen', name: 'Big screen', glyph: '📺', w: 3.2, d: 0.6, h: 2.4, spec: stand, uses: [U('watch_match', '⚽', 'Watch the match', 20, { happiness: 14, social: 5 })] },
   { id: 'v_view_bench', name: 'Viewing benches', glyph: '🪑', w: 2.4, d: 0.7, h: 0.9, solid: false, spec: seat(), uses: [

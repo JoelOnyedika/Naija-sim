@@ -1,4 +1,5 @@
 import { INTERIORS, type InteriorKind } from '@/data/interiors';
+import { VenueDecor } from './VenueDecor';
 import { VenueSurround } from './VenueSurround';
 import { useMemo } from 'react';
 import { Html } from '@react-three/drei';
@@ -151,7 +152,7 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
   const venue = layout.id.startsWith('interior.'); // public venues sit in a real 3D street, not on the home's lawn
   return (
     <group>
-      {venue ? <VenueSurround layout={layout} /> : <GroundDisc layout={layout} />}
+      {venue ? <><VenueSurround layout={layout} /><VenueDecor layoutId={layout.id} /></> : <GroundDisc layout={layout} />}
       {layout.zones.map((z) => <ZoneFloor key={z.id} zone={z} layout={layout} />)}
       <ParkingPad layout={layout} />
       <Rim layout={layout} />

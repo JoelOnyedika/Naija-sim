@@ -335,6 +335,90 @@ const MODELS: Record<string, ComponentType> = {
       <B size={[0.04, 1.6, 0.04]} pos={[2.4, 4.1, 0]} color="#2A2D31" rough={0.6} /><B size={[0.5, 0.2, 0.3]} pos={[2.4, 3.2, 0]} color="#15171B" rough={0.6} />
     </group>
   ),
+  v_candle_rack: () => (
+    <group>
+      <B size={[1.0, 0.1, 0.6]} pos={[0, 0.05, 0]} color="#3A2A22" rough={0.6} />
+      <B size={[0.9, 0.9, 0.5]} pos={[0, 0.55, 0]} color="#5A3A20" rough={0.6} radius={0.03} />
+      {[-0.32, -0.1, 0.12, 0.34].map((x, i) => <group key={x}><Cyl r={0.05} h={0.28} pos={[x, 1.15 + (i % 2) * 0.05, 0]} color="#FFF1C2" rough={0.7} seg={8} /><Glow pos={[x, 1.38 + (i % 2) * 0.05, 0.02]} size={[0.07, 0.12]} color="#FFB45C" intensity={1.6} /></group>)}
+    </group>
+  ),
+  v_choir: () => (
+    <group>
+      <B size={[2.6, 0.4, 1.0]} pos={[0, 0.2, 0]} color="#5A3A20" rough={0.6} radius={0.03} />
+      <B size={[2.6, 0.4, 0.7]} pos={[0, 0.6, -0.15]} color="#6A4528" rough={0.6} radius={0.03} />
+      <B size={[2.6, 0.9, 0.12]} pos={[0, 1.15, -0.45]} color="#7A4A26" rough={0.6} radius={0.03} />
+      {[-0.9, -0.3, 0.3, 0.9].map((x, i) => <group key={x}><Sph r={0.14} pos={[x, 1.3 - (i % 2) * 0.3, 0.05]} color="#C98A5A" rough={0.8} /><B size={[0.34, 0.5, 0.2]} pos={[x, 0.95 - (i % 2) * 0.3, 0.05]} color={['#7A1F3D', '#F4F1EA', '#7A1F3D', '#F4F1EA'][i]} rough={0.9} radius={0.05} /></group>)}
+    </group>
+  ),
+  v_flower_stand: () => (
+    <group>
+      <Cyl r={0.35} r2={0.28} h={0.9} pos={[0, 0.45, 0]} color="#F4F1EA" rough={0.4} seg={14} />
+      {[[-0.15, 0.2, '#E4572E'], [0.12, 0.3, '#FFE08A'], [0, 0.45, '#FF7AA8'], [-0.2, 0.6, '#F4F1EA'], [0.22, 0.65, '#E4572E']].map(([x, h, c], i) => <group key={i}><Cyl r={0.015} h={0.5} pos={[x as number, 1.1, 0]} color="#2E8B4A" seg={5} /><Sph r={0.11} pos={[x as number, 1.35 + (h as number) * 0.25, 0]} color={c as string} rough={0.8} /></group>)}
+      <Sph r={0.34} pos={[0, 1.2, 0]} scale={[1, 0.7, 1]} color="#2E8B4A" rough={0.9} />
+    </group>
+  ),
+  v_fruit_stand: () => (
+    <group>
+      <B size={[1.8, 0.8, 0.8]} pos={[0, 0.4, 0.05]} color="#2F8F4E" rough={0.6} radius={0.03} />
+      <B size={[1.8, 0.2, 0.85]} pos={[0, 0.9, 0.05]} rot={[-0.25, 0, 0]} color="#B07A44" rough={0.7} radius={0.02} />
+      {[-0.6, -0.2, 0.2, 0.6].map((x, i) => <group key={x}>{[0, 1, 2].map((k) => <Sph key={k} r={0.1} pos={[x + (k - 1) * 0.12, 1.02 + (k % 2) * 0.06, 0.15 - k * 0.05]} color={['#E4572E', '#F4B400', '#3FA35A', '#FF8A3D'][(i + k) % 4]} rough={0.6} />)}</group>)}
+      {[-0.85, 0.85].map((x) => <B key={x} size={[0.05, 2.2, 0.05]} pos={[x, 1.1, -0.3]} color="#5A3A20" rough={0.7} />)}
+      {[0, 1, 2, 3, 4, 5].map((i) => <B key={i} size={[0.3, 0.05, 1.1]} pos={[-0.75 + i * 0.3, 2.12, -0.05]} rot={[0.12, 0, 0]} color={i % 2 ? '#F4F1EA' : '#3FA35A'} rough={0.9} />)}
+    </group>
+  ),
+  v_fabric_rack: () => (
+    <group>
+      {[-0.85, 0.85].map((x) => <B key={x} size={[0.06, 2.0, 0.06]} pos={[x, 1.0, 0]} color="#5A3A20" rough={0.7} />)}
+      <B size={[1.8, 0.06, 0.06]} pos={[0, 1.95, 0]} color="#5A3A20" rough={0.7} /><B size={[1.8, 0.06, 0.06]} pos={[0, 1.2, 0]} color="#5A3A20" rough={0.7} />
+      {['#C4552D', '#2E86C1', '#E9B949', '#8A3F6A', '#1F4E47', '#E4572E', '#3FA35A', '#F4F1EA'].map((c, i) => <B key={c} size={[0.19, 0.75, 0.04]} pos={[-0.77 + i * 0.22, 1.55, 0]} rot={[0, 0, Math.sin(i) * 0.03]} color={c} rough={0.95} radius={0.01} />)}
+      {['#FFE08A', '#7A1F3D', '#2F8F4E', '#1F3D6B', '#C4552D', '#FFFFFF'].map((c, i) => <B key={c} size={[0.28, 0.6, 0.04]} pos={[-0.7 + i * 0.28, 0.85, 0.02]} color={c} rough={0.95} radius={0.01} />)}
+      <B size={[1.7, 0.08, 0.5]} pos={[0, 0.2, 0.05]} color="#A8743F" rough={0.8} />
+    </group>
+  ),
+  v_spec_board: () => (
+    <group>
+      <B size={[1.6, 1.3, 0.1]} pos={[0, 1.4, 0]} color="#15171B" rough={0.4} radius={0.03} />
+      <Glow pos={[0, 1.45, 0.06]} size={[1.45, 1.1]} color="#102B3F" intensity={0.8} />
+      {[0, 1, 2, 3, 4].map((i) => <Glow key={i} pos={[-0.3 + (i % 2) * 0.1, 1.85 - i * 0.2, 0.065]} size={[0.8 - (i % 2) * 0.2, 0.06]} color={i === 0 ? '#E9B949' : '#BFE3F4'} intensity={1} />)}
+      {[-0.7, 0.7].map((x) => <B key={x} size={[0.07, 0.8, 0.07]} pos={[x, 0.4, 0]} color="#2A2D31" metal={0.5} rough={0.4} />)}
+    </group>
+  ),
+  v_sculpture: () => (
+    <group>
+      <Cyl r={0.75} r2={0.65} h={0.5} pos={[0, 0.25, 0]} color="#F4F1EA" rough={0.4} seg={20} />
+      <B size={[0.7, 1.1, 0.5]} pos={[0, 1.05, 0]} color="#B8892F" metal={0.8} rough={0.25} radius={0.15} />
+      <Sph r={0.34} pos={[0, 1.9, 0]} color="#B8892F" metal={0.8} rough={0.25} />
+      <B size={[0.18, 0.9, 0.18]} pos={[0.5, 1.2, 0]} rot={[0, 0, -0.5]} color="#B8892F" metal={0.8} rough={0.25} radius={0.08} /><B size={[0.18, 0.9, 0.18]} pos={[-0.5, 1.3, 0]} rot={[0, 0, 0.7]} color="#B8892F" metal={0.8} rough={0.25} radius={0.08} />
+      <Sph r={0.2} pos={[0, 2.5, 0]} scale={[1, 0.6, 1]} color="#C4552D" metal={0.4} rough={0.3} />
+    </group>
+  ),
+  v_gallery_bench: () => (
+    <group>
+      <B size={[1.8, 0.1, 0.55]} pos={[0, 0.42, 0]} color="#15171B" rough={0.5} radius={0.03} />
+      <B size={[1.7, 0.08, 0.5]} pos={[0, 0.5, 0]} color="#C4552D" rough={0.8} radius={0.04} />
+      {[-0.8, 0.8].map((x) => <B key={x} size={[0.06, 0.38, 0.45]} pos={[x, 0.19, 0]} color="#15171B" metal={0.5} rough={0.4} />)}
+    </group>
+  ),
+  v_goal: () => (
+    <group>
+      {[-1.7, 1.7].map((x) => <B key={x} size={[0.1, 2.4, 0.1]} pos={[x, 1.2, 0]} color="#FFFFFF" rough={0.4} />)}
+      <B size={[3.5, 0.1, 0.1]} pos={[0, 2.4, 0]} color="#FFFFFF" rough={0.4} />
+      <B size={[3.4, 2.3, 0.02]} pos={[0, 1.2, -0.45]} color="#E8ECEF" rough={0.9} shadow={false} />
+      {[-1.7, 1.7].map((x) => <B key={x} size={[0.02, 2.3, 0.9]} pos={[x * 0.97, 1.2, -0.2]} color="#E8ECEF" rough={0.9} shadow={false} />)}
+      <Sph r={0.13} pos={[0.4, 0.13, 0.9]} color="#FFFFFF" rough={0.6} />
+    </group>
+  ),
+  v_lifeguard: () => (
+    <group>
+      {[[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]].map(([x, z]) => <B key={`${x}${z}`} size={[0.1, 1.5, 0.1]} pos={[x, 0.75, z]} color="#F4F1EA" rough={0.6} />)}
+      <B size={[1.3, 0.1, 1.3]} pos={[0, 1.5, 0]} color="#F4F1EA" rough={0.6} />
+      <B size={[1.0, 0.7, 1.0]} pos={[0, 1.95, 0]} color="#E4572E" rough={0.6} radius={0.03} />
+      <B size={[1.5, 0.08, 1.5]} pos={[0, 2.4, 0]} color="#F4F1EA" rough={0.6} />
+      <B size={[0.8, 0.3, 0.02]} pos={[0, 2.0, 0.51]} color="#9FD3F0" rough={0.15} />
+      <B size={[0.5, 0.06, 1.6]} pos={[0, 0.7, 1.0]} rot={[-0.6, 0, 0]} color="#B07A44" rough={0.7} />
+      <B size={[0.4, 0.4, 0.04]} pos={[0.2, 2.9, 0]} color="#E4572E" rough={0.8} />
+    </group>
+  ),
   v_big_screen: () => (
     <group>
       <B size={[3.2, 1.9, 0.14]} pos={[0, 1.5, 0]} color="#0C0C10" rough={0.3} radius={0.04} />

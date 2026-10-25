@@ -38,22 +38,26 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
   market: {
     id: 'market', kind: 'market', glyph: '🛍️', label: 'Market', tagline: 'Fabric, noise and bargains.', w: 16, d: 12, floor: 'concrete', wallHeight: 3.4,
     palette: { wall: '#D8C7A0', trim: '#8A5A2E', accent: '#D9462F' }, capacity: 10, npcTarget: 8, crowd: true, chat: true,
-    items: [...row('v_stall', [2.6, 5.8, 9.0, 12.2], 1.8), ...row('v_stall', [3.6, 7.2, 10.8], 5.3), { defId: 'v_sacks', x: 1.2, z: 10.4, rotation: 0 }, { defId: 'v_sacks', x: 14.6, z: 4.2, rotation: 0 }, { defId: 'v_kiosk', x: 14.2, z: 9.8, rotation: 0 }],
+    items: [...row('v_stall', [2.6, 5.8, 9.0, 12.2], 1.8), ...row('v_stall', [3.6, 7.2, 10.8], 5.3), { defId: 'v_sacks', x: 1.2, z: 10.4, rotation: 0 }, { defId: 'v_sacks', x: 14.6, z: 4.2, rotation: 0 }, { defId: 'v_kiosk', x: 14.2, z: 9.8, rotation: 0 },
+      { defId: 'v_fruit_stand', x: 14.8, z: 7.0, rotation: 3 }, { defId: 'v_fabric_rack', x: 1.4, z: 4.2, rotation: 1 }, { defId: 'v_fabric_rack', x: 1.4, z: 7.2, rotation: 1 }, { defId: 'v_fruit_stand', x: 6.2, z: 9.6, rotation: 0 }, { defId: 'v_fabric_rack', x: 10.4, z: 9.8, rotation: 0 }, { defId: 'v_flower_stand', x: 14.8, z: 1.4, rotation: 0 }],
   },
   church: {
     id: 'church', kind: 'church', glyph: '⛪', label: 'Church', tagline: 'Quiet, bright and welcoming.', w: 16, d: 14, floor: 'terrazzo', wallHeight: 4.2,
     palette: { wall: '#F1EBDD', trim: '#B89A5A', accent: '#7A4A26' }, capacity: 10, npcTarget: 7, crowd: false, chat: true,
-    items: [{ defId: 'v_altar', x: 8, z: 1.6, rotation: 0 }, ...[4.6, 6.6, 8.6, 10.6].flatMap((z) => [...row('v_pew', [4.2, 11.8], z, 2)])],
+    items: [{ defId: 'v_altar', x: 8, z: 1.6, rotation: 0 }, ...[4.6, 6.6, 8.6, 10.6].flatMap((z) => [...row('v_pew', [4.2, 11.8], z, 2)]),
+      { defId: 'v_candle_rack', x: 4.8, z: 1.6, rotation: 0 }, { defId: 'v_candle_rack', x: 11.2, z: 1.6, rotation: 0 }, { defId: 'v_flower_stand', x: 6.2, z: 1.2, rotation: 0 }, { defId: 'v_flower_stand', x: 9.8, z: 1.2, rotation: 0 }, { defId: 'v_choir', x: 13.8, z: 1.7, rotation: 0 }, { defId: 'plant', x: 1.2, z: 12.6, rotation: 0 }, { defId: 'plant', x: 14.8, z: 12.6, rotation: 0 }],
   },
   gallery: {
     id: 'gallery', kind: 'gallery', glyph: '🖼️', label: 'Gallery', tagline: 'Art, music and quiet conversation.', w: 14, d: 12, floor: 'marble', wallHeight: 3.6,
     palette: { wall: '#F4F1EA', trim: '#2B2F32', accent: '#C4552D' }, capacity: 10, npcTarget: 5, crowd: false, chat: true,
-    items: [...row('v_plinth', [3, 7, 11], 2.6), ...row('v_plinth', [2.6, 11.4], 7.8), { defId: 'v_plinth', x: 7, z: 10.6, rotation: 0 }],
+    items: [...row('v_plinth', [3, 7, 11], 2.6), ...row('v_plinth', [2.6, 11.4], 7.8), { defId: 'v_plinth', x: 7, z: 10.6, rotation: 0 },
+      { defId: 'v_sculpture', x: 7, z: 6.2, rotation: 0 }, { defId: 'v_gallery_bench', x: 4.4, z: 5.4, rotation: 0 }, { defId: 'v_gallery_bench', x: 9.6, z: 5.4, rotation: 0 }, { defId: 'plant', x: 1.2, z: 1.2, rotation: 0 }, { defId: 'plant', x: 12.8, z: 1.2, rotation: 0 }, { defId: 'plant', x: 12.8, z: 10.8, rotation: 0 }],
   },
   stadium: {
     id: 'stadium', kind: 'stadium', glyph: '⚽', label: 'Stadium', tagline: 'Where the whole of Lagos shouts together.', w: 20, d: 16, floor: 'grass', wallHeight: 3.4,
     palette: { wall: '#E6E8EA', trim: '#1F6F4D', accent: '#1F6F4D' }, capacity: 10, npcTarget: 8, crowd: true, chat: true,
-    items: [...row('v_bleachers', [4.5, 10, 15.5], 3.2), { defId: 'v_kiosk', x: 2.2, z: 13.4, rotation: 0 }, { defId: 'v_kiosk', x: 17.8, z: 13.4, rotation: 0 }],
+    items: [...row('v_bleachers', [4.5, 10, 15.5], 3.2), { defId: 'v_kiosk', x: 2.2, z: 13.4, rotation: 0 }, { defId: 'v_kiosk', x: 17.8, z: 13.4, rotation: 0 },
+      { defId: 'v_goal', x: 10, z: 8.2, rotation: 2 }, { defId: 'v_goal', x: 10, z: 14.6, rotation: 0 }, { defId: 'v_palm', x: 1.2, z: 8.6, rotation: 0 }, { defId: 'v_palm', x: 18.8, z: 8.6, rotation: 0 }],
   },
   club: {
     id: 'club', kind: 'club', glyph: '🍾', label: 'Club', tagline: 'Premium. Loud. Lagos.', w: 18, d: 14, floor: 'diamond', floorTint: '#3A3350', floorRough: 0.18, wallHeight: 3.6,
@@ -61,9 +65,10 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
     items: [{ defId: 'v_club_bar', x: 4.6, z: 1.3, rotation: 0 }, { defId: 'v_dj_booth', x: 11, z: 1.4, rotation: 0 }, { defId: 'v_speaker_stack', x: 8.7, z: 1.0, rotation: 0 }, { defId: 'v_speaker_stack', x: 13.3, z: 1.0, rotation: 0 }, { defId: 'sofa', x: 1.6, z: 8.6, rotation: 1 }, { defId: 'sofa', x: 1.6, z: 11.4, rotation: 1 }, { defId: 'disco_light', x: 4.4, z: 5, rotation: 0 }, { defId: 'disco_light', x: 13.6, z: 5, rotation: 0 }, { defId: 'disco_light', x: 16.4, z: 9.5, rotation: 0 }],
   },
   showroom: {
-    id: 'showroom', kind: 'showroom', glyph: '🚗', label: 'Showroom', tagline: 'Polished floors, polished cars.', w: 24, d: 14, floor: 'marble', wallHeight: 4.0,
+    id: 'showroom', kind: 'showroom', glyph: '🚗', label: 'Showroom', tagline: 'Polished floors, polished cars.', w: 24, d: 14, floor: 'marble', floorTint: '#D9DCE4', floorRough: 0.12, wallHeight: 4.0,
     palette: { wall: '#ECEEF0', trim: '#B8892F', accent: '#1F3D6B' }, capacity: 10, npcTarget: 4, crowd: false, chat: true,
-    items: [...row('v_podium', [3.6, 9.2, 14.8, 20.4], 3.8), ...row('v_podium', [3.6, 9.2, 14.8, 20.4], 10.2)],
+    items: [...row('v_podium', [3.6, 9.2, 14.8, 20.4], 3.8), ...row('v_podium', [3.6, 9.2, 14.8, 20.4], 10.2),
+      { defId: 'v_reception', x: 12, z: 1.3, rotation: 0 }, { defId: 'v_spec_board', x: 1.0, z: 3.8, rotation: 1 }, { defId: 'v_spec_board', x: 1.0, z: 10.2, rotation: 1 }, { defId: 'sofa', x: 1.8, z: 7.0, rotation: 1 }, { defId: 'v_coffee_bar', x: 22.8, z: 7.0, rotation: 3 }, { defId: 'plant', x: 22.8, z: 1.3, rotation: 0 }, { defId: 'plant', x: 22.8, z: 12.7, rotation: 0 }, { defId: 'plant', x: 1.2, z: 12.7, rotation: 0 }],
   },
   jail: {
     id: 'jail', kind: 'jail', glyph: '🚔', label: 'Jail', tagline: 'Serve your time.', w: 12, d: 10, floor: 'concrete', wallHeight: 3.0,
@@ -118,7 +123,7 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
   beach: {
     id: 'beach', kind: 'beach', glyph: '🏖️', label: 'Beach', tagline: 'Sand, sea and suya smoke.', w: 22, d: 16, floor: 'dirt', floorTint: '#E8D3A0', floorRough: 0.95, wallHeight: 0.5, theme: 'beach',
     palette: { wall: '#E8D3A0', trim: '#C9B27A', accent: '#3FA3D6' }, capacity: 10, npcTarget: 8, crowd: true, chat: true,
-    items: [{ defId: 'v_umbrella', x: 4, z: 10, rotation: 0 }, { defId: 'v_umbrella', x: 8.4, z: 12.4, rotation: 0 }, { defId: 'v_umbrella', x: 14, z: 12.4, rotation: 0 }, { defId: 'v_umbrella', x: 18.4, z: 10, rotation: 0 }, { defId: 'v_boat', x: 4, z: 3.6, rotation: 0 }, { defId: 'v_boat', x: 15.4, z: 3.2, rotation: 0 }, { defId: 'v_volleyball', x: 10, z: 7.6, rotation: 0 }, { defId: 'v_drinks_bar', x: 19.4, z: 6.8, rotation: 3 }, { defId: 'v_palm', x: 1.2, z: 7, rotation: 0 }, { defId: 'v_palm', x: 6.8, z: 6.6, rotation: 0 }, { defId: 'v_palm', x: 20.6, z: 14.6, rotation: 0 }, { defId: 'v_palm', x: 1.4, z: 14.4, rotation: 0 }],
+    items: [{ defId: 'v_umbrella', x: 4, z: 10, rotation: 0 }, { defId: 'v_umbrella', x: 8.4, z: 12.4, rotation: 0 }, { defId: 'v_umbrella', x: 14, z: 12.4, rotation: 0 }, { defId: 'v_umbrella', x: 18.4, z: 10, rotation: 0 }, { defId: 'v_boat', x: 4, z: 3.6, rotation: 0 }, { defId: 'v_boat', x: 15.4, z: 3.2, rotation: 0 }, { defId: 'v_lifeguard', x: 20.4, z: 10.6, rotation: 0 }, { defId: 'v_volleyball', x: 10, z: 7.6, rotation: 0 }, { defId: 'v_drinks_bar', x: 19.4, z: 6.8, rotation: 3 }, { defId: 'v_palm', x: 1.2, z: 7, rotation: 0 }, { defId: 'v_palm', x: 6.8, z: 6.6, rotation: 0 }, { defId: 'v_palm', x: 20.6, z: 14.6, rotation: 0 }, { defId: 'v_palm', x: 1.4, z: 14.4, rotation: 0 }],
   },
   recreation: {
     id: 'recreation', kind: 'recreation', glyph: '🎾', label: 'Club house', tagline: 'Pool, courts and old money.', w: 20, d: 14, floor: 'marble', wallHeight: 3.8,
