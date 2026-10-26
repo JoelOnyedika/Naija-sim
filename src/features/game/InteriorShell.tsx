@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { formatRemaining, isJailed, remainingMs } from '@/game/crime';
 import { useJailStore } from '@/stores/jailStore';
@@ -32,7 +32,6 @@ export function InteriorShell() {
               <div className="truncate text-[13px] font-extrabold">{here.name}</div>
               <div className="text-[11px] text-white/60">{sentence && here.kind === 'jail' ? `Time left ${formatRemaining(remainingMs())}` : `Copy ${here.instance} · ${1 + here.npcCount} of ${def.capacity} here`}</div>
             </div>
-            {def.chat && <button onClick={() => useUiStore.getState().setChatOpen(true)} aria-label="Open chat" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 active:bg-white/20"><MessageCircle size={17} /></button>}
           </div>
         </motion.div>
       )}

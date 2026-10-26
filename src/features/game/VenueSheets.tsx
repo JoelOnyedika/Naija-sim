@@ -3,23 +3,18 @@ import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
-import { CRIME } from '@/data/balance';
 import { CLUB, CLUB_OPTIONS } from '@/data/club';
-import { INTERIORS } from '@/data/interiors';
-import { npcRegistry } from '@/data/npcs';
 import { hasRealModel } from '@/data/showroom';
 import { getVehicle } from '@/data/vehicles';
 import { buyClub, clubPrice, announcementText } from '@/game/club';
-import { attemptPickpocket, sentenceMinutesFor, successChance } from '@/game/crime';
 import { renderReceiptPng } from '@/game/receiptImage';
 import { buyVehicle, vehiclePrice } from '@/game/vehicles';
 import { useClubStore } from '@/stores/clubStore';
 import { useInteriorStore } from '@/stores/interiorStore';
-import { useJailStore } from '@/stores/jailStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 
-function Sheet({ open, label, onClose, children, z = 75 }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number }) {
+export function Sheet({ open, label, onClose, children, z = 75 }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number }) {
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -36,38 +31,6 @@ function Sheet({ open, label, onClose, children, z = 75 }: { open: boolean; labe
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-/** Tap an NPC: who they are, say hello, or try to pick their pocket (risky; the odds and the sentence are shown first). */
-export function NpcSheet() {
-  const id = useInteriorStore((s) => s.selectedNpc), here = useInteriorStore((s) => s.current);
-  const crim = useJailStore((s) => s.criminality);
-  const close = () => useInteriorStore.getState().selectNpc(null);
-  const npc = id ? npcRegistry.get(id) : undefined, def = here ? INTERIORS[here.kind] : null;
-  const act = () => {
-    if (!npc) return; const r = attemptPickpocket(npc.id);
-    if (!r.ok) { sfx.error(); toast(r.message, 'bad'); return; }
-    if (r.outcome === 'stolen') { sfx.coin(); toast(`${r.message} +${formatNaira(r.amount)}`, 'good'); } else { sfx.error(); toast(r.message, 'bad'); }
-    close();
-  };
-  return (
-    <Sheet open={!!npc} label="Person" onClose={close}>
-      {npc && def && (
-        <>
-          <div className="pr-10"><div className="font-display text-lg font-extrabold">{npc.name} <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 align-middle text-[11px] font-semibold text-white/70">NPC</span></div><div className="text-[12px] text-white/60">A character in {here?.name}, not a real player.</div></div>
-          <p className="mt-2 text-[13px] text-white/80">“{npc.greeting}”</p>
-          <button onClick={() => { sfx.pop(); toast(`${npc.name}: ${npc.greeting}`); }} className="mt-3 h-11 w-full rounded-xl bg-white/10 text-sm font-semibold">Say hello</button>
-          {def.crowd && (
-            <div className="mt-3 rounded-xl bg-rose-500/10 p-3">
-              <div className="text-[13px] font-bold text-rose-300">Pick their pocket</div>
-              <div className="mt-1 text-[12px] text-white/70">{Math.round(successChance(crim) * 100)}% chance it works. If you are caught you go to jail for {sentenceMinutesFor(crim)} minutes{crim ? ` (wanted level ${crim})` : ''}. Success raises your wanted level by {CRIME.criminalityPerSuccess}, an arrest by {CRIME.criminalityPerArrest}. Jail time keeps running even if you close the game.</div>
-              <button onClick={act} className="mt-2 h-11 w-full rounded-xl bg-rose-600 text-sm font-extrabold">Try it</button>
-            </div>
-          )}
-        </>
-      )}
-    </Sheet>
   );
 }
 

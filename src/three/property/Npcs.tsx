@@ -1,9 +1,12 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { Html } from '@react-three/drei';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Group, PointLight } from 'three';
 import { NPC } from '@/data/balance';
 import { INTERIORS } from '@/data/interiors';
 import { makeNpcs, type NpcProfile } from '@/data/npcs';
+import { getFurniture } from '@/data/items';
+import { vendorSpots } from '@/data/vendors';
 import { useInteriorStore } from '@/stores/interiorStore';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout } from '@/types/world';
@@ -11,6 +14,40 @@ import { buildNavGrid, nearestFree, type NavGrid } from '@/world/navigation';
 import { liveNpcs, livePlayer } from '@/world/npcLive';
 import { initBrain, stepPet, type PetBrain } from '@/world/petBrain';
 import { Avatar, type Motion } from '../avatar/Avatar';
+
+/** True while this spot is within `range` of the player; checked a few times a second so it costs almost nothing. */
+function useNear(at: () => { x: number; z: number } | undefined, range: number) {
+  const [near, setNear] = useState(false), t = useRef(0);
+  useFrame((_, dt) => {
+    t.current += dt; if (t.current < 0.3) return; t.current = 0;
+    const p = at(); const n = !!p && livePlayer.set && Math.hypot(p.x - livePlayer.x, p.z - livePlayer.z) < range;
+    if (n !== near) setNear(n);
+  });
+  return near;
+}
+
+/** A small floating name above a person's head (a DOM label, so it stays sharp and cheap). */
+function NameTag({ name, vendor, show }: { name: string; vendor?: boolean; show: boolean }) {
+  if (!show) return null;
+  return (
+    <Html position={[0, 2.05, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+      <div className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-bold shadow ${vendor ? 'bg-amber-300/90 text-night' : 'bg-night/80 text-white'}`}>{name}</div>
+    </Html>
+  );
+}
+
+/** A vendor: stays behind their stall or counter, facing the customer, and can be tapped to talk to. */
+function VendorActor({ p, x, z, yaw }: { p: NpcProfile; x: number; z: number; yaw: number }) {
+  const motion = useRef<Motion>({ moving: false, lying: false, sitting: false });
+  useEffect(() => { liveNpcs.set(p.id, { x, z }); return () => { liveNpcs.delete(p.id); }; }, [p.id, x, z]);
+  const near = useNear(() => ({ x, z }), 5.2);
+  return (
+    <group position={[x, 0, z]} rotation={[0, yaw, 0]} onClick={(e) => { if (e.delta > 6) return; e.stopPropagation(); useInteriorStore.getState().selectNpc(p.id); }}>
+      <Avatar appearance={p.appearance} motion={motion} />
+      <NameTag name={p.name} vendor show={near} />
+    </group>
+  );
+}
 
 function NpcActor({ p, grid, w, d }: { p: NpcProfile; grid: NavGrid; w: number; d: number }) {
   const g = useRef<Group>(null);
@@ -36,9 +73,11 @@ function NpcActor({ p, grid, w, d }: { p: NpcProfile; grid: NavGrid; w: number; 
     liveNpcs.set(p.id, { x: b.x, z: b.z });
   });
   useEffect(() => () => { liveNpcs.delete(p.id); }, [p.id]);
+  const near = useNear(() => liveNpcs.get(p.id), 4.2);
   return (
     <group ref={g} onClick={(e) => { if (e.delta > 6) return; e.stopPropagation(); useInteriorStore.getState().selectNpc(p.id); }}>
       <Avatar appearance={p.appearance} motion={motion} />
+      <NameTag name={p.name} show={near} />
     </group>
   );
 }
@@ -48,9 +87,10 @@ export function NpcLayer({ layout, items }: { layout: PropertyLayout; items: Pla
   const here = useInteriorStore((s) => s.current);
   const profiles = useMemo(() => (here ? makeNpcs(here.kind, here.seed, here.npcCount) : []), [here?.kind, here?.seed, here?.npcCount]); // eslint-disable-line react-hooks/exhaustive-deps
   const grid = useMemo(() => buildNavGrid(layout, items), [layout, items]);
+  const vendors = useMemo(() => (here ? vendorSpots(here.kind, items, (id) => getFurniture(id)?.footprint ?? { w: 1, d: 1 }, { w: INTERIORS[here.kind].w, d: INTERIORS[here.kind].d }) : []), [here, items]);
   if (!here) return null;
   const def = INTERIORS[here.kind];
-  return <group>{def.nightlife && <ClubLights w={def.w} d={def.d} />}{profiles.map((p) => <NpcActor key={p.id} p={p} grid={grid} w={def.w} d={def.d} />)}</group>;
+  return <group>{def.nightlife && <ClubLights w={def.w} d={def.d} />}{profiles.map((p) => <NpcActor key={p.id} p={p} grid={grid} w={def.w} d={def.d} />)}{vendors.map((v) => <VendorActor key={v.profile.id} p={v.profile} x={v.x} z={v.z} yaw={v.yaw} />)}</group>;
 }
 
 /** Cheap nightclub lighting: three coloured point lights that sweep the dance floor. No shadows, no extra geometry. */

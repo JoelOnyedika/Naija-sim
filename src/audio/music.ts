@@ -33,9 +33,16 @@ function schedule() {
 export function startMusic() {
   const c = audio(); if (!c || timer) return;
   master = c.createGain(); master.gain.value = 0.0001; master.connect(c.destination);
-  master.gain.exponentialRampToValueAtTime(0.35, c.currentTime + 1.5);
+  master.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.35 * level), c.currentTime + 1.5);
   nextTime = c.currentTime + 0.05; step = 0;
   timer = window.setInterval(schedule, 40);
+}
+
+/** 0 to 1: how loud the background loop is right now (venues turn it down or off and add their own atmosphere). */
+let level = 1;
+export function setMusicLevel(l: number) {
+  level = l; const c = audio();
+  if (c && master) master.gain.setTargetAtTime(Math.max(0.0001, 0.35 * l), c.currentTime, 0.4);
 }
 
 export function stopMusic() {

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { PropertyDetails } from '@/features/houses/PropertyDetails';
 import { MapOverlay } from '@/features/map/MapOverlay';
 import { PhoneOverlay } from '@/features/phone/PhoneOverlay';
+import { useAmbience } from '@/hooks/useAmbience';
 import { useGameLoop } from '@/game/loop';
 import { usePropertyStore } from '@/stores/propertyStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -17,7 +18,8 @@ import { ActionMenu } from './ActionMenu';
 import { Hud } from './Hud';
 import { InteriorShell } from './InteriorShell';
 import { InteriorChat } from './InteriorChat';
-import { ClubBanner, ClubMenu, NpcSheet, ReceiptSheet, VehicleSheet } from './VenueSheets';
+import { ClubBanner, ClubMenu, ReceiptSheet, VehicleSheet } from './VenueSheets';
+import { NpcSheet } from './NpcSheet';
 import { LoadingOverlay } from './LoadingOverlay';
 import { RotateButton } from './RotateButton';
 import { ProfileSheet } from './ProfileSheet';
@@ -27,6 +29,7 @@ import { TaskPanel } from './TaskPanel';
 /** The game: the 3D home is always underneath; everything else is an overlay on top of it. */
 export function GameScreen() {
   useGameLoop();
+  useAmbience();
   const mode = useUiStore((s) => s.mode);
   const activeId = usePropertyStore((s) => s.activeId);
   // Entering the game and every change of home rebuilds the 3D scene: cover it with the loading screen until it is drawn.

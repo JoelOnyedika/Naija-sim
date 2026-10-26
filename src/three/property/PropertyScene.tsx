@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber';
+import { CaptureBridge } from './CaptureBridge';
 import { Suspense, useMemo } from 'react';
 import { useActiveHome } from '@/game/active';
 import { QUALITY_TIERS, useQualityStore } from '@/stores/qualityStore';
@@ -38,6 +39,7 @@ export function PropertyScene() {
     <Canvas shadows dpr={[1, dprCap]} frameloop={mode === 'map' ? 'demand' : 'always'} camera={{ position: [10, 9, 12], fov: 38, near: 0.1, far: 200 }} gl={{ antialias: true }}>
       <PerfGovernor />
       <SceneReady key={home.layout.id} />
+      <CaptureBridge />
       <Lighting layout={home.layout} />
       <Suspense fallback={null}>
         <PropertyEnvironment layout={home.layout} />

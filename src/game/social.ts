@@ -133,8 +133,8 @@ export function sendMessage(peerId: string, text: string, replyTo?: string): Res
   if (!peer) return no('That chat does not exist.');
   phone().say(peerId, 'me', t, replyTo ? { replyTo } : undefined);
   if (peer.kind === 'npc') {
-    const c = CONTACTS.find((x) => x.id === peerId)!;
-    later(1200, () => { phone().say(peerId, 'them', Math.random() > 0.5 ? c.line : REPLIES[Math.floor(Math.random() * REPLIES.length)]); sfx.notify(); });
+    const c = CONTACTS.find((x) => x.id === peerId);
+    later(1200, () => { phone().say(peerId, 'them', Math.random() > 0.5 ? (c?.line ?? peer.line) : REPLIES[Math.floor(Math.random() * REPLIES.length)]); sfx.notify(); });
   } else if (peer.kind === 'player') {
     const s = social();
     if (!s.outbound[peerId]) useSocialStore.setState({ outbound: { ...s.outbound, [peerId]: playerWillReply(peerId) ? 'accepted' : 'pending' } });

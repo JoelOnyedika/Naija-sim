@@ -31,6 +31,8 @@ interface UiState {
   actionMenuUid: string | null;
   /** Interior screens: scoped chat, the club menu and receipts, the showroom purchase sheet. */
   chatOpen: boolean; setChatOpen: (v: boolean) => void;
+  /** The bottom menu (Home, Buy, Map, Phone) is folded away behind a small menu button. */
+  dockHidden: boolean; setDockHidden: (v: boolean) => void;
   clubMenuOpen: boolean; setClubMenu: (v: boolean) => void;
   receiptId: string | null; setReceipt: (id: string | null) => void;
   showroomVehicle: string | null; setShowroomVehicle: (id: string | null) => void;
@@ -59,7 +61,7 @@ interface UiState {
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
   mode: 'home', taskPanelOpen: true, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
-  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
+  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),
   toggleTasks: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),

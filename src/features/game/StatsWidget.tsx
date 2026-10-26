@@ -36,7 +36,7 @@ export function StatsWidget() {
   const appearance = useCharacterStore((s) => s.appearance);
   const hasLow = COMPACT.some((k) => stats[k] < 25);
   return (
-    <motion.div className="pointer-events-none absolute inset-x-0 bottom-[5.6rem] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
+    <motion.div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--dock-gap,4.9rem)+0.7rem+var(--panel-h,0px))] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <div className="pointer-events-auto flex w-full max-w-sm items-stretch gap-2">
       <motion.button whileTap={{ scale: 0.92 }} onClick={() => { sfx.pop(); useUiStore.getState().setProfileOpen(true); }} aria-label="Open your profile" className="relative shrink-0 self-end rounded-full p-0.5" style={{ background: hasLow ? 'linear-gradient(160deg,#FF4D6D,#FF8A3D)' : 'linear-gradient(160deg,#5B93FF,#2DD4BF)' }}>
         <Portrait a={appearance} size={58} className="rounded-full bg-night" />

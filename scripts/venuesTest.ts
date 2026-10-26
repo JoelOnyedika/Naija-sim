@@ -7,7 +7,11 @@ import { CLUB, CLUB_OPTIONS } from '../src/data/club';
 import { INTERIOR_LIST, INTERIORS, LANDMARK_INTERIORS, type InteriorKind } from '../src/data/interiors';
 import { getFurniture } from '../src/data/items';
 import { LANDMARKS } from '../src/content/lagos/landmarks';
-import { makeNpcs } from '../src/data/npcs';
+import { makeNpcs, npcRegistry } from '../src/data/npcs';
+import { resolvePeer } from '../src/game/peers';
+import { talkTo } from '../src/game/talk';
+import { VENDORS, vendorSpots } from '../src/data/vendors';
+import { usePhoneStore } from '../src/stores/phoneStore';
 import { VEHICLE_MODELS, hasRealModel, podiumIndexOf, slotVehicle } from '../src/data/showroom';
 import { VEHICLES } from '../src/data/vehicles';
 import { AFK_ALLOWED } from '../src/game/afk';
@@ -170,6 +174,51 @@ ok(stat('health') < h1 && h1 >= hp0, 'losing the fight costs health');
 Math.random = realRandom;
 chooseActivity(bench, 'argue_football'); useActorStore.getState().clearOrder(); startUse(bench); finish();
 ok(usesOf(getFurniture('v_view_bench')).some((u) => u.id === 'fight_agbero' && !!u.risk && u.risk.winChance > 0 && u.risk.winChance < 1), 'the fight is a real gamble (win chance between 0 and 1)');
+leaveInterior();
+
+console.log('Vendors at their stalls');
+{
+  let total = 0, outside = 0, dupes = 0;
+  for (const def of INTERIOR_LIST) {
+    const spots = vendorSpots(def.kind, venueItems(def), (id) => getFurniture(id)?.footprint ?? { w: 1, d: 1 }, { w: def.w, d: def.d });
+    total += spots.length;
+    for (const v of spots) if (v.x < 0.2 || v.z < 0.2 || v.x > def.w - 0.2 || v.z > def.d - 0.2) { outside++; console.log(`  ! ${def.kind}: ${v.profile.name} stands outside the room (${v.x.toFixed(1)}, ${v.z.toFixed(1)})`); }
+    const names = spots.map((v) => v.profile.name); if (new Set(names).size !== names.length) { dupes++; console.log(`  ! ${def.kind}: two vendors share a name`); }
+  }
+  ok(total >= 40, `${total} vendors work the stalls and counters across the venues`);
+  ok(outside === 0, 'every vendor stands inside the room, behind their prop');
+  ok(dupes === 0, 'no two vendors in one venue share a name');
+  ok(Object.keys(VENDORS).every((id) => !!getFurniture(id)), 'every vendor stands behind a real prop');
+}
+
+console.log('Conversations and cash gambles');
+fresh(); enterInterior('market');
+{
+  const npc = [...npcRegistry.values()].find((n) => n.venue === 'market')!;
+  const social0 = useStatsStore.getState().stats.social;
+  const t1 = talkTo(npc.id, 'hello');
+  ok(t1.ok && (usePhoneStore.getState().threads[npc.id] ?? []).some((m) => m.from === 'me'), 'saying hello sends a real message into your DMs with that person');
+  ok(useStatsStore.getState().stats.social > social0, 'a quick conversation earns social');
+  ok(!talkTo(npc.id, 'hello').ok, 'the same line to the same person is on a one-minute cooldown');
+  ok(!!resolvePeer(npc.id) && resolvePeer(npc.id)!.subtitle.includes(npc.role), 'a venue person is a chat contact with their role shown');
+  ok(npc.role.length > 3 && npc.starter.length > 10, 'every person has a role and a conversation starter');
+}
+{
+  const bet = venueItems(INTERIORS.viewing)[0]; void bet;
+  const real = Math.random; enterInterior('viewing');
+  const counter = venueItems(INTERIORS.viewing).find((i) => i.defId === 'v_betting_counter')!;
+  const m0 = useEconomyStore.getState().money;
+  Math.random = () => 0.01; chooseActivity(counter, 'small_bet'); useActorStore.getState().clearOrder(); startUse(counter); finish();
+  ok(useEconomyStore.getState().money === m0 - 2000 + 5000, 'a winning small bet pays the approved prize (stake 2,000, prize 5,000)');
+  const m1 = useEconomyStore.getState().money;
+  Math.random = () => 0.99; chooseActivity(counter, 'small_bet'); useActorStore.getState().clearOrder(); startUse(counter); finish();
+  ok(useEconomyStore.getState().money === m1 - 2000, 'a losing small bet only loses the stake');
+  Math.random = real;
+  const ev = (u: { risk?: { winChance: number; winMoney?: number } }, cost: number) => (u.risk ? u.risk.winChance * (u.risk.winMoney ?? 0) - cost : 0);
+  const allRisky = Object.values(ACTIVITY_SETS).flat().filter((u) => u.risk?.winMoney);
+  ok(allRisky.every((u) => ev(u, u.cost ?? 0) < 6000), 'no gamble hands out free money (expected prize stays modest)');
+  ok(Object.values(ACTIVITY_SETS).flat().filter((u) => u.risk && u.cost).every((u) => ev(u, u.cost!) < 0), 'every gamble with a stake has a negative expected value');
+}
 leaveInterior();
 
 console.log('Crime and jail');

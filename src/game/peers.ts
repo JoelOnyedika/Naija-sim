@@ -1,5 +1,7 @@
 import { CONTACTS, contactLabel } from '@/data/contacts';
 import { getPlayer } from '@/data/players';
+import { npcRegistry } from '@/data/npcs';
+import { INTERIORS, type InteriorKind } from '@/data/interiors';
 import { useSocialStore } from '@/stores/socialStore';
 
 /** Anything you can chat with, in one shape: a scripted character, a simulated player, or a group. */
@@ -13,6 +15,8 @@ export interface Peer {
 export function resolvePeer(id: string): Peer | undefined {
   const c = CONTACTS.find((x) => x.id === id);
   if (c) return { id, kind: 'npc', label: contactLabel(c), name: c.name, avatar: c.avatar, subtitle: `${c.role} · character`, line: c.line };
+  const v = id.startsWith('npc:') ? npcRegistry.get(id) : undefined;
+  if (v) return { id, kind: 'npc', label: v.name, name: v.name, avatar: '🧑🏾', subtitle: `${v.role} · met at ${INTERIORS[v.venue as InteriorKind]?.label ?? 'a venue'}`, line: v.greeting };
   const p = getPlayer(id);
   if (p) return { id, kind: 'player', label: `@${p.username}`, name: p.name, avatar: p.avatar, subtitle: 'Simulated player', line: p.lines[0], username: p.username };
   const g = useSocialStore.getState().groups.find((x) => x.id === id);

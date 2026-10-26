@@ -31,6 +31,8 @@ function onFinished(a: Activity) {
   if (a.risk) {
     if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); return; }
     useStatsStore.getState().apply(a.risk.winEffects); toast(a.risk.winMessage, 'good');
+    const prize = a.activityKey && a.risk.winMoney ? getAuthority().approvePayout(`${a.activityKey}:win`, a.risk.winMoney) : 0;
+    if (prize) { useEconomyStore.getState().credit(prize, a.label, 'salary'); sfx.coin(); }
   }
   // activities with a key (venue hustles, the coding task) are paid what the authority says, never what the running activity claims
   const paid = a.activityKey ? getAuthority().approvePayout(a.activityKey, a.payout ?? 0) : a.payout;

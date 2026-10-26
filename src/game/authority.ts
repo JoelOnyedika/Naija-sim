@@ -12,7 +12,7 @@ export interface RewardAuthority {
 }
 const table = (): Map<string, number> => {
   const m = new Map<string, number>();
-  for (const [defId, list] of Object.entries(ACTIVITY_SETS)) for (const u of list) if (u.id && u.payout) m.set(`${defId}:${u.id}`, u.payout);
+  for (const [defId, list] of Object.entries(ACTIVITY_SETS)) for (const u of list) { if (u.id && u.payout) m.set(`${defId}:${u.id}`, u.payout); if (u.id && u.risk?.winMoney) m.set(`${defId}:${u.id}:win`, u.risk.winMoney); }
   return m;
 };
 export const localAuthority: RewardAuthority = { authoritative: false, approvePayout: (key) => table().get(key) ?? 0 /* the claimed amount is ignored on purpose */ };
