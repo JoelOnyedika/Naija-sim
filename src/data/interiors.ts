@@ -1,3 +1,4 @@
+import { getFurniture } from './items';
 import type { FloorKind, Palette } from '@/types/world';
 
 /**
@@ -151,6 +152,64 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
     items: [...[3, 6, 9, 12].map((x) => ({ defId: 'v_container', x, z: 1.5, rotation: 0 })), { defId: 'v_container', x: 1.6, z: 5, rotation: 1 }, { defId: 'v_container', x: 1.6, z: 8.5, rotation: 1 }, { defId: 'v_pallet', x: 9, z: 6.4, rotation: 0 }, { defId: 'v_pallet', x: 13.4, z: 6.4, rotation: 0 }, { defId: 'v_pallet', x: 9, z: 9.8, rotation: 0 }, { defId: 'v_crane', x: 18.6, z: 3, rotation: 0 }, { defId: 'v_crane', x: 18.6, z: 12.6, rotation: 0 }, { defId: 'v_kiosk', x: 13.4, z: 12.6, rotation: 0 }, { defId: 'v_customs_desk', x: 6.5, z: 13.4, rotation: 0 }],
   },
 };
+/** The extra task props each venue gets (see data/venueKit2.ts). They are placed automatically along free wall space. */
+const EXTRA: Partial<Record<InteriorKind, string[]>> = {
+  market: ['v_okada_rank', 'v_tailor', 'v_pure_water', 'v_butcher', 'v_shoe_stall', 'v_gen_repair'],
+  eatery: ['v_amala_pot', 'v_zobo_stand', 'v_buka_tv', 'v_dish_bay', 'v_chicken_oven'],
+  bank: ['v_atm', 'v_customer_care', 'v_loan_desk', 'v_pos_agent', 'v_money_counter'],
+  mall: ['v_perfume_booth', 'v_barber_chair', 'v_hair_salon', 'v_phone_shop', 'v_kids_play'],
+  cinema: ['v_ticket_booth', 'v_snack_bar', 'v_poster_wall', 'v_vip_lounge', 'v_usher_post'],
+  concert: ['v_drum_circle', 'v_merch_table', 'v_backstage_door', 'v_sound_desk', 'v_request_box'],
+  hotel: ['v_pool_bar', 'v_spa_bed', 'v_bell_desk', 'v_buffet', 'v_wedding_stage'],
+  techhub: ['v_cowork_desk', 'v_repair_bench', 'v_startup_wall', 'v_investor_corner', 'v_podcast_booth', 'v_3d_printer'],
+  park: ['v_ayo_table', 'v_pullup_bars', 'v_kite_spot', 'v_bike_rental', 'v_art_easel'],
+  beach: ['v_surf_stand', 'v_castle_zone', 'v_seafood_grill', 'v_shell_stall', 'v_beach_pitch'],
+  recreation: ['v_gym_bench', 'v_sauna', 'v_snooker', 'v_chess_table', 'v_club_library'],
+  government: ['v_passport_desk', 'v_nysc_corner', 'v_tax_desk', 'v_suggestion_box', 'v_town_hall'],
+  business: ['v_trading_desk', 'v_networking_lounge', 'v_skyline_bar', 'v_legal_desk', 'v_press_wall'],
+  airport: ['v_security_gate', 'v_airline_lounge', 'v_porter_cart', 'v_exchange', 'v_airport_cafe'],
+  port: ['v_fish_market', 'v_forklift', 'v_crane_desk', 'v_dock_canteen', 'v_ferry_counter'],
+  stadium: ['v_scoreboard', 'v_ticket_gate', 'v_fan_zone', 'v_coach_bench'],
+  club: ['v_vip_rope', 'v_photo_booth', 'v_dj_requests', 'v_coat_check'],
+  showroom: ['v_wash_bay', 'v_tyre_rack', 'v_trade_in', 'v_insurance_desk', 'v_driving_sim'],
+  church: ['v_prayer_room', 'v_sunday_school', 'v_bake_sale', 'v_usher_stand', 'v_youth_corner'],
+  gallery: ['v_gift_shop', 'v_art_class', 'v_audio_guide', 'v_gallery_cafe', 'v_photo_exhibit'],
+  viewing: ['v_foosball', 'v_fifa_corner', 'v_jersey_stall', 'v_prediction_board', 'v_suya_corner'],
+};
+
+/**
+ * Put props along the free edges of a room, facing inward (back wall, left wall, then right and front), leaving a walkway gap.
+ * Deterministic. Returns only what fits; the venue test lists anything that did not.
+ */
+export function autoPlace(def: InteriorDef, ids: string[], existing: { defId: string; x: number; z: number; rotation: number }[]): { defId: string; x: number; z: number; rotation: number }[] {
+  const rect = (id: string, x: number, z: number, rot: number) => { const f = getFurniture(id)?.footprint ?? { w: 1, d: 1 }, sw = rot % 2 === 1; const w = sw ? f.d : f.w, d = sw ? f.w : f.d; return { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 }; };
+  const placed = existing.map((i) => rect(i.defId, i.x, i.z, i.rotation)), out: { defId: string; x: number; z: number; rotation: number }[] = [];
+  const GAP = 0.55, EDGE = 0.45;
+  const clear = (r: { x0: number; x1: number; z0: number; z1: number }) => r.x0 >= EDGE - 0.01 && r.z0 >= EDGE - 0.01 && r.x1 <= def.w - EDGE + 0.01 && r.z1 <= def.d - EDGE + 0.01 && placed.every((o) => r.x1 + GAP <= o.x0 || r.x0 - GAP >= o.x1 || r.z1 + GAP <= o.z0 || r.z0 - GAP >= o.z1);
+  for (const id of ids) {
+    const f = getFurniture(id)?.footprint ?? { w: 1, d: 1 };
+    let done = false;
+    for (const edge of ['b', 'l', 'r', 'f'] as const) {
+      const rot = edge === 'b' ? 0 : edge === 'l' ? 1 : edge === 'r' ? 3 : 2, sw = rot % 2 === 1, w = sw ? f.d : f.w, d = sw ? f.w : f.d;
+      const along = edge === 'b' || edge === 'f' ? def.w : def.d, half = (edge === 'b' || edge === 'f' ? w : d) / 2;
+      for (let t = EDGE + half; t <= along - EDGE - half + 0.001 && !done; t += 0.4) {
+        const x = edge === 'b' || edge === 'f' ? t : edge === 'l' ? EDGE + w / 2 : def.w - EDGE - w / 2, z = edge === 'b' ? EDGE + d / 2 : edge === 'f' ? def.d - EDGE - d / 2 : t;
+        const r = rect(id, x, z, rot);
+        if (clear(r)) { placed.push(r); out.push({ defId: id, x: +x.toFixed(2), z: +z.toFixed(2), rotation: rot }); done = true; }
+      }
+      if (done) break;
+    }
+  }
+  return out;
+}
+/** How much bigger each venue grows to make room for its extra props (outdoor ones need a little less). */
+const GROW: Partial<Record<InteriorKind, number>> = { park: 2, beach: 2, port: 2, jail: 0 };
+for (const def of Object.values(INTERIORS)) {
+  const ids = EXTRA[def.kind]; if (!ids) continue;
+  const g = GROW[def.kind] ?? 3.5; def.w += g; def.d += g;
+  def.items = [...def.items, ...autoPlace(def, ids, def.items)];
+}
+
 export const INTERIOR_LIST = Object.values(INTERIORS);
 
 /** Which landmark opens which template. The jail has no landmark: you are sent there. */

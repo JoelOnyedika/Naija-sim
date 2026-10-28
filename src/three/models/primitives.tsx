@@ -55,8 +55,12 @@ interface BoxProps extends MatProps {
 /** Rounded box: the workhorse of every furniture model. */
 export function B({ size, pos = [0, 0, 0], rot, radius = 0.02, shadow = true, ...mat }: BoxProps) {
   const r = Math.min(radius, Math.min(...size) / 2 - 0.001);
+  // Thin or nearly square-edged parts are plain boxes (a rounded box has hundreds of triangles), and tiny parts do not cast
+  // shadows (they cost a second draw call each and nobody can see their shadow). Big bodies keep their soft rounded look.
+  const plain = Math.min(...size) < 0.1 || radius <= 0.012, cast = shadow && Math.max(...size) >= 0.45;
+  if (plain) return <mesh position={pos} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={size} /><Mat {...mat} /></mesh>;
   return (
-    <RoundedBox args={size} radius={Math.max(r, 0.002)} smoothness={3} position={pos} rotation={rot} castShadow={shadow} receiveShadow>
+    <RoundedBox args={size} radius={Math.max(r, 0.002)} smoothness={2} position={pos} rotation={rot} castShadow={cast} receiveShadow>
       <Mat {...mat} />
     </RoundedBox>
   );

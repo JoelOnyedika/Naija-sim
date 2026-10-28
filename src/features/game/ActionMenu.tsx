@@ -3,7 +3,6 @@ import { Lock, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { blockedReason, usesOf } from '@/data/activities';
 import { getFurniture } from '@/data/items';
-import { formatNaira } from '@/core/format';
 import { useActiveHome } from '@/game/active';
 import { chooseActivity } from '@/game/interactions';
 import { describeUse } from '@/game/itemInfo';
@@ -12,6 +11,7 @@ import { MOOD_LABEL, petBlockedReason, petMood } from '@/game/petCare';
 import { usePetStore } from '@/stores/petStore';
 import { useSkillStore } from '@/stores/skillStore';
 import { useUiStore } from '@/stores/uiStore';
+import { TaskCard } from '@/ui/TaskCard';
 
 const CARD_W = 232; // px; the next card peeks in from the right so it is obvious the row scrolls
 
@@ -56,7 +56,7 @@ export function ActionMenu() {
   return (
     <AnimatePresence>
       {item && def && (
-        <motion.div key="menu" className="pointer-events-auto absolute inset-0 z-[75] flex items-end justify-center bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+        <motion.div key="menu" className="pointer-events-auto absolute inset-0 z-[88] flex items-end justify-center bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
           <motion.div role="dialog" aria-label={`${def.name} actions`} onClick={(e) => e.stopPropagation()} className="pb-safe mb-[5.4rem] w-full max-w-md rounded-2xl border border-white/10 bg-night/95 pb-3 pt-3 shadow-glass backdrop-blur" initial={{ y: 120, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 120, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}>
             <div className="flex items-center gap-2.5 px-4">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-xl">{def.glyph}</span>
@@ -80,25 +80,13 @@ export function ActionMenu() {
               {uses.map((u) => {
                 const d = describeUse(u);
                 const why = blockedReason(u, home?.placed ?? [], (id) => useSkillStore.getState().level(id)) ?? (item ? petBlockedReason(u, item.uid) : null) ?? (u.cost && money < u.cost ? 'You cannot afford this yet.' : null);
-                const shown = d.effects.slice(0, 4), more = d.effects.length - shown.length;
                 return (
-                  <div key={u.id ?? u.label} style={{ width: CARD_W }} className={`relative flex shrink-0 snap-start flex-col rounded-2xl border p-3 ${why ? 'border-white/5 bg-white/[0.04]' : 'border-white/10 bg-white/[0.08]'}`}>
-                    <div className="flex items-start justify-between">
-                      <span className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl ${why ? 'bg-white/5 grayscale' : 'bg-accent/25'}`}>{d.glyph}</span>
-                      <span className="rounded-full bg-black/30 px-2 py-0.5 text-[11.5px] font-semibold text-white/70">{u.seconds}s</span>
-                    </div>
-                    <div className={`mt-2 min-h-[2.4rem] text-[15px] font-bold leading-tight ${why ? 'text-white/55' : ''}`}>{d.label}</div>
-                    <div className="mt-1.5 flex min-h-[3.1rem] flex-wrap content-start gap-1">
-                      {shown.map((e) => <span key={e.label} className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${e.delta > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{e.label.startsWith('Money') ? `+${formatNaira(e.delta)}` : `${e.delta > 0 ? '+' : ''}${e.delta} ${e.label}`}</span>)}
-                      {more > 0 && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-semibold text-white/70">+{more} more</span>}
-                      {d.skill && <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11.5px] font-semibold text-sky-300">{d.skill.replace(' when finished', '')}</span>}
-                    </div>
-                    {d.cost > 0 && <div className="mt-1 text-[12px] font-semibold text-rose-300">Costs {formatNaira(d.cost)}</div>}
-                    <div className="mt-auto pt-2">{why ? (
+                  <div key={u.id ?? u.label} className="snap-start">
+                    <TaskCard width={CARD_W} glyph={d.glyph} title={d.label} seconds={u.seconds} cost={d.cost} risk={u.risk ? { chance: u.risk.winChance } : undefined} winMoney={u.risk?.winMoney} effects={d.effects} skill={d.skill} locked={!!why} footer={why ? (
                       <div className="flex items-start gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-2 text-[12px] font-semibold leading-snug text-amber-300"><Lock size={14} className="mt-0.5 shrink-0" />{why}</div>
                     ) : (
                       <button onClick={() => chooseActivity(item, u.id ?? '')} className="h-11 w-full rounded-xl bg-accent text-[14px] font-extrabold shadow-lg active:scale-95">Start</button>
-                    )}</div>
+                    )} />
                   </div>
                 );
               })}

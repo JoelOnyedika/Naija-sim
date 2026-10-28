@@ -5,6 +5,7 @@ import { formatNaira } from '@/core/format';
 import { getFood } from '@/data/foods';
 import { useAppsStore } from '@/stores/appsStore';
 import { useClockStore } from '@/stores/clockStore';
+import { vendorReact } from './vendorReact';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useLifeStore } from '@/stores/lifeStore';
@@ -29,8 +30,8 @@ import { useAuthStore } from '@/stores/authStore';
 function onFinished(a: Activity) {
   // a gamble: lost means no pay, no XP, and a penalty; won adds a bonus
   if (a.risk) {
-    if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); return; }
-    useStatsStore.getState().apply(a.risk.winEffects); toast(a.risk.winMessage, 'good');
+    if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); vendorReact(a.targetUid, 'lose'); return; }
+    useStatsStore.getState().apply(a.risk.winEffects); toast(a.risk.winMessage, 'good'); vendorReact(a.targetUid, 'win');
     const prize = a.activityKey && a.risk.winMoney ? getAuthority().approvePayout(`${a.activityKey}:win`, a.risk.winMoney) : 0;
     if (prize) { useEconomyStore.getState().credit(prize, a.label, 'salary'); sfx.coin(); }
   }
@@ -47,6 +48,7 @@ function onFinished(a: Activity) {
     const { before, after } = useSkillStore.getState().add(a.skill.id, a.skill.xp);
     toast(after > before ? `${skillName(a.skill.id)} level ${after}! +${a.skill.xp} XP` : `${skillName(a.skill.id)} +${a.skill.xp} XP`, 'good');
   }
+  if (!a.risk) vendorReact(a.targetUid, paid ? 'work' : a.bought ? 'buy' : 'chat');
   if (a.petAction) finishPetAction(a.targetUid, a.petAction);
   if (a.event) fireTask(a.event);
 }

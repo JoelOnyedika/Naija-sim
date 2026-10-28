@@ -4,6 +4,7 @@ import { Ac, Fan, Fridge, Generator, Tv } from './appliances';
 import { Bucket, Plant, Rug, Shower, WallFrame } from './decor';
 import { Cabinet, Cooker, Desk, Dispenser, GamingSetup, KingBed, Lamp, Piano, Toilet, Wardrobe, Bookshelf } from './more';
 import { PrinterStation, StandingDesk, StudentDesk, Workstation } from './computers';
+import { BOOTH_MODELS } from './booths';
 import { KIT_MODELS } from './kit';
 import { Chair, Sofa, Table } from './seating';
 import { Bed, FoamMattress } from './sleeping';
@@ -20,6 +21,7 @@ export const MODELS: Record<string, ComponentType> = {
   generator: Generator, fan: Fan, ac: Ac, rug: Rug, wall_frame: WallFrame, bucket: Bucket, shower: Shower, plant: Plant,
   wardrobe: Wardrobe, bookshelf: Bookshelf, cooker: Cooker, cabinet: Cabinet, toilet: Toilet, desk: Desk,
   ...KIT_MODELS,
+  ...BOOTH_MODELS,
   student_desk: StudentDesk, standing_desk: StandingDesk, workstation: Workstation, printer_station: PrinterStation,
   gaming_setup: GamingSetup, piano: Piano, lamp: Lamp, dispenser: Dispenser,
   bathtub: Bathtub, jacuzzi: Jacuzzi, washbasin: Washbasin, speaker: Speaker, gym_rug: GymMat, bedside_table: BedsideTable, coffee_table: CoffeeTable, wall_shelf: WallShelf, disco_light: DiscoLight, ibeta: Ibeta, solar_system: SolarSystem,

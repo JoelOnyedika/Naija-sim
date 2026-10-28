@@ -11,6 +11,7 @@ import { PropertyScene } from '@/three/property/PropertyScene';
 import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Toasts } from '@/ui/Toasts';
 import { ActivityChip } from './ActivityChip';
+import { StatsStrip } from './StatsStrip';
 import { BuyMode } from './BuyMode';
 import { Dock } from './Dock';
 import { FoodPicker } from './FoodPicker';
@@ -41,6 +42,7 @@ export function GameScreen() {
       <Hud />
       <RotateButton />
       <ActivityChip />
+        <StatsStrip />
       {mode === 'home' && <TaskPanel />}
       <AnimatePresence>{mode === 'home' && <StatsWidget key="stats" />}</AnimatePresence>
       <BuyMode />

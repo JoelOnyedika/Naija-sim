@@ -5,14 +5,10 @@ import type { FurnitureDef, UseDef } from './items';
  * uses it, and what it offers. The 3D models are in three/models/kit.tsx (same ids). Props are never sold in the shop.
  * Money rewards are balance values; a server must own them (game/authority.ts). Random outcomes (`risk`) are the same.
  */
-type Spec = { pose: 'stand' | 'sit'; action: 'idle' | 'drink' | 'read' | 'dance' | 'piano' | 'pushup'; mode: 'front' | 'on' | 'mat'; top?: number };
-interface Kit { id: string; name: string; glyph: string; w: number; d: number; h: number; solid?: boolean; spec?: Spec; uses?: UseDef[] }
+import { stand, seat, U, type Kit, type Spec } from './venueKitCore';
+import { KIT2 } from './venueKit2';
 
-const stand: Spec = { pose: 'stand', action: 'idle', mode: 'front' };
-const seat = (top = 0.46): Spec => ({ pose: 'sit', action: 'idle', mode: 'on', top });
-const U = (id: string, glyph: string, label: string, seconds: number, effects: UseDef['effects'], extra: Partial<UseDef> = {}): UseDef => ({ id, glyph, label, seconds, effects, pose: 'stand', ...extra });
-
-export const KIT: Kit[] = [
+const KIT1: Kit[] = [
   // ---- shared
   { id: 'v_wait_chairs', name: 'Waiting chairs', glyph: '🪑', w: 1.9, d: 0.6, h: 1.0, solid: false, spec: seat(), uses: [U('wait_turn', '🪑', 'Wait your turn', 10, { energy: 4, happiness: 1 }, { pose: 'sit', skill: { id: 'communication', xp: 1 } })] },
   { id: 'v_palm', name: 'Palm tree', glyph: '🌴', w: 0.9, d: 0.9, h: 3.2 },
@@ -203,6 +199,8 @@ export const KIT: Kit[] = [
   ] },
   { id: 'v_pool_table', name: 'Pool table', glyph: '🎱', w: 2.4, d: 1.4, h: 0.9, spec: stand, uses: [U('play_pool', '🎱', 'Play pool', 14, { happiness: 12, social: 4 }, { cost: 500 })] },
 ];
+
+export const KIT: Kit[] = [...KIT1, ...KIT2];
 
 const venueDef = (k: Kit): FurnitureDef => ({
   id: k.id, name: k.name, description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: k.glyph, model: k.id,

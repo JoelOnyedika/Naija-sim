@@ -51,7 +51,7 @@ function Palm({ x, z, h = 2.6, s = 1 }: { x: number; z: number; h?: number; s?: 
   return (
     <group position={[x, 0, z]} scale={s}>
       <mesh geometry={CYL} material={M.trunk} position={[0, h / 2, 0]} scale={[0.1, h, 0.1]} />
-      {[0, 1, 2, 3, 4, 5].map((i) => <mesh key={i} geometry={BOX} material={i % 2 ? M.leaf : M.leaf2} position={[Math.cos((i * Math.PI) / 3) * 0.55, h + 0.05, Math.sin((i * Math.PI) / 3) * 0.55]} rotation={[0.35 * Math.sin((i * Math.PI) / 3), -(i * Math.PI) / 3, -0.35 * Math.cos((i * Math.PI) / 3)]} scale={[1.2, 0.05, 0.28]} />)}
+      {[0, 1, 2, 3].map((i) => <mesh key={i} geometry={BOX} material={i % 2 ? M.leaf : M.leaf2} position={[Math.cos((i * Math.PI) / 2) * 0.55, h + 0.05, Math.sin((i * Math.PI) / 2) * 0.55]} rotation={[0.35 * Math.sin((i * Math.PI) / 2), -(i * Math.PI) / 2, -0.35 * Math.cos((i * Math.PI) / 2)]} scale={[1.3, 0.06, 0.34]} />)}
     </group>
   );
 }
@@ -107,8 +107,8 @@ export function VenueSurround({ layout }: { layout: PropertyLayout }) {
   }, [theme, w, d, cx, cz, road]);
   const palms = useMemo(() => {
     const r = rng(w * 17 + d * 5 + 3); const o: { x: number; z: number; s: number }[] = [];
-    for (let i = 0; i < 7; i++) o.push({ x: cx - plaza + 1.2 + i * ((plaza * 2 - 2.4) / 6), z: cz - plaza + 0.9, s: 0.9 + r() * 0.3 });
-    for (let i = 1; i < 6; i++) o.push({ x: cx - plaza + 0.9, z: cz - plaza + 1.2 + i * ((plaza * 2 - 2.4) / 6), s: 0.9 + r() * 0.3 });
+    for (let i = 0; i < 5; i++) o.push({ x: cx - plaza + 1.2 + i * ((plaza * 2 - 2.4) / 4), z: cz - plaza + 0.9, s: 0.9 + r() * 0.3 });
+    for (let i = 1; i < 4; i++) o.push({ x: cx - plaza + 0.9, z: cz - plaza + 1.2 + i * ((plaza * 2 - 2.4) / 4), s: 0.9 + r() * 0.3 });
     o.push({ x: cx + plaza - 1.2, z: cz + plaza - 1.0, s: 1 }, { x: cx - plaza + 1.2, z: cz + plaza - 1.0, s: 1.05 }, { x: cx + plaza - 1.0, z: cz - plaza + 1.2, s: 1 });
     return o;
   }, [w, d, cx, cz, plaza]);
@@ -158,9 +158,7 @@ export function VenueSurround({ layout }: { layout: PropertyLayout }) {
       {/* parked cars on the road */}
       {theme === 'street' && <>
       <ParkedCar x={cx - 5} z={cz - plaza - 2.1} rot={0} color={CARS[0]} />
-      <ParkedCar x={cx + 3} z={cz - plaza - 2.1} rot={0} color={CARS[1]} />
       <ParkedCar x={cx - plaza - 2.1} z={cz + 2} rot={Math.PI / 2} color={CARS[3]} />
-      <ParkedCar x={cx + plaza + 2.1} z={cz - 3} rot={Math.PI / 2} color={CARS[2]} />
       <ParkedCar x={cx + 6} z={cz + plaza + 2.1} rot={0} color={CARS[4]} />
       </>}
       {/* the venue sign, in front of the entrance and facing the camera */}

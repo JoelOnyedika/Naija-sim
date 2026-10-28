@@ -20,6 +20,8 @@ export interface Activity {
   pose: 'stand' | 'sit' | 'sleep';
   /** uid of the placed item the character walks to. */
   targetUid?: string;
+  /** The activity cost money (a purchase): the vendor thanks you instead of just chatting. */
+  bought?: boolean;
   kind: 'use' | 'job' | 'social' | 'visit';
   doneMessage?: string;
   /** Fired when finished, e.g. a task event. */

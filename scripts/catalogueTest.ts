@@ -1,3 +1,4 @@
+import { KIT } from '../src/data/venueKit';
 import './mockStorage';
 import { readFileSync } from 'node:fs';
 import { registerContent } from '../src/content';
@@ -16,7 +17,7 @@ const kitSrc = readFileSync('src/three/models/kit.tsx', 'utf8'); // the venue pr
 
 console.log('Catalogue integrity');
 ok(new Set(FURNITURE.map((f) => f.id)).size === FURNITURE.length, `${FURNITURE.length} items with unique ids`);
-const missing = FURNITURE.filter((f) => !new RegExp(`\\b${f.model}\\s*:`).test(registry + kitSrc));
+const missing = FURNITURE.filter((f) => !new RegExp(`\\b${f.model}\\s*:`).test(registry + kitSrc) && !KIT.some((k) => k.look && k.id === f.model));
 ok(missing.length === 0, `every item's model is registered${missing.length ? ' (missing: ' + missing.map((m) => m.id).join(', ') + ')' : ''}`);
 const dupModels = FURNITURE.map((f) => f.model).filter((m, i, a) => a.indexOf(m) !== i);
 ok(dupModels.length === 0, `no two items share a model, so none is just a recolour${dupModels.length ? ' (' + dupModels.join(', ') + ')' : ''}`);

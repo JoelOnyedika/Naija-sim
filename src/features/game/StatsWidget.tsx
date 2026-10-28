@@ -6,6 +6,7 @@ import { useStatsStore } from '@/stores/statsStore';
 import { Portrait } from '@/ui/Portrait';
 import { STAT_META } from './statMeta';
 import { SKILLS, levelOf, useSkillStore, xpForLevel } from '@/stores/skillStore';
+import { useInteriorStore } from '@/stores/interiorStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { StatKey } from '@/types/game';
 import { STAT_KEYS } from '@/types/game';
@@ -35,6 +36,8 @@ export function StatsWidget() {
   const skillXp = useSkillStore((s) => s.xp);
   const appearance = useCharacterStore((s) => s.appearance);
   const hasLow = COMPACT.some((k) => stats[k] < 25);
+  const inVenue = useInteriorStore((x) => !!x.current); // inside a venue the small strip in the left stack replaces this
+  if (inVenue) return null;
   return (
     <motion.div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--dock-gap,4.9rem)+0.7rem+var(--panel-h,0px))] z-30 flex justify-center px-4" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <div className="pointer-events-auto flex w-full max-w-sm items-stretch gap-2">

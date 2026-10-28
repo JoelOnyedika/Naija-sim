@@ -5,11 +5,11 @@ import { B, Cyl, Mat, Sph } from './primitives';
 
 /** Models for the venue prop kit (data/venueKit.ts). Origin = floor centre, +z = front. Bolder and brighter than home furniture. */
 type P = { pos: [number, number, number] };
-const Glow = ({ pos, size, color, intensity = 1 }: P & { size: [number, number]; color: string; intensity?: number }) => (
+export const Glow = ({ pos, size, color, intensity = 1 }: P & { size: [number, number]; color: string; intensity?: number }) => (
   <mesh position={pos}><planeGeometry args={size} /><Mat color={color} emissive={color} emissiveIntensity={intensity} /></mesh>
 );
 /** A service counter: body, top, optional glass screen and a row of small items. */
-const Counter = ({ w = 3, d = 0.9, body = '#7A4A26', top = '#D9C7A0', accent = '#E9B949', glass = false }: { w?: number; d?: number; body?: string; top?: string; accent?: string; glass?: boolean }) => (
+export const Counter = ({ w = 3, d = 0.9, body = '#7A4A26', top = '#D9C7A0', accent = '#E9B949', glass = false }: { w?: number; d?: number; body?: string; top?: string; accent?: string; glass?: boolean }) => (
   <group>
     <B size={[w, 1.0, d]} pos={[0, 0.5, 0]} color={body} rough={0.6} radius={0.03} />
     <B size={[w + 0.1, 0.08, d + 0.12]} pos={[0, 1.04, 0.02]} color={top} rough={0.35} radius={0.02} />
@@ -43,11 +43,11 @@ function signTex(text: string, bg: string, fg: string) {
   while (g.measureText(text).width > 450 && size > 18) { size -= 3; g.font = `800 ${size}px sans-serif`; }
   g.fillText(text, 256, 66); const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; texCache.set(key, t); return t;
 }
-function TexSign({ text, bg = '#12301F', fg = '#FFFFFF', w = 1.6, h = 0.4, pos }: { text: string; bg?: string; fg?: string; w?: number; h?: number; pos: [number, number, number] }) {
+export function TexSign({ text, bg = '#12301F', fg = '#FFFFFF', w = 1.6, h = 0.4, pos }: { text: string; bg?: string; fg?: string; w?: number; h?: number; pos: [number, number, number] }) {
   const tex = useMemo(() => signTex(text, bg, fg), [text, bg, fg]);
   return <group position={pos}><B size={[w + 0.06, h + 0.06, 0.04]} pos={[0, 0, 0]} color="#2A2D31" rough={0.5} radius={0.01} /><mesh position={[0, 0, 0.025]}><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh></group>;
 }
-const Awning = ({ w, y, z = 0, a = '#F4F1EA', b = '#D9462F' }: { w: number; y: number; z?: number; a?: string; b?: string }) => <>{Array.from({ length: Math.round(w / 0.3) }).map((_, i) => <B key={i} size={[0.3, 0.05, 1.1]} pos={[-w / 2 + 0.15 + i * 0.3, y, z]} rot={[0.12, 0, 0]} color={i % 2 ? a : b} rough={0.9} />)}</>;
+export const Awning = ({ w, y, z = 0, a = '#F4F1EA', b = '#D9462F' }: { w: number; y: number; z?: number; a?: string; b?: string }) => <>{Array.from({ length: Math.max(2, Math.round(w / 0.45)) }).map((_, i, all) => <B key={i} size={[w / all.length, 0.05, 1.1]} pos={[-w / 2 + (w / all.length) * (i + 0.5), y, z]} rot={[0.12, 0, 0]} color={i % 2 ? a : b} rough={0.9} />)}</>;
 
 const MODELS: Record<string, ComponentType> = {
   v_wait_chairs: () => <group>{[-0.6, 0, 0.6].map((x) => <Seat key={x} x={x} color="#2E6FB5" />)}<B size={[1.85, 0.05, 0.06]} pos={[0, 0.3, -0.18]} color="#2A2D31" metal={0.5} rough={0.4} /></group>,

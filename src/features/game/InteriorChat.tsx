@@ -18,6 +18,7 @@ import { useJailStore } from '@/stores/jailStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { toast, useUiStore } from '@/stores/uiStore';
+import { TaskCard } from '@/ui/TaskCard';
 import { captureScene } from '@/three/capture';
 import { livePlayer, liveNpcs } from '@/world/npcLive';
 
@@ -96,7 +97,7 @@ export function InteriorChat() {
   if (!shown || !here || !def) return null;
   return (
     <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--dock-gap,4.9rem))] z-[76] flex justify-center px-2 ${dockHidden ? 'pr-16' : ''}`}>
-      <div ref={box} role="region" aria-label="Venue panel" className="panel pointer-events-auto flex max-h-[62vh] w-full max-w-md flex-col rounded-3xl p-2.5">
+      <div ref={box} role="region" aria-label="Venue panel" className="panel pointer-events-auto flex max-h-[62vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-3xl p-2.5">
         {/* top strip: tap to fold or unfold; camera and fold-the-menu on the right */}
         <div className="flex items-center justify-between">
           <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Fold the panel' : 'Unfold the panel'} className="flex h-7 flex-1 items-center justify-center"><span className="h-1 w-12 rounded-full bg-white/25" /></button>
@@ -167,12 +168,8 @@ export function InteriorChat() {
         {expanded && spot && (
           <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
             {spotUses.map((d, i) => (
-              <button key={i} onClick={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; setExpanded(false); if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); }} className="flex w-[11.5rem] shrink-0 flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-2.5 text-left active:bg-white/10">
-                <div className="flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg">{d.glyph}</span>{d.seconds != null && <span className="rounded-full bg-black/30 px-2 py-0.5 text-[11px] tabular-nums text-white/70">{d.seconds}s</span>}</div>
-                <div className="mt-1.5 flex items-center gap-1.5 text-[12px] font-bold"><span className={d.cost ? 'text-amber-300' : 'text-emerald-300'}>{d.cost ? formatNaira(d.cost) : 'Free'}</span>{uses[i].risk && <span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10.5px] text-rose-300">🚨 Risky{uses[i].risk!.winChance < 1 ? ` · ${Math.round(uses[i].risk!.winChance * 100)}%` : ''}</span>}</div>
-                <div className="text-[14px] font-extrabold leading-tight">{d.label}</div>
-                <div className="mt-1.5 flex flex-wrap gap-1">{d.effects.slice(0, 3).map((e) => <span key={e.label} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${e.delta > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{e.delta > 0 ? '+' : '−'}{e.label}</span>)}{uses[i].risk?.winMoney ? <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-300">Win {formatNaira(uses[i].risk!.winMoney!)}</span> : null}</div>
-              </button>
+              <TaskCard key={i} width="11.75rem" glyph={d.glyph} title={d.label} seconds={d.seconds} cost={d.cost} risk={uses[i].risk ? { chance: uses[i].risk!.winChance } : undefined} winMoney={uses[i].risk?.winMoney} effects={d.effects} skill={d.skill} maxEffects={3}
+                onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; setExpanded(false); if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); }} />
             ))}
           </div>
         )}

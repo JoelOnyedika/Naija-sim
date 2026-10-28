@@ -11,11 +11,14 @@ import { useStatsStore } from '@/stores/statsStore';
 export const RAIL_TOP = 4.2;
 export const VENUE_HEADER_H = 3.3;
 export const CHIP_H = 3.4;
+export const STRIP_H = 2.3;
 
 /** Where the left rail starts (below the venue header, if any). The chip, then the task list, stack from here. */
 export const useRailTop = () => RAIL_TOP + (useInteriorStore((s) => !!s.current) ? VENUE_HEADER_H : 0);
-/** Where the task list starts: below the chip while an activity runs. */
-export const useTasksTop = () => useRailTop() + (useStatsStore((s) => !!s.activity) ? CHIP_H : 0);
+/** Where the small needs strip sits (venues only): below the activity circle while one runs. */
+export const useStripTop = () => useRailTop() + (useStatsStore((s) => !!s.activity) ? CHIP_H : 0);
+/** Where the task list starts: below the strip (inside a venue) and the activity circle while one runs. */
+export const useTasksTop = () => useStripTop() + (useInteriorStore((s) => !!s.current) ? STRIP_H : 0);
 
 const R = 19, C = 2 * Math.PI * R;
 

@@ -20,17 +20,19 @@ export function Toasts() {
           ))}
         </AnimatePresence>
       </div>
-      <AnimatePresence>
-        {banner && (
-          <motion.button key={banner.id}
-            initial={{ y: -90, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -90, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            onClick={() => { hide(); openPhone(); }} drag="y" dragConstraints={{ top: -80, bottom: 0 }} onDragEnd={(_, i) => i.offset.y < -20 && hide()}
-            className="glass-dark absolute left-1/2 top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-[95] flex w-[min(92vw,380px)] -translate-x-1/2 items-center gap-3 rounded-3xl px-4 py-3 text-left">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-2xl">{banner.icon}</span>
-            <span className="min-w-0"><span className="block text-sm font-bold">{banner.title}</span><span className="block truncate text-[13px] text-white/75">{banner.body}</span></span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-[95] flex justify-center px-3">
+        <AnimatePresence>
+          {banner && (
+            <motion.button key={banner.id}
+              initial={{ y: -90, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -90, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+              onClick={() => { hide(); openPhone(); }} drag="y" dragConstraints={{ top: -80, bottom: 0 }} onDragEnd={(_, i) => i.offset.y < -20 && hide()}
+              className="glass-dark pointer-events-auto flex w-full max-w-[380px] items-center gap-3 rounded-3xl px-4 py-3 text-left">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-2xl">{banner.icon}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{banner.title}</span><span className="block truncate text-[13px] text-white/75">{banner.body}</span></span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
     </>
   );
 }

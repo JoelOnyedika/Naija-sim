@@ -185,7 +185,7 @@ function Rug({ x, z, w, d, a, b }: { x: number; z: number; w: number; d: number;
 
 /** A line of small lights (or flags) hung along a wall just below the top. */
 function Strings({ wall, from, to, y, colors, bulbs = true }: { wall: Wall; from: number; to: number; y: number; colors: string[]; bulbs?: boolean }) {
-  const n = Math.max(3, Math.floor(Math.abs(to - from) / 0.45));
+  const n = Math.max(3, Math.floor(Math.abs(to - from) / 0.9));
   return (
     <group>
       {Array.from({ length: n }).map((_, i) => {

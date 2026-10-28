@@ -1,12 +1,13 @@
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Group, PointLight } from 'three';
+import { BoxGeometry, SphereGeometry, type Group, type PointLight } from 'three';
 import { NPC } from '@/data/balance';
 import { INTERIORS } from '@/data/interiors';
 import { makeNpcs, type NpcProfile } from '@/data/npcs';
 import { getFurniture } from '@/data/items';
 import { vendorSpots } from '@/data/vendors';
+import { useVendorTalk } from '@/stores/vendorTalkStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import type { PlacedItem } from '@/types/game';
 import type { PropertyLayout } from '@/types/world';
@@ -26,6 +27,23 @@ function useNear(at: () => { x: number; z: number } | undefined, range: number) 
   return near;
 }
 
+/**
+ * People far from the player are drawn as a simple figure (4 parts) instead of the full avatar (about 45 parts): the crowd
+ * dominates the draw-call count in busy venues and nobody can see the detail from there. Checked a few times a second.
+ */
+const FIG = { body: new BoxGeometry(0.34, 0.55, 0.22), head: new SphereGeometry(0.15, 10, 8), leg: new BoxGeometry(0.13, 0.5, 0.16) };
+function SimpleFigure({ a }: { a: NpcProfile['appearance'] }) {
+  return (
+    <group>
+      <mesh geometry={FIG.leg} position={[-0.09, 0.25, 0]} castShadow={false}><meshStandardMaterial color={a.bottomColor} roughness={0.8} /></mesh>
+      <mesh geometry={FIG.leg} position={[0.09, 0.25, 0]} castShadow={false}><meshStandardMaterial color={a.bottomColor} roughness={0.8} /></mesh>
+      <mesh geometry={FIG.body} position={[0, 0.78, 0]} castShadow={false}><meshStandardMaterial color={a.topColor} roughness={0.8} /></mesh>
+      <mesh geometry={FIG.head} position={[0, 1.2, 0]} castShadow={false}><meshStandardMaterial color={a.skin} roughness={0.8} /></mesh>
+    </group>
+  );
+}
+const DETAIL_RANGE = 9;
+
 /** A small floating name above a person's head (a DOM label, so it stays sharp and cheap). */
 function NameTag({ name, vendor, show }: { name: string; vendor?: boolean; show: boolean }) {
   if (!show) return null;
@@ -40,11 +58,21 @@ function NameTag({ name, vendor, show }: { name: string; vendor?: boolean; show:
 function VendorActor({ p, x, z, yaw }: { p: NpcProfile; x: number; z: number; yaw: number }) {
   const motion = useRef<Motion>({ moving: false, lying: false, sitting: false });
   useEffect(() => { liveNpcs.set(p.id, { x, z }); return () => { liveNpcs.delete(p.id); }; }, [p.id, x, z]);
-  const near = useNear(() => ({ x, z }), 5.2);
+  const near = useNear(() => ({ x, z }), 5.2), close = useNear(() => ({ x, z }), DETAIL_RANGE);
+  // when the player buys, works or haggles at this vendor's prop, the vendor speaks (a bubble) and gives a small nod
+  const uid = p.id.slice('npc:vendor:'.length), say = useVendorTalk((s) => s.says[uid]);
+  const [shown, setShown] = useState<string | null>(null), g = useRef<Group>(null), nod = useRef(0);
+  useEffect(() => { if (!say) return; setShown(say.text); nod.current = 0.5; const t = window.setTimeout(() => setShown(null), 3400); return () => window.clearTimeout(t); }, [say?.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  useFrame((_, dt) => { if (g.current) { nod.current = Math.max(0, nod.current - dt); g.current.position.y = Math.abs(Math.sin(nod.current * 12)) * 0.1 * Math.min(1, nod.current * 3); } });
   return (
     <group position={[x, 0, z]} rotation={[0, yaw, 0]} onClick={(e) => { if (e.delta > 6) return; e.stopPropagation(); useInteriorStore.getState().selectNpc(p.id); }}>
-      <Avatar appearance={p.appearance} motion={motion} />
-      <NameTag name={p.name} vendor show={near} />
+      <group ref={g}>{close ? <Avatar appearance={p.appearance} motion={motion} /> : <SimpleFigure a={p.appearance} />}</group>
+      <NameTag name={p.name} vendor show={near && !shown} />
+      {shown && (
+        <Html position={[0, 2.25, 0]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="relative max-w-[9.5rem] rounded-2xl bg-white px-2.5 py-1.5 text-center text-[11.5px] font-bold leading-tight text-night shadow-lg">{shown}<span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white" /></div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -73,10 +101,10 @@ function NpcActor({ p, grid, w, d }: { p: NpcProfile; grid: NavGrid; w: number; 
     liveNpcs.set(p.id, { x: b.x, z: b.z });
   });
   useEffect(() => () => { liveNpcs.delete(p.id); }, [p.id]);
-  const near = useNear(() => liveNpcs.get(p.id), 4.2);
+  const near = useNear(() => liveNpcs.get(p.id), 4.2), close = useNear(() => liveNpcs.get(p.id), DETAIL_RANGE);
   return (
     <group ref={g} onClick={(e) => { if (e.delta > 6) return; e.stopPropagation(); useInteriorStore.getState().selectNpc(p.id); }}>
-      <Avatar appearance={p.appearance} motion={motion} />
+      {close ? <Avatar appearance={p.appearance} motion={motion} /> : <SimpleFigure a={p.appearance} />}
       <NameTag name={p.name} show={near} />
     </group>
   );

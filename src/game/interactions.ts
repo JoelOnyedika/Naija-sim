@@ -20,6 +20,7 @@ import { podiumIndexOf, slotVehicle } from '@/data/showroom';
 import { useInteriorStore } from '@/stores/interiorStore';
 import type { UseDef } from '@/data/items';
 import { QUEUE_LIMIT, useQueueStore } from '@/stores/queueStore';
+import { vendorReact } from './vendorReact';
 
 /** Sum of comfort bonuses (fan, AC...) in the active home. */
 const comfort = () => {
@@ -143,7 +144,8 @@ export function startUse(item: PlacedItem) {
   // a pet you are bonded with makes time together happier: up to +50% happiness at full bond
   if (u.petAction && effects.happiness) effects = { ...effects, happiness: Math.round(effects.happiness * bondMultiplier(item.uid)) };
   if (u.cost && !useEconomyStore.getState().debit(u.cost, def.name, 'purchase')) { sfx.error(); toast(copy.broke(), 'bad'); return; }
-  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), glyph: u.glyph ?? def.glyph, seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party, risk: u.risk, payout: u.payout, petAction: u.petAction, activityKey: u.id ? `${def.id}:${u.id}` : undefined });
+  stats.start({ label: u.label.replace(/ \(₦\d+\)/, ''), glyph: u.glyph ?? def.glyph, seconds, effects, pose: u.pose, targetUid: item.uid, kind: 'use', event: u.event, slept: u.sleep, skill: u.skill, party: u.party, risk: u.risk, bought: !!u.cost, payout: u.payout, petAction: u.petAction, activityKey: u.id ? `${def.id}:${u.id}` : undefined });
+  vendorReact(item.uid, 'greet');
 }
 
 export function eatFood(foodId: string, targetUid?: string): boolean {

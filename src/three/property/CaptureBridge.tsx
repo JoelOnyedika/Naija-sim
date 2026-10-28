@@ -6,6 +6,7 @@ import { setCapture } from '../capture';
 export function CaptureBridge() {
   const { gl, scene, camera } = useThree();
   useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __r3f?: unknown }).__r3f = { gl, scene, camera }; // dev only: lets tests read the draw-call count
     setCapture(() => new Promise<Blob | null>((resolve) => { gl.render(scene, camera); gl.domElement.toBlob((b) => resolve(b), 'image/png'); }));
     return () => setCapture(null);
   }, [gl, scene, camera]);
