@@ -183,7 +183,7 @@ export function InteriorChat() {
           <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
             {spotUses.map((d, i) => (
               <TaskCard key={i} width="11.75rem" glyph={d.glyph} title={d.label} seconds={d.seconds} cost={d.cost} risk={uses[i].risk ? { chance: uses[i].risk!.winChance } : undefined} winMoney={uses[i].risk?.winMoney} effects={d.effects} skill={d.skill} maxEffects={3}
-                onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); }} />
+                onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); setSpotUid(null); /* fold just this spot's task row, not the whole panel */ }} />
             ))}
           </div>
         )}
