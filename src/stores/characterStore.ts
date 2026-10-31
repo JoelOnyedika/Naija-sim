@@ -1,14 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { applyItem, type BoutiqueItem, ACCESSORIES, BOTTOM_STYLES, CLOTH_COLORS, HAIR_COLORS, HAIR_STYLES, SHOE_STYLES, SKIN_TONES, TOP_STYLES } from '@/data/clothing';
+import { applyItem, type BoutiqueItem, ACCESSORIES, BEARD_STYLES, BOTTOM_STYLES, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HAIR_STYLES, SHOE_STYLES, SKIN_TONES, TOP_STYLES } from '@/data/clothing';
 import type { Appearance } from '@/types/game';
 
 export const DEFAULT_APPEARANCE: Appearance = {
-  skin: '#8A5A3C', hairStyle: 'lowcut', hairColor: '#0E0B0A', top: 'tee', topColor: '#FFC21A', bottom: 'jeans', bottomColor: '#2B4C7E', shoes: 'sneakers', shoeColor: '#F4F1EA', accessory: 'none',
+  skin: '#8A5A3C', hairStyle: 'lowcut', hairColor: '#0E0B0A', top: 'tee', topColor: '#FFC21A', bottom: 'jeans', bottomColor: '#2B4C7E', shoes: 'sneakers', shoeColor: '#F4F1EA', accessory: 'none', body: 'masc', eye: EYE_COLORS[0], beard: 'none',
 };
 
 interface CharacterState {
   created: boolean;
+  /** The character's display name, chosen on the creation screen. */
+  name: string;
+  setName: (n: string) => void;
   appearance: Appearance;
   ownedClothes: string[];
   set: (patch: Partial<Appearance>) => void;
@@ -22,15 +25,18 @@ interface CharacterState {
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 export const useCharacterStore = create<CharacterState>()(persist((set) => ({
-  created: false, appearance: DEFAULT_APPEARANCE, ownedClothes: [],
+  created: false, name: '', appearance: DEFAULT_APPEARANCE, ownedClothes: [],
+  setName: (name) => set({ name: name.slice(0, 16) }),
   set: (patch) => set((s) => ({ appearance: { ...s.appearance, ...patch } })),
-  randomize: () => set((s) => ({
-    appearance: {
-      ...s.appearance, skin: pick(SKIN_TONES), hairStyle: pick(HAIR_STYLES).id, hairColor: pick(HAIR_COLORS),
+  randomize: () => set((s) => {
+    const body = Math.random() < 0.5 ? 'masc' as const : 'femme' as const;
+    return { appearance: {
+      ...s.appearance, body, eye: pick(EYE_COLORS), beard: body === 'masc' && Math.random() < 0.45 ? pick(BEARD_STYLES).id : 'none',
+      skin: pick(SKIN_TONES), hairStyle: pick(HAIR_STYLES).id, hairColor: pick(HAIR_COLORS),
       top: pick(TOP_STYLES).id, topColor: pick(CLOTH_COLORS), bottom: pick(BOTTOM_STYLES).id, bottomColor: pick(CLOTH_COLORS),
       shoes: pick(SHOE_STYLES).id, shoeColor: pick(CLOTH_COLORS), accessory: pick(ACCESSORIES).id,
-    },
-  })),
+    } };
+  }),
   finish: () => set({ created: true }),
   equip: (item) => set((s) => ({ appearance: applyItem(s.appearance, item) })),
   own: (id) => set((s) => (s.ownedClothes.includes(id) ? s : { ownedClothes: [...s.ownedClothes, id] })),

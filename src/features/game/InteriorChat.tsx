@@ -37,6 +37,19 @@ interface Spot { uid: string; defId: string; name: string; glyph: string }
  * LOCAL = this copy of this venue only; GLOBAL = every venue (they are separate channels). Below the box: Spots (tap one to walk
  * there and pick what to do) and Players here (tap one for their profile). Offline, only this device and the NPCs are here.
  */
+const HINT_KEY = 'nigerialife.venuePanelSeen';
+/** Has the player opened this kind of venue's panel before? Until they have, its open button glows so they know to tap it. */
+function useVenueHint(kind: string | undefined, expanded: boolean): boolean {
+  const read = (): string[] => { try { return JSON.parse(localStorage.getItem(HINT_KEY) ?? '[]'); } catch { return []; } };
+  const [seenKinds, setSeen] = useState<string[]>(read);
+  useEffect(() => {
+    if (!kind || !expanded || seenKinds.includes(kind)) return;
+    const next = [...seenKinds, kind]; setSeen(next);
+    try { localStorage.setItem(HINT_KEY, JSON.stringify(next)); } catch { /* private mode: the hint just shows again next time */ }
+  }, [kind, expanded, seenKinds]);
+  return !kind || seenKinds.includes(kind);
+}
+
 export function InteriorChat() {
   const expanded = useUiStore((s) => s.chatOpen), dockHidden = useUiStore((s) => s.dockHidden), mode = useUiStore((s) => s.mode);
   const here = useInteriorStore((s) => s.current), channels = useChatStore((s) => s.channels);
@@ -44,6 +57,7 @@ export function InteriorChat() {
   const [text, setText] = useState('');
   const [menu, setMenu] = useState<Sender | null>(null);
   const [spotUid, setSpotUid] = useState<string | null>(null);
+  const seen = useVenueHint(here?.kind, expanded);
   const end = useRef<HTMLDivElement>(null), box = useRef<HTMLDivElement>(null);
   const setExpanded = (v: boolean) => useUiStore.getState().setChatOpen(v);
   const ch = channelFor(scope, here), list = ch ? channels[ch] ?? [] : [];
@@ -114,11 +128,11 @@ export function InteriorChat() {
             {(['local', 'global'] as const).map((k) => <button key={k} aria-pressed={scope === k} onClick={() => { setScope(k); setMenu(null); }} className={`rounded-lg px-2 py-1.5 text-[12px] font-bold ${scope === k ? `${SCOPE[k].tone} text-white` : 'text-white/60'}`}>{SCOPE[k].label}</button>)}
           </div>
           {here.kind !== 'jail' && <button onClick={leaveInterior} aria-label="Leave and go home" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20"><Home size={17} /></button>}
-          <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Fold the panel' : 'Unfold the panel'} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20">{expanded ? <ChevronDown size={19} /> : <ChevronUp size={19} />}</button>
+          <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Fold the panel' : 'Unfold the panel'} className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20 ${!seen && !expanded ? 'venue-glow' : ''}`}>{expanded ? <ChevronDown size={19} /> : <ChevronUp size={19} />}</button>
         </div>
         {/* folded: the latest thing said */}
         {!expanded && (
-          <button onClick={() => setExpanded(true)} className="mt-2 flex min-h-[2.4rem] w-full items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-1.5 text-left text-[13px]">
+          <button onClick={() => setExpanded(true)} className={`mt-2 flex min-h-[2.4rem] w-full items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-1.5 text-left text-[13px] ${!seen ? 'venue-glow' : ''}`}>
             {last ? <><span className={`shrink-0 font-bold ${last.from.kind === 'system' ? 'text-amber-200' : st.text}`}>{last.from.kind === 'system' ? 'Notice' : last.from.name}</span><span className="truncate text-white/85">{last.text}</span></> : <span className="truncate text-white/55">{def.tagline}</span>}
           </button>
         )}
@@ -169,7 +183,7 @@ export function InteriorChat() {
           <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
             {spotUses.map((d, i) => (
               <TaskCard key={i} width="11.75rem" glyph={d.glyph} title={d.label} seconds={d.seconds} cost={d.cost} risk={uses[i].risk ? { chance: uses[i].risk!.winChance } : undefined} winMoney={uses[i].risk?.winMoney} effects={d.effects} skill={d.skill} maxEffects={3}
-                onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; setExpanded(false); if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); }} />
+                onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); }} />
             ))}
           </div>
         )}

@@ -1,12 +1,18 @@
-import type { Accessory, Appearance, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
+import type { Accessory, Appearance, BeardStyle, BodyType, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
 
 export const SKIN_TONES = ['#F1C9A5', '#D9A273', '#B77B4E', '#8A5A3C', '#6B4128', '#4A2C1B'];
 export const HAIR_COLORS = ['#0E0B0A', '#2B1B14', '#6B3F23', '#B9892F', '#C23B3B', '#5A3E9C', '#E9E4DA'];
 export const CLOTH_COLORS = ['#FFC21A', '#0B8F4D', '#FFFFFF', '#1B1F24', '#2B4C7E', '#C23B3B', '#E4572E', '#8A63D2', '#19C3A6'];
 
+export const EYE_COLORS = ['#2A1A10', '#5A3A1E', '#3E5C3A', '#2F5D8A', '#6B6F73'];
+export const BODY_TYPES: { id: BodyType; label: string }[] = [{ id: 'masc', label: 'Masculine' }, { id: 'femme', label: 'Feminine' }];
+export const BEARD_STYLES: { id: BeardStyle; label: string }[] = [
+  { id: 'none', label: 'Clean' }, { id: 'stubble', label: 'Stubble' }, { id: 'moustache', label: 'Moustache' }, { id: 'goatee', label: 'Goatee' }, { id: 'full', label: 'Full beard' },
+];
+
 export const HAIR_STYLES: { id: HairStyle; label: string }[] = [
   { id: 'bald', label: 'Bald' }, { id: 'lowcut', label: 'Low cut' }, { id: 'fade', label: 'Fade' }, { id: 'afro', label: 'Afro' },
-  { id: 'braids', label: 'Braids' }, { id: 'dreads', label: 'Locs' }, { id: 'bun', label: 'Bun' },
+  { id: 'braids', label: 'Braids' }, { id: 'dreads', label: 'Locs' }, { id: 'bun', label: 'Bun' }, { id: 'cornrows', label: 'Cornrows' }, { id: 'twists', label: 'Twists' },
 ];
 export const TOP_STYLES: { id: TopStyle; label: string }[] = [
   { id: 'tee', label: 'T-shirt' }, { id: 'shirt', label: 'Shirt' }, { id: 'hoodie', label: 'Hoodie' }, { id: 'jacket', label: 'Jacket' }, { id: 'kaftan', label: 'Kaftan' }, { id: 'jersey', label: 'Jersey' },
@@ -19,7 +25,7 @@ export const SHOE_STYLES: { id: ShoeStyle; label: string }[] = [
   { id: 'sneakers', label: 'Sneakers' }, { id: 'boots', label: 'Boots' }, { id: 'sandals', label: 'Sandals' }, { id: 'barefoot', label: 'Barefoot' },
 ];
 export const ACCESSORIES: { id: Accessory; label: string }[] = [
-  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' },
+  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' },
 ];
 
 export type BoutiqueSlot = 'top' | 'bottom' | 'shoes' | 'hair' | 'extra' | 'bag';
@@ -45,6 +51,9 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-hair-braids', name: 'Braids', slot: 'hair', style: 'braids', price: 12000, glyph: '💇' },
   { id: 'b-hair-locs', name: 'Locs', slot: 'hair', style: 'dreads', price: 15000, glyph: '💇' },
   { id: 'b-hair-bun', name: 'Bun', slot: 'hair', style: 'bun', price: 4000, glyph: '💇' },
+  { id: 'b-hair-cornrows', name: 'Cornrows', slot: 'hair', style: 'cornrows', price: 10000, glyph: '💇' },
+  { id: 'b-hair-twists', name: 'Twists', slot: 'hair', style: 'twists', price: 9000, glyph: '💇' },
+  { id: 'b-x-earrings', name: 'Gold earrings', slot: 'extra', style: 'earrings', price: 14000, glyph: '✨' },
   { id: 'b-x-glasses', name: 'Round glasses', slot: 'extra', style: 'glasses', price: 10000, glyph: '👓' },
   { id: 'b-x-cap', name: 'Cap', slot: 'extra', style: 'cap', price: 8000, glyph: '🧢' },
   { id: 'b-x-chain', name: 'Gold chain', slot: 'extra', style: 'chain', price: 40000, glyph: '⛓️' },

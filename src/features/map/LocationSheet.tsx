@@ -20,11 +20,11 @@ import type { LandmarkDefinition } from '@/types/world';
 /** The ways to get there. Prices are in-game naira. Your own cars are free (and the driving animation comes later). */
 export interface Mode { id: string; glyph: string; label: string; cost: number; seconds: number; vehicleId?: string }
 export const TRAVEL_MODES: Mode[] = [
-  { id: 'trek', glyph: '🚶', label: 'Trek', cost: 0, seconds: 6 },
-  { id: 'keke', glyph: '🛺', label: 'Keke', cost: 150, seconds: 4 },
-  { id: 'danfo', glyph: '🚌', label: 'Danfo', cost: 150, seconds: 3.5 },
-  { id: 'okada', glyph: '🏍️', label: 'Okada', cost: 250, seconds: 3 },
-  { id: 'cab', glyph: '🚕', label: 'Cab', cost: 500, seconds: 2.5 },
+  { id: 'trek', glyph: '🚶', label: 'Trek', cost: 0, seconds: 5 },
+  { id: 'keke', glyph: '🛺', label: 'Keke', cost: 150, seconds: 4.5 },
+  { id: 'danfo', glyph: '🚌', label: 'Danfo', cost: 150, seconds: 4.5 },
+  { id: 'okada', glyph: '🏍️', label: 'Okada', cost: 250, seconds: 4 },
+  { id: 'cab', glyph: '🚕', label: 'Cab', cost: 500, seconds: 4 },
 ];
 const BODY_GLYPH: Record<string, string> = { sedan: '🚗', truck: '🛻', keke: '🛺', suv: '🚙', sports: '🏎️', bus: '🚐' };
 
@@ -38,7 +38,7 @@ export function LocationSheet({ landmark, onClose, onTravel }: { landmark: Landm
   const money = useEconomyStore((s) => s.money);
   const modes = useMemo<Mode[]>(() => {
     const own: Mode[] = [];
-    for (const id of owned) { const v = VEHICLES.find((x) => x.id === id); if (v) own.push({ id: `own:${id}`, glyph: BODY_GLYPH[v.type] ?? '🚘', label: v.name.replace(/ \(.*\)/, ''), cost: 0, seconds: 1.5, vehicleId: id }); }
+    for (const id of owned) { const v = VEHICLES.find((x) => x.id === id); if (v) own.push({ id: `own:${id}`, glyph: BODY_GLYPH[v.type] ?? '🚘', label: v.name.replace(/ \(.*\)/, ''), cost: 0, seconds: 5, vehicleId: id }); }
     return [...TRAVEL_MODES, ...own];
   }, [owned]);
   const [pick, setPick] = useState('trek');

@@ -9,7 +9,7 @@ import { Avatar } from './Avatar';
 /** What part of the body the camera should frame. Customisation screens switch this as the player changes category. */
 export type PreviewFocus = 'full' | 'upper' | 'head' | 'lower';
 const FOCUS: Record<PreviewFocus, { y: number; h: number; w: number }> = {
-  full: { y: 0.9, h: 1.95, w: 0.95 }, upper: { y: 1.2, h: 1.25, w: 0.9 }, head: { y: 1.58, h: 0.55, w: 0.55 }, lower: { y: 0.52, h: 1.1, w: 0.8 },
+  full: { y: 0.86, h: 1.95, w: 0.95 }, upper: { y: 1.15, h: 1.2, w: 0.9 }, head: { y: 1.5, h: 0.66, w: 0.66 }, lower: { y: 0.5, h: 1.1, w: 0.8 },
 };
 const FOV = 30;
 

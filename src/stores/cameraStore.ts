@@ -8,7 +8,8 @@ export const DEFAULT_POLAR = 1.0;         // MVP camera: radians from straight u
 /** Vertical drag tilts the camera between these two elevations (radians from straight up). Tweak here to change how far it goes. */
 export const POLAR_MIN = 0.7;             // most top-down view
 export const POLAR_MAX = 1.2;             // lowest, most side-on view
-export const ZOOM_MIN = 0.7, ZOOM_MAX = 1.3;
+/** How far the player can zoom (1 = the default framing). Lower is closer. Wider than before so mouse and touch can really get in. */
+export const ZOOM_MIN = 0.32, ZOOM_MAX = 1.5;
 
 /** A short "look at what I just placed" request. `at` is when it was made (ms); the rig eases in, holds, then eases back. */
 export interface CameraFocus { id: string; point: [number, number, number]; at: number }

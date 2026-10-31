@@ -21,12 +21,14 @@ export interface PlacedItem {
   fixed?: boolean;
 }
 
-export type HairStyle = 'bald' | 'lowcut' | 'fade' | 'afro' | 'braids' | 'dreads' | 'bun';
+export type HairStyle = 'bald' | 'lowcut' | 'fade' | 'afro' | 'braids' | 'dreads' | 'bun' | 'cornrows' | 'twists';
+export type BodyType = 'masc' | 'femme';
+export type BeardStyle = 'none' | 'stubble' | 'moustache' | 'goatee' | 'full';
 export type TopStyle = 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey';
 /** `dress` is a one-piece: it replaces the top as well. */
 export type BottomStyle = 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress';
 export type ShoeStyle = 'sneakers' | 'boots' | 'sandals' | 'barefoot';
-export type Accessory = 'none' | 'glasses' | 'cap' | 'chain';
+export type Accessory = 'none' | 'glasses' | 'cap' | 'chain' | 'earrings';
 export interface Appearance {
   skin: string;
   hairStyle: HairStyle;
@@ -38,4 +40,8 @@ export interface Appearance {
   shoes: ShoeStyle;
   shoeColor: string;
   accessory: Accessory;
+  /** Added with the low-poly characters. Optional so older saves and NPC profiles keep working. */
+  body?: BodyType;
+  eye?: string;
+  beard?: BeardStyle;
 }

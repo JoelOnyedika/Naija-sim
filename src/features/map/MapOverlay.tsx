@@ -18,6 +18,8 @@ import { AdSheet } from './ads/AdSheet';
 import { AdWizard } from './ads/AdWizard';
 import { interiorKindForLandmark } from '@/data/interiors';
 import { travelToVenue } from '@/game/interiors';
+import { planTrip, type TripPlan } from '@/features/travel/plan';
+import { TravelScene } from '@/features/travel/TravelScene';
 import { MapTopBar } from './MapTopBar';
 import { CategorySheet } from './CategorySheet';
 import { LocationSheet, type Mode } from './LocationSheet';
@@ -30,7 +32,7 @@ export function MapOverlay() {
   const { selectedAreaId, selectedLandmarkId, selectLandmark, selectArea } = useMapStore();
   const ui = useAdsUiStore();
   const stateId = useStateId();
-  const [travel, setTravel] = useState<{ name: string; glyph: string; seconds: number } | null>(null);
+  const [trip, setTrip] = useState<{ plan: TripPlan; go: () => void } | null>(null);
   const state = getState(stateId);
   const landmark = selectedLandmarkId ? getLandmark(selectedLandmarkId) : null;
   const area = selectedAreaId ? getArea(selectedAreaId) : null;
@@ -53,10 +55,9 @@ export function MapOverlay() {
     }
     if (useStatsStore.getState().activity) { sfx.error(); return toast('Finish what you are doing first', 'bad'); }
     if (v.cost > 0 && !useEconomyStore.getState().debit(v.cost, `Visit: ${landmark.name}`, 'visit')) { sfx.error(); return toast(copy.broke(), 'bad'); }
-    sfx.open(); setTravel({ name: landmark.name, glyph: '🚌', seconds: 1.5 });
+    sfx.open(); setTrip({ plan: planTrip({ modeId: 'danfo', seconds: 3.5, landmark }), go: () => undefined });
     useMapStore.getState().recordVisit(landmark.id);
     useStatsStore.getState().start({ label: `At ${landmark.name}`, seconds: v.seconds, effects: v.effects, pose: 'stand', kind: 'visit', event: v.taskEvent ? `visit:${v.taskEvent}` : undefined, doneMessage: `Good time at ${landmark.name}.` });
-    setTimeout(() => setTravel(null), 1500);
   };
 
   return (
@@ -70,7 +71,7 @@ export function MapOverlay() {
             {(landmark || area) && (
               <motion.div key={landmark?.id ?? area?.id} className="absolute inset-x-0 bottom-[6rem] z-[60] flex justify-center px-3" initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
                 <div className="glass-dark w-full max-w-md rounded-[1.75rem] p-4">
-                  {landmark && interiorKindForLandmark(landmark.id) && <LocationSheet key={landmark.id} landmark={landmark} onClose={() => selectLandmark(null)} onTravel={(m: Mode, goThere) => { selectLandmark(null); setTravel({ name: landmark.name, glyph: m.glyph, seconds: m.seconds }); setTimeout(() => { setTravel(null); goThere(); }, m.seconds * 1000); }} />}
+                  {landmark && interiorKindForLandmark(landmark.id) && <LocationSheet key={landmark.id} landmark={landmark} onClose={() => selectLandmark(null)} onTravel={(m: Mode, goThere) => { selectLandmark(null); setTrip({ plan: planTrip({ modeId: m.id, seconds: m.seconds, landmark, vehicleId: m.vehicleId }), go: goThere }); }} />}
                   {landmark && !interiorKindForLandmark(landmark.id) && (<>
                     <div className="flex items-start gap-3"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danfo/20 text-2xl">{landmark.icon}</span>
                       <div className="min-w-0 flex-1"><div className="font-display text-xl font-bold leading-tight">{landmark.name}</div><div className="text-sm font-semibold text-danfo">{landmark.tagline}</div></div>
@@ -102,13 +103,7 @@ export function MapOverlay() {
           <AnimatePresence>{ui.wizard && state.ads && <AdWizard key={`wiz-${ui.wizard.kind}-${ui.wizard.slotId}`} state={state} wizard={ui.wizard} />}</AnimatePresence>
 
           <AnimatePresence>
-            {travel && (
-              <motion.div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-night/80 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <motion.div animate={{ x: [-120, 120] }} transition={{ duration: travel.seconds, ease: 'easeInOut' }} className="text-6xl">{travel.glyph}</motion.div>
-                <p className="mt-4 font-display text-xl font-bold">Heading to {travel.name}…</p>
-                <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-white/15"><motion.div className="h-full rounded-full bg-sky-400" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: travel.seconds, ease: 'linear' }} /></div>
-              </motion.div>
-            )}
+            {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { const t = trip; setTrip(null); t.go(); }} />}
           </AnimatePresence>
         </motion.div>
       )}

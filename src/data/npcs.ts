@@ -1,5 +1,5 @@
 import { CRIME } from './balance';
-import type { Accessory, Appearance, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
+import type { Accessory, Appearance, BeardStyle, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
 
 /** NPC people for public interiors. Deterministic from the visit's seed, so the same visit always meets the same people. */
 export interface NpcProfile { id: string; name: string; appearance: Appearance; wallet: number; greeting: string; /** What they do, shown on their profile (Nigerian jobs fit the place). */ role: string; /** A conversation starter in their own voice. */ starter: string; venue: string }
@@ -31,9 +31,11 @@ const ROLES: Record<string, string[]> = {
 };
 const STARTERS = ['Who is your favourite Afrobeats artist? Talk true.', 'Jollof: Naija or Ghana? Choose carefully.', 'Arsenal or Chelsea? Do not lie.', 'Island or Mainland, which one do you like more?', 'NEPA took light in my area yesterday. Na so e be?', 'Danfo or Bolt, which one has less wahala?', 'Amala or pounded yam? Pick one.', 'You don chop today?'];
 const SKIN = ['#8D5524', '#6B4226', '#C68642', '#4A2C17', '#A0673B', '#7A4A2A'];
-const HAIR: HairStyle[] = ['lowcut', 'fade', 'afro', 'braids', 'bun', 'dreads', 'bald'];
+const HAIR_M: HairStyle[] = ['lowcut', 'fade', 'afro', 'dreads', 'bald', 'cornrows', 'twists'];
+const HAIR_F: HairStyle[] = ['braids', 'bun', 'afro', 'cornrows', 'twists', 'dreads'];
+const BEARDS: BeardStyle[] = ['none', 'none', 'none', 'stubble', 'moustache', 'goatee', 'full'];
+const EYES = ['#2A1A10', '#2A1A10', '#5A3A1E', '#3E5C3A'];
 const TOPS: TopStyle[] = ['tee', 'shirt', 'hoodie', 'jacket', 'kaftan', 'jersey'];
-const BOTTOMS: BottomStyle[] = ['jeans', 'shorts', 'trousers', 'skirt', 'dress'];
 const SHOES: ShoeStyle[] = ['sneakers', 'boots', 'sandals'];
 const ACC: Accessory[] = ['none', 'none', 'glasses', 'cap', 'chain'];
 const COLORS = ['#C4552D', '#1F4E47', '#E9B949', '#3A5BA0', '#8A3F6A', '#2B2F32', '#F4F1EA', '#2F8F8A', '#B8892F'];
@@ -48,10 +50,10 @@ export function makeNpcs(kind: string, seed: number, count: number): NpcProfile[
   const out: NpcProfile[] = [];
   for (let i = 0; i < count; i++) {
     const r = rng(seed * 31 + i * 977 + kind.length * 13);
-    const dress = r() < 0.2;
+    const femme = r() < 0.48, dress = femme && r() < 0.4;
     const p: NpcProfile = {
       id: `npc:${kind}:${seed}:${i}`, name: NAMES[(seed + i * 7) % NAMES.length],
-      appearance: { skin: pick(r, SKIN), hairStyle: pick(r, HAIR), hairColor: '#1B1B1B', top: pick(r, TOPS), topColor: pick(r, COLORS), bottom: dress ? 'dress' : pick(r, BOTTOMS), bottomColor: pick(r, COLORS), shoes: pick(r, SHOES), shoeColor: '#2B2F32', accessory: pick(r, ACC) },
+      appearance: { body: femme ? 'femme' : 'masc', eye: pick(r, EYES), beard: femme ? 'none' : pick(r, BEARDS), skin: pick(r, SKIN), hairStyle: pick(r, femme ? HAIR_F : HAIR_M), hairColor: '#1B1B1B', top: pick(r, TOPS), topColor: pick(r, COLORS), bottom: dress ? 'dress' : femme ? pick(r, ['jeans', 'skirt', 'trousers', 'shorts'] as BottomStyle[]) : pick(r, ['jeans', 'shorts', 'trousers'] as BottomStyle[]), bottomColor: pick(r, COLORS), shoes: pick(r, SHOES), shoeColor: '#2B2F32', accessory: pick(r, ACC) },
       wallet: Math.round((CRIME.walletRange[0] + r() * (CRIME.walletRange[1] - CRIME.walletRange[0])) / 500) * 500,
       greeting: pick(r, GREETINGS), role: pick(r, ROLES[kind] ?? ['Visitor']), starter: pick(r, STARTERS), venue: kind,
     };

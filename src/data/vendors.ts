@@ -171,6 +171,7 @@ export function vendorSpots(kind: string, items: PlacedItem[], sizeOf: (defId: s
     const x = spot.x, z = spot.z;
     const woman = FEMALE.test(name);
     const appearance: Appearance = {
+      body: woman ? 'femme' : 'masc', eye: '#2A1A10', beard: woman ? 'none' : (['none', 'stubble', 'full', 'moustache'] as const)[(h >>> 9) % 4],
       skin: SKIN[h % SKIN.length], hairStyle: woman ? (['braids', 'bun', 'afro'] as const)[h % 3] : (['lowcut', 'fade', 'bald'] as const)[h % 3], hairColor: '#1B1B1B',
       top: woman ? 'shirt' : (['kaftan', 'shirt', 'tee'] as const)[h % 3], topColor: COLORS[(h >>> 3) % COLORS.length],
       bottom: woman ? (h % 2 ? 'skirt' : 'trousers') : 'trousers', bottomColor: COLORS[(h >>> 6) % COLORS.length], shoes: 'sandals', shoeColor: '#2B2B2B', accessory: 'none',

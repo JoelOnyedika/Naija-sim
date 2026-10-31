@@ -34,14 +34,14 @@ const Swatches = ({ list, value, onPick, label }: { list: string[]; value: strin
 
 function ProfileTab() {
   const a = useCharacterStore((s) => s.appearance), set = useCharacterStore((s) => s.set);
-  const user = useAuthStore((s) => s.session);
+  const user = useAuthStore((s) => s.session), charName = useCharacterStore((s) => s.name);
   return (
     <div className="space-y-4">
       <div className="relative h-72 overflow-hidden rounded-[1.6rem] bg-gradient-to-b from-[#163152] to-[#0B1623]">
         <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/50">Loading preview…</div>}><AvatarPreview appearance={a} focus="full" /></Suspense>
         <span className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[11px] text-white/45">Drag to spin</span>
       </div>
-      <div className="flex items-center justify-between rounded-2xl bg-white/[0.07] px-4 py-3"><b className="text-lg">@{user ?? 'guest'}</b><span className="text-xs text-white/50">your username</span></div>
+      <div className="flex items-center justify-between rounded-2xl bg-white/[0.07] px-4 py-3"><div className="min-w-0"><b className="block truncate text-lg">{charName || `@${user ?? 'guest'}`}</b><span className="text-xs text-white/50">@{user ?? 'guest'}</span></div><span className="text-xs text-white/50">your character</span></div>
       <section><h4 className="mb-2 text-sm font-bold text-white/60">Hairstyle</h4><div className="flex flex-wrap gap-2">{HAIR_STYLES.map((h) => <Chip key={h.id} on={a.hairStyle === h.id} onClick={() => set({ hairStyle: h.id })}>{h.label}</Chip>)}</div></section>
       <section><h4 className="mb-2 text-sm font-bold text-white/60">Hair colour</h4><Swatches list={HAIR_COLORS} value={a.hairColor} onPick={(c) => set({ hairColor: c })} label="Hair colour" /></section>
       <section><h4 className="mb-2 text-sm font-bold text-white/60">Outfit</h4><div className="flex flex-wrap gap-2">{TOP_STYLES.map((t) => <Chip key={t.id} on={a.top === t.id} onClick={() => set({ top: t.id })}>{t.label}</Chip>)}</div></section>

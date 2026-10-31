@@ -1,3 +1,17 @@
+## v11: travel animation, zoom and venue panel
+- **Travel animation** (`src/features/travel/`): every trip shows a 3 to 5 second ride ending at the destination, with a Skip button. New players mostly get the 3D version, long-time players mostly the quick 2D one, weak phones always 2D (3D falls back to 2D if WebGL fails). Rides: trek, keke, danfo, okada, cab and your own car (real model and colour). Rain with umbrellas for walkers, go-slow traffic for vehicles, crowds, and the destination building appearing with you stepping out. Used by the map, landmark trips and the phone Ride app (a trip is recorded once, even if skipped).
+- 3D polish: the passenger now walks to the door instead of ending inside the building, paving slabs on the ground, the road sits nearer the middle of the screen, jam cars no longer hide your ride, a more readable danfo. 2D: destination sign no longer clipped, the okada pot-lid no longer flickers.
+- **Zoom** range widened (0.32 to 1.5): mouse wheel, ctrl-wheel and touch pinch work in interiors; the map zooms closer.
+- **Venue panel** stays open after you pick a task; its button glows until you open that kind of venue's panel once.
+- Test aids (clearly marked TEST-ONLY): `setTripOverride`, the `startArrived` prop, `tests-browser/mountTravel.tsx`.
+
+## v10: low-poly characters
+- Detail pass: hands have a palm, four jointed fingers and a thumb; feet have heel, arch and toes with proper sneaker, boot and sandal shapes; the head has a brow ridge, cheekbones, jaw, chin, nose, lips and ears; shoulders slope from the neck with a deltoid.
+- New procedural low-poly person (`src/three/character/build.ts`): no model files. Body types (masculine/feminine), eye colour, 9 hair styles, 5 beard styles, outfits that fit both bodies, earrings. Poseable joints are exposed on the rig for the animation work later.
+- `Avatar.tsx` now builds that model (same props, same `Motion`/`ActionKind` exports, same procedural pose code). Used by the player, NPCs, vendors, boutique and profile previews.
+- Character creation screen rebuilt: name entry (required, 2-16 chars), Body / Hair / Beard / Top / Bottom / Shoes / Extras tabs. The name shows on the profile sheet.
+- `Appearance` gained optional `body`, `eye`, `beard` (old saves and NPC data still load). NPCs and vendors now get body type, beards and the new hair styles. Portrait draws beards. Boutique gained cornrows, twists, earrings.
+
 # Nigeria Life - v8 part 7: venues (work in progress, see docs/NEXT_CHAT_HANDOFF.md)
 
 Built and unit-tested (`npm run test:venues`) but NOT yet checked in a browser except entering the club:

@@ -10,13 +10,24 @@ import { currentStateId } from '@/stores/mapStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { toast } from '@/stores/uiStore';
+import { planTrip, type TripPlan, type TripPlace } from '@/features/travel/plan';
+import { TravelScene } from '@/features/travel/TravelScene';
 import { Btn, Card, Chip, EmptyState, Note, Row, SearchField } from '../../ui';
 
 const say = (r: Result, ok: string) => { if (r.ok) { sfx.pop(); toast(ok, 'good'); } else { sfx.error(); toast(r.error, 'bad'); } };
+/** What kind of building to show at the end of the trip for each Ride destination type. */
+const RIDE_PLACE: Record<Destination['category'], TripPlace['category']> = { Market: 'market', Food: 'food', Work: 'business', Fitness: 'recreation', Nightlife: 'club', Outdoors: 'park', Shopping: 'shopping' };
 const CATS = ['All', 'Food', 'Market', 'Work', 'Fitness', 'Nightlife', 'Outdoors', 'Shopping'] as const;
 
 function Detail({ d, back }: { d: Destination; back: () => void }) {
   const at = useRideStore((s) => s.at), money = useEconomyStore((s) => s.money), here = at === d.id;
+  const [trip, setTrip] = useState<{ plan: TripPlan; arrivedMsg: string } | null>(null);
+  // The fare, time and stats are settled by travel() as before; the animation then plays on top and the toast shows when it ends.
+  const go = (m: (typeof METHODS)[number]) => {
+    const r = travel(d.id, m.id); if (!r.ok) return say(r, '');
+    const place: TripPlace = { id: `ride.${d.id}`, name: d.name, icon: d.glyph, category: RIDE_PLACE[d.category] };
+    setTrip({ plan: planTrip({ modeId: m.id === 'walk' ? 'trek' : m.id, seconds: 4, landmark: place }), arrivedMsg: `You arrived at ${d.name}` });
+  };
   return (
     <div className="p-3">
       <button onClick={back} className="mb-2 text-sm font-bold text-accent">‹ Places</button>
@@ -29,8 +40,9 @@ function Detail({ d, back }: { d: Destination; back: () => void }) {
       </>) : (<>
         <p className="mb-1 mt-4 px-1 text-sm font-bold">How do you want to go?</p>
         <div className="space-y-2">{METHODS.map((m) => { const why = travelBlocker(d.id, m.id); return (
-          <Card key={m.id}><Row glyph={m.glyph} title={m.label} sub={`${m.minutes[d.distance]} game min · ${m.blurb}`} right={<Btn tone={why ? 'light' : 'dark'} disabled={!!why} onClick={() => say(travel(d.id, m.id), `You arrived at ${d.name}`)}>{m.fare[d.distance] ? formatNaira(m.fare[d.distance]) : 'Free'}</Btn>} />{why && <p className="mt-1 text-[11.5px] text-slate-500">{why}</p>}</Card>); })}</div>
+          <Card key={m.id}><Row glyph={m.glyph} title={m.label} sub={`${m.minutes[d.distance]} game min · ${m.blurb}`} right={<Btn tone={why ? 'light' : 'dark'} disabled={!!why} onClick={() => go(m)}>{m.fare[d.distance] ? formatNaira(m.fare[d.distance]) : 'Free'}</Btn>} />{why && <p className="mt-1 text-[11.5px] text-slate-500">{why}</p>}</Card>); })}</div>
       </>)}
+      {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { sfx.pop(); toast(trip.arrivedMsg, 'good'); setTrip(null); }} />}
       <Note>Trips are simulated: you pay, time passes and your stats change, but your character stays put in the 3D world. Fares and times are game rules.</Note>
     </div>
   );

@@ -84,10 +84,10 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
     return (
       <OrbitControls
         ref={controls} makeDefault enableDamping dampingFactor={0.12}
-        enableRotate={false} enablePan enableZoom screenSpacePanning panSpeed={1.1} zoomSpeed={0.9}
+        enableRotate={false} enablePan enableZoom screenSpacePanning panSpeed={1.1} zoomSpeed={1.3}
         mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
         touches={{ ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN }}
-        minDistance={14} maxDistance={140 * K} minPolarAngle={MAP_POLAR} maxPolarAngle={MAP_POLAR} minAzimuthAngle={0} maxAzimuthAngle={0}
+        minDistance={6} maxDistance={140 * K} minPolarAngle={MAP_POLAR} maxPolarAngle={MAP_POLAR} minAzimuthAngle={0} maxAzimuthAngle={0}
       />
     );
   }

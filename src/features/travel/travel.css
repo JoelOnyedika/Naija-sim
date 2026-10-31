@@ -1,0 +1,31 @@
+/* Travel scene (2D). Pure CSS/SVG animation: no JS per frame, so it is cheap on weak phones. */
+.tv-scroll { animation: tv-left linear infinite; will-change: transform; }
+.tv-scroll-r { animation: tv-left-r linear infinite; will-change: transform; }
+.tv-stop .tv-scroll, .tv-stop .tv-scroll-r, .tv-stop .tv-wheel, .tv-stop .tv-bob { animation-play-state: paused; }
+@keyframes tv-left { from { transform: translateX(0); } to { transform: translateX(-400px); } }
+@keyframes tv-left-r { from { transform: translateX(-400px); } to { transform: translateX(0); } }
+.tv-bob { animation: tv-bob 0.45s ease-in-out infinite; }
+@keyframes tv-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.6px); } }
+.tv-wheel { transform-box: fill-box; transform-origin: center; animation: tv-spin 0.5s linear infinite; }
+@keyframes tv-spin { to { transform: rotate(360deg); } }
+.tv-limb { transform-box: fill-box; transform-origin: 50% 0%; animation: tv-swing 0.7s ease-in-out infinite alternate; }
+.tv-limb.b { animation-direction: alternate-reverse; }
+.tv-stop .tv-limb.walker { animation-play-state: paused; }
+@keyframes tv-swing { from { transform: rotate(-30deg); } to { transform: rotate(30deg); } }
+.tv-rain { animation: tv-rain 0.55s linear infinite; }
+@keyframes tv-rain { from { transform: translate(0, -30px); opacity: 0.9; } to { transform: translate(-16px, 250px); opacity: 0.5; } }
+.tv-ripple { transform-box: fill-box; transform-origin: center; animation: tv-ripple 0.9s ease-out infinite; }
+@keyframes tv-ripple { from { transform: scale(0.2); opacity: 0.8; } to { transform: scale(1.4); opacity: 0; } }
+.tv-blink { animation: tv-blink 0.7s steps(2, jump-none) infinite; }
+@keyframes tv-blink { 50% { opacity: 0.25; } }
+.tv-slide-in { animation: tv-slide 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes tv-slide { from { transform: translateX(300px); } to { transform: translateX(0); } }
+.tv-exit { animation: tv-exit 1.1s ease-out 0.35s both; }
+@keyframes tv-exit { from { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } to { transform: translate(64px, -6px); opacity: 1; } }
+.tv-shake { animation: tv-shake 0.18s linear infinite; }
+@keyframes tv-shake { 0%,100% { transform: translate(0,0); } 50% { transform: translate(0.6px,-0.8px); } }
+.tv-pop { animation: tv-popin 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes tv-popin { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .tv-scroll, .tv-scroll-r, .tv-bob, .tv-wheel, .tv-limb, .tv-rain, .tv-ripple, .tv-blink, .tv-shake { animation: none; }
+}

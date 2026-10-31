@@ -14,7 +14,7 @@ export function Portrait({ a, size = 48, className = '' }: { a: Appearance; size
         {/* hair behind the head */}
         {a.hairStyle === 'afro' && <circle cx="32" cy="24" r="17" fill={hair} />}
         {a.hairStyle === 'dreads' && <path d="M14 26c0-12 8-17 18-17s18 5 18 17v22h-6V30H20v18h-6z" fill={hair} />}
-        {a.hairStyle === 'braids' && <path d="M15 27c0-12 7-18 17-18s17 6 17 18v18h-5V30H20v15h-5z" fill={hair} />}
+        {(a.hairStyle === 'braids' || a.hairStyle === 'twists') && <path d="M15 27c0-12 7-18 17-18s17 6 17 18v18h-5V30H20v15h-5z" fill={hair} />}
         {/* shoulders and top */}
         <path d="M6 66c0-14 10-22 26-22s26 8 26 22z" fill={a.topColor} />
         <path d="M26 44l6 7 6-7z" fill={skin} />
@@ -25,8 +25,12 @@ export function Portrait({ a, size = 48, className = '' }: { a: Appearance; size
         {a.hairStyle === 'lowcut' && <path d="M20 24c0-8 5-12 12-12s12 4 12 12c-3-4-7-6-12-6s-9 2-12 6z" fill={hair} />}
         {a.hairStyle === 'fade' && <path d="M20 23c1-7 6-11 12-11s11 4 12 11c-3-3-7-4-12-4s-9 1-12 4z" fill={hair} opacity="0.9" />}
         {a.hairStyle === 'afro' && <path d="M17 24c0-9 6-15 15-15s15 6 15 15c-3-5-8-8-15-8s-12 3-15 8z" fill={hair} />}
-        {(a.hairStyle === 'braids' || a.hairStyle === 'dreads') && <path d="M19 25c0-9 5-14 13-14s13 5 13 14c-3-4-7-6-13-6s-10 2-13 6z" fill={hair} />}
+        {(a.hairStyle === 'braids' || a.hairStyle === 'dreads' || a.hairStyle === 'twists' || a.hairStyle === 'cornrows') && <path d="M19 25c0-9 5-14 13-14s13 5 13 14c-3-4-7-6-13-6s-10 2-13 6z" fill={hair} />}
         {a.hairStyle === 'bun' && <><circle cx="32" cy="9" r="5" fill={hair} /><path d="M20 24c0-8 5-12 12-12s12 4 12 12c-3-4-7-6-12-6s-9 2-12 6z" fill={hair} /></>}
+        {/* beard */}
+        {(a.beard === 'full' || a.beard === 'goatee') && <path d="M21 31c1 8 5 11 11 11s10-3 11-11c-2 3-5 4-6 4h-10c-1 0-4-1-6-4z" fill={hair} opacity="0.95" />}
+        {a.beard === 'moustache' && <path d="M26 33c3-2 9-2 12 0-3 1-9 1-12 0z" fill={hair} />}
+        {a.beard === 'stubble' && <path d="M21 31c1 8 5 11 11 11s10-3 11-11c-2 3-5 4-6 4h-10c-1 0-4-1-6-4z" fill={hair} opacity="0.35" />}
         {/* face */}
         <circle cx="27" cy="28" r="1.4" fill="#1A1210" /><circle cx="37" cy="28" r="1.4" fill="#1A1210" />
         <path d="M28 34c2.5 2 5.5 2 8 0" stroke="#1A1210" strokeWidth="1.4" fill="none" strokeLinecap="round" />

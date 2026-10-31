@@ -54,11 +54,15 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
       const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (!ready || useEditorStore.getState().dragging) return;
       if (pts.size === 1) { useCameraStore.getState().swipe(-dx * SWIPE_RAD_PER_PX); useCameraStore.getState().tiltBy(-dy * TILT_RAD_PER_PX); }
-      else if (pts.size === 2) { const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * (pinch / d)); pinch = d; }
+      else if (pts.size === 2) { const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * Math.pow(pinch / d, 1.35)); pinch = d; }
     };
     const up = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
-    // mouse wheel tilts the camera a little; ctrl + wheel (or pinch) zooms
-    const wheel = (e: WheelEvent) => { if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); const c = useCameraStore.getState(); if (e.ctrlKey) c.setZoom(c.zoom * (1 + e.deltaY * 0.01)); else c.tiltBy(e.deltaY * 0.0008); };
+    // mouse wheel zooms (shift + wheel tilts the camera); a trackpad pinch arrives as ctrl + wheel and zooms too; two-finger pinch on touch
+    const wheel = (e: WheelEvent) => {
+      if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); const c = useCameraStore.getState();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; // line-based wheels report lines, not pixels
+      if (e.shiftKey) c.tiltBy(dy * 0.0008); else c.setZoom(c.zoom * Math.exp(dy * (e.ctrlKey ? 0.01 : 0.0016)));
+    };
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     el.addEventListener('wheel', wheel, { passive: false });
     return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); };
