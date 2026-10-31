@@ -1,20 +1,9 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
-import type { Group, Object3D } from 'three';
-import { VEHICLE_MODELS } from '@/data/showroom';
+import { useRef } from 'react';
+import type { Group } from 'three';
 import type { VehicleDef } from '@/data/vehicles';
+import { PlayerCar } from './CarModel';
 import { B, Cyl } from './primitives';
-
-/** Cached loads so a model is fetched once. `null` means it failed: the placeholder is used and we do not retry every frame. */
-const cache = new Map<string, Promise<Object3D | null>>();
-export function loadVehicleModel(url: string): Promise<Object3D | null> {
-  let p = cache.get(url);
-  if (!p) {
-    p = import('three/examples/jsm/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new Promise<Object3D | null>((res) => new GLTFLoader().load(url, (g) => res(g.scene), undefined, () => res(null)))).catch(() => null);
-    cache.set(url, p);
-  }
-  return p;
-}
 
 /** The stand-in car: a readable, detailed body per vehicle type (lights, grille, rims, spoiler, roof rack, truck bed). It is a placeholder and the showroom says so. */
 function Placeholder({ v }: { v: VehicleDef }) {
@@ -63,12 +52,9 @@ function Placeholder({ v }: { v: VehicleDef }) {
   );
 }
 
-/** One car on a podium. Slowly turns (cheap: one rotation per frame, only while the showroom is open). A real GLB replaces the placeholder if it loads. */
+/** One car on a podium. Slowly turns (cheap: one rotation per frame, only while the showroom is open). Cars with a GLB show it; the rest show the stand-in. */
 export function VehicleDisplay({ v, selected }: { v: VehicleDef; selected?: boolean }) {
   const g = useRef<Group>(null);
-  const url = VEHICLE_MODELS[v.id];
-  const [model, setModel] = useState<Object3D | null>(null);
-  useEffect(() => { let live = true; if (url) void loadVehicleModel(url).then((m) => { if (live && m) setModel(m.clone(true)); }); return () => { live = false; }; }, [url]);
   useFrame((_, dt) => { if (g.current) g.current.rotation.y += Math.min(dt, 0.1) * (selected ? 0.8 : 0.35); });
-  return <group ref={g} scale={0.88}>{model ? <primitive object={model} /> : <Placeholder v={v} />}</group>;
+  return <group ref={g} scale={0.88}><PlayerCar def={v} placeholder={<Placeholder v={v} />} /></group>;
 }

@@ -66,10 +66,10 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
     items: [{ defId: 'v_club_bar', x: 4.6, z: 1.3, rotation: 0 }, { defId: 'v_dj_booth', x: 11, z: 1.4, rotation: 0 }, { defId: 'v_speaker_stack', x: 8.7, z: 1.0, rotation: 0 }, { defId: 'v_speaker_stack', x: 13.3, z: 1.0, rotation: 0 }, { defId: 'sofa', x: 1.6, z: 8.6, rotation: 1 }, { defId: 'sofa', x: 1.6, z: 11.4, rotation: 1 }, { defId: 'disco_light', x: 4.4, z: 5, rotation: 0 }, { defId: 'disco_light', x: 13.6, z: 5, rotation: 0 }, { defId: 'disco_light', x: 16.4, z: 9.5, rotation: 0 }, { defId: 'v_dance_spot', x: 9, z: 7.7, rotation: 0 }],
   },
   showroom: {
-    id: 'showroom', kind: 'showroom', glyph: '🚗', label: 'Showroom', tagline: 'Polished floors, polished cars.', w: 24, d: 14, floor: 'marble', floorTint: '#D9DCE4', floorRough: 0.12, wallHeight: 4.0,
+    id: 'showroom', kind: 'showroom', glyph: '🚗', label: 'Showroom', tagline: 'Polished floors, polished cars.', w: 28, d: 21, floor: 'marble', floorTint: '#D9DCE4', floorRough: 0.12, wallHeight: 4.0,
     palette: { wall: '#ECEEF0', trim: '#B8892F', accent: '#1F3D6B' }, capacity: 10, npcTarget: 4, crowd: false, chat: true,
-    items: [...row('v_podium', [3.6, 9.2, 14.8, 20.4], 3.8), ...row('v_podium', [3.6, 9.2, 14.8, 20.4], 10.2),
-      { defId: 'v_sales_desk', x: 12, z: 1.3, rotation: 0 }, { defId: 'v_spec_board', x: 1.0, z: 3.8, rotation: 1 }, { defId: 'v_spec_board', x: 1.0, z: 10.2, rotation: 1 }, { defId: 'sofa', x: 1.8, z: 7.0, rotation: 1 }, { defId: 'v_coffee_bar', x: 22.8, z: 7.0, rotation: 3 }, { defId: 'plant', x: 22.8, z: 1.3, rotation: 0 }, { defId: 'plant', x: 22.8, z: 12.7, rotation: 0 }, { defId: 'plant', x: 1.2, z: 12.7, rotation: 0 }],
+    items: [...row('v_podium', [3.6, 8.8, 14, 19.2, 24.4], 3.8), ...row('v_podium', [3.6, 8.8, 14, 19.2, 24.4], 10.2), ...row('v_podium', [3.6, 8.8, 19.2], 16.6),
+      { defId: 'v_sales_desk', x: 14, z: 1.3, rotation: 0 }, { defId: 'v_spec_board', x: 1.0, z: 3.8, rotation: 1 }, { defId: 'v_spec_board', x: 1.0, z: 10.2, rotation: 1 }, { defId: 'sofa', x: 1.8, z: 7.0, rotation: 1 }, { defId: 'v_coffee_bar', x: 26.8, z: 7.0, rotation: 3 }, { defId: 'plant', x: 26.8, z: 1.3, rotation: 0 }, { defId: 'plant', x: 26.8, z: 19.7, rotation: 0 }, { defId: 'plant', x: 1.2, z: 19.7, rotation: 0 }],
   },
   jail: {
     id: 'jail', kind: 'jail', glyph: '🚔', label: 'Jail', tagline: 'Serve your time.', w: 12, d: 10, floor: 'concrete', wallHeight: 3.0,

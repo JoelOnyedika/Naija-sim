@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { BufferAttribute, CanvasTexture, Color, MathUtils, Object3D, RepeatWrapping, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type InstancedMesh, type Texture } from 'three';
 import { Avatar, type Motion } from '@/three/avatar/Avatar';
 import { Vehicle } from '@/three/models/vehicles';
+import { PlayerCar } from '@/three/models/CarModel';
 import type { VehicleBody } from '@/data/vehicles';
 import type { Building, TripPlan } from './plan';
 
@@ -238,7 +239,7 @@ function Ride({ plan }: { plan: TripPlan }) {
   switch (plan.ride) {
     case 'keke': body = <group rotation={[0, north, 0]} scale={1.1}><Vehicle body="keke" color="#FFC21A" /></group>; break;
     case 'cab': body = <group rotation={[0, north, 0]}><Vehicle body="sedan" color="#19C37D" /></group>; break;
-    case 'own': body = <group rotation={[0, north, 0]}><Vehicle body={plan.vehicle?.body ?? 'sedan'} color={plan.vehicle?.color ?? '#C9CED1'} /></group>; break;
+    case 'own': body = <group rotation={[0, north, 0]}><PlayerCar def={{ type: plan.vehicle?.body ?? 'sedan', color: plan.vehicle?.color ?? '#C9CED1', model: plan.vehicle?.model }} /></group>; break;
     case 'danfo': body = <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>; break;
     case 'okada': body = <group rotation={[0, Math.PI / 2, 0]} scale={1.3}><Okada rider={plan.appearance.topColor} passenger={plan.appearance.skin} pot={plan.weather === 'rain'} /></group>; break;
     default: body = null;

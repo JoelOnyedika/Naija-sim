@@ -4,8 +4,8 @@ import { planTrip, setTripOverride, type TripPlan } from '@/features/travel/plan
 import { TravelScene } from '@/features/travel/TravelScene';
 import { getLandmark } from '@/world/registry';
 
-export function mountTravel(o: { landmark: string; ride: string; vehicleId?: string; renderer: TripPlan['renderer']; weather: TripPlan['weather']; event?: TripPlan['event']; arrived?: boolean }) {
-  setTripOverride({ renderer: o.renderer, weather: o.weather, event: o.event ?? 'none', seconds: 600 });
+export function mountTravel(o: { landmark: string; ride: string; vehicleId?: string; weather: TripPlan['weather']; event?: TripPlan['event']; arrived?: boolean }) {
+  setTripOverride({ weather: o.weather, event: o.event ?? 'none', seconds: 600 });
   const plan = planTrip({ modeId: o.ride, seconds: 5, landmark: getLandmark(o.landmark)!, vehicleId: o.vehicleId });
   document.getElementById('tvtest')?.remove();
   const d = document.createElement('div'); d.id = 'tvtest'; document.body.appendChild(d);

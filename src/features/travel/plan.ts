@@ -1,11 +1,9 @@
 import { useCharacterStore } from '@/stores/characterStore';
 import { useQualityStore } from '@/stores/qualityStore';
-import { useTravelStore } from '@/stores/travelStore';
 import { getVehicle, type VehicleBody } from '@/data/vehicles';
 import type { Appearance } from '@/types/game';
 import type { LandmarkDefinition } from '@/types/world';
 
-export type Renderer = '2d' | '3d';
 export type Weather = 'clear' | 'rain' | 'dusk';
 /** What happens on the way. `jam` is the go-slow, `crowd` is a street packed with people. */
 export type Event = 'none' | 'jam' | 'crowd';
@@ -13,10 +11,9 @@ export type Ride = 'trek' | 'keke' | 'danfo' | 'okada' | 'cab' | 'own';
 export type Building = 'tower' | 'market' | 'church' | 'mosque' | 'stadium' | 'club' | 'gate' | 'shop' | 'bank';
 
 export interface TripPlan {
-  renderer: Renderer;
   ride: Ride;
   /** Own cars show that exact model and colour. */
-  vehicle?: { body: VehicleBody; color: string; name: string };
+  vehicle?: { body: VehicleBody; color: string; name: string; /** GLB in public/models/cars/ (drawn on the road), if the car has one. */ model?: string };
   weather: Weather;
   event: Event;
   building: Building;
@@ -45,17 +42,6 @@ export function deviceScore(): number {
   if (nav.connection?.saveData) s -= 0.2;
   return Math.max(0, Math.min(1, s));
 }
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/**
- * 3D or 2D? New players (few trips) mostly get the 3D version, long-time players mostly the quick 2D one; weak devices get 2D
- * whatever their experience. There is always some chance of the other kind, so the trips do not feel the same every time.
- */
-export function chooseRenderer(trips: number, device: number): Renderer {
-  if (device < 0.35 || reducedMotion()) return '2d';
-  const experience = trips < 4 ? 0.85 : trips < 12 ? 0.6 : trips < 30 ? 0.35 : 0.2;
-  return Math.random() < experience * (0.6 + device * 0.4) ? '3d' : '2d';
-}
 
 function buildingFor(l: TripPlace): Building {
   const n = `${l.name} ${l.id}`.toLowerCase();
@@ -81,13 +67,13 @@ const LINES: Record<string, string[]> = {
   crowd: ['Who dey push?!', 'Sorry o, sorry o.', 'The whole Lagos dey here.'],
 };
 
-/** TEST-ONLY: not used by the game. Tests and screenshots can pin parts of the next plan (for example the renderer or the weather). */
+/** TEST-ONLY: not used by the game. Tests and screenshots can pin parts of the next plan (for example the weather or the event). */
 let override: Partial<TripPlan> = {};
 export const setTripOverride = (o: Partial<TripPlan>) => { override = o; };
 
 export function planTrip(input: TripInput): TripPlan {
   const own = !!input.vehicleId, ride: Ride = own ? 'own' : (input.modeId as Ride);
-  const trips = useTravelStore.getState().trips, device = deviceScore();
+  const device = deviceScore();
   const w = Math.random();
   const weather: Weather = w < 0.28 ? 'rain' : w < 0.5 ? 'dusk' : 'clear';
   const e = Math.random();
@@ -95,11 +81,13 @@ export function planTrip(input: TripInput): TripPlan {
   if (ride === 'trek') event = e < 0.5 ? 'crowd' : 'none';
   else event = e < 0.42 ? 'jam' : e < 0.55 ? 'crowd' : 'none';
   const v = input.vehicleId ? getVehicle(input.vehicleId) : undefined;
-  const vehicle = v ? { body: v.type, color: v.color, name: v.name } : undefined;
+  const vehicle = v ? { body: v.type, color: v.color, name: v.name, model: v.model } : undefined;
+  // start downloading the player's car model now, so it is ready by the time the scene draws it
+  if (v?.model) void import('@/three/models/CarModel').then((m) => m.preloadCar(v.model!));
   const lines = [pick(LINES[ride]), pick(weather === 'rain' ? LINES.rain : event === 'jam' ? LINES.jam : event === 'crowd' ? LINES.crowd : LINES[ride])];
   const seconds = Math.min(5, Math.max(3.5, input.seconds));
   return {
-    renderer: chooseRenderer(trips, device), ride, vehicle, weather, event, building: buildingFor(input.landmark),
+    ride, vehicle, weather, event, building: buildingFor(input.landmark),
     destination: { name: input.landmark.name, icon: input.landmark.icon }, appearance: useCharacterStore.getState().appearance,
     seconds, lines, light: device < 0.6, key: `${Date.now()}`, ...override,
   };

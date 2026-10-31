@@ -1,3 +1,9 @@
+## v13: bird's-eye travel only, real car models
+- **All travel animation is 3D and bird's-eye.** The 2D and 2.5D versions are deleted (`Scene2D.tsx`, the renderer choice). If WebGL fails the trip still plays over a plain sky.
+- **Your GLB cars are in the game** (garage at home, Polanco showroom, the road). Only the player's own car uses a GLB; traffic stays procedural. Files are in `public/models/cars/` (optimised: 5.2 MB to 1.8 MB, Agera 39k to 16k triangles, stray geometry removed, baked to 4.5 m, centred, wheels on the floor). Originals are kept in `assets-src/cars-original/`. See `docs/ASSETS.md` for how to add cars and how to move assets to a server.
+- New cars in the catalog: Audi, Dodge, Tesla, Nissan GT-R, Koenigsegg Agera; the old Supercar is now the Lamborghini Huracán (same id, saves keep working). The showroom is wider with 13 podiums.
+- Interiors: picking a task folds only that spot's task row.
+
 ## v11: travel animation, zoom and venue panel
 - **Travel animation** (`src/features/travel/`): every trip shows a 3 to 5 second ride ending at the destination, with a Skip button. New players mostly get the 3D version, long-time players mostly the quick 2D one, weak phones always 2D (3D falls back to 2D if WebGL fails). Rides: trek, keke, danfo, okada, cab and your own car (real model and colour). Rain with umbrellas for walkers, go-slow traffic for vehicles, crowds, and the destination building appearing with you stepping out. Used by the map, landmark trips and the phone Ride app (a trip is recorded once, even if skipped).
 - **The 3D version is a bird's-eye view**: the camera looks down on the street, which runs up the screen. Four lanes of dense traffic (cars, SUVs, keke, danfo, okada; bumper to bumper in a go-slow with brake lights), packed pavements with umbrellas in rain, a ring marking you, and the destination rising beside the kerb with the passenger walking to its door.

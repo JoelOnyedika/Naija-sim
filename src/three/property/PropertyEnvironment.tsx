@@ -8,7 +8,7 @@ import { getVehicle } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import type { PropertyLayout, Zone } from '@/types/world';
 import { carSlots, carportBounds, houseBounds, parkingSignPos } from '@/world/layoutGeometry';
-import { Vehicle } from '../models/vehicles';
+import { PlayerCar } from '../models/CarModel';
 import { floorTexture, skylineTexture } from '../textures';
 import { Water } from '../world/Water';
 import { DecorItem } from './Decor';
@@ -73,7 +73,7 @@ function GroundDisc({ layout }: { layout: PropertyLayout }) {
 const PAD_BORDER = new MeshStandardMaterial({ color: '#A89A84', roughness: 0.95 });
 const PAD_INSET = new MeshStandardMaterial({ color: '#8FB08C', roughness: 0.95 });
 const PAD_H = 0.1;
-const CAR_SCALE = 0.6; // placeholder cars are drawn small so they fit the compact bays
+const CAR_SCALE = 0.6; // cars are drawn at this scale so they fit the compact bays
 function ParkingPad({ layout }: { layout: PropertyLayout }) {
   const owned = useVehicleStore((s) => s.owned.length);
   const b = carportBounds(layout, owned); // only the bays that hold a car; no car, no pad
@@ -138,7 +138,7 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
       {owned.slice(0, slots.length).map((id, i) => {
         const v = getVehicle(id); const s = slots[i];
         if (!v) return null;
-        return <group key={id} position={[s.x, PAD_H, s.z]} rotation={[0, s.rotation, 0]} scale={CAR_SCALE}><Vehicle body={v.type} color={v.color} /></group>;
+        return <group key={id} position={[s.x, PAD_H, s.z]} rotation={[0, s.rotation, 0]} scale={CAR_SCALE}><PlayerCar def={v} /></group>;
       })}
     </group>
   );
