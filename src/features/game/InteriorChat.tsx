@@ -1,6 +1,6 @@
 import { sfx } from '@/audio/sfx';
 import { motion } from 'framer-motion';
-import { Camera, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, Footprints, Home, Send } from 'lucide-react';
+import { Camera, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, Footprints, Home, Send, MessageCircle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usesOf } from '@/data/activities';
 import { INTERIORS } from '@/data/interiors';
@@ -59,6 +59,7 @@ export function InteriorChat() {
   const [menu, setMenu] = useState<Sender | null>(null);
   const [spotUid, setSpotUid] = useState<string | null>(null);
   const seen = useVenueHint(here?.kind, expanded);
+  const [seenN, setSeenN] = useState(0);
   const end = useRef<HTMLDivElement>(null), box = useRef<HTMLDivElement>(null);
   const setExpanded = (v: boolean) => useUiStore.getState().setChatOpen(v);
   const ch = channelFor(scope, here), list = ch ? channels[ch] ?? [] : [];
@@ -100,7 +101,9 @@ export function InteriorChat() {
   /** The nearest person to you, for the "crowd" spot. */
   const nearestNpc = () => { let best: string | null = null, bd = Infinity; for (const [id, pos] of liveNpcs) { const d = Math.hypot(pos.x - livePlayer.x, pos.z - livePlayer.z); if (d < bd) { bd = d; best = id; } } return best; };
   const pickNearest = () => { const id = nearestNpc(); if (!id) return; const r = attemptPickpocket(id); if (!r.ok) { sfx.error(); toast(r.message, 'bad'); return; } if (r.outcome === 'stolen') { sfx.coin(); toast(`${r.message} +${formatNaira(r.amount)}`, 'good'); } else { sfx.error(); toast(r.message, 'bad'); } setExpanded(false); };
-  const last = list.at(-1);
+
+  useEffect(() => { if (expanded) setSeenN(list.length); }, [expanded, list.length]);
+  const unread = !expanded && list.length > seenN;
   const takePicture = async () => {
     try {
       const blob = await captureScene(); if (!blob) { toast('Could not take a picture here.', 'bad'); return; }
@@ -125,18 +128,15 @@ export function InteriorChat() {
         <div className="flex items-center gap-1.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg">{def.glyph}</div>
           <div className="min-w-[4.2rem] flex-1 leading-tight"><div className="truncate text-[13px] font-extrabold">{here.name}</div><div className="whitespace-nowrap text-[11px] text-white/55">Copy {here.instance} · {here_n} here</div></div>
+          {expanded && (
           <div className="flex gap-0.5 rounded-xl bg-white/[0.07] p-0.5">
             {(['local', 'global'] as const).map((k) => <button key={k} aria-pressed={scope === k} onClick={() => { setScope(k); setMenu(null); }} className={`rounded-lg px-2 py-1.5 text-[12px] font-bold ${scope === k ? `${SCOPE[k].tone} text-white` : 'text-white/60'}`}>{SCOPE[k].label}</button>)}
           </div>
+          )}
+          {!expanded && <button onClick={() => setExpanded(true)} aria-label="Open the chat" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20"><MessageCircle size={17} />{unread && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[#18222d]" />}</button>}
           {here.kind !== 'jail' && <button onClick={leaveInterior} aria-label="Leave and go home" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20"><Home size={17} /></button>}
           <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Fold the panel' : 'Unfold the panel'} className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/10 active:bg-white/20 ${!seen && !expanded ? 'venue-glow' : ''}`}>{expanded ? <ChevronDown size={19} /> : <ChevronUp size={19} />}</button>
         </div>
-        {/* folded: the latest thing said */}
-        {!expanded && (
-          <button onClick={() => setExpanded(true)} className={`mt-2 flex min-h-[2.4rem] w-full items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-1.5 text-left text-[13px] ${!seen ? 'venue-glow' : ''}`}>
-            {last ? <><span className={`shrink-0 font-bold ${last.from.kind === 'system' ? 'text-amber-200' : st.text}`}>{last.from.kind === 'system' ? 'Notice' : last.from.name}</span><span className="truncate text-white/85">{last.text}</span></> : <span className="truncate text-white/55">{def.tagline}</span>}
-          </button>
-        )}
         {/* unfolded: the conversation */}
         {expanded && (
           <div className="mt-2 max-h-[17vh] min-h-[2.2rem] space-y-1 overflow-y-auto rounded-xl bg-white/[0.05] px-2.5 py-1.5">
@@ -161,10 +161,10 @@ export function InteriorChat() {
             </div>
           </div>
         )}
-        <form className="mt-1.5 flex gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
+        {expanded &&         <form className="mt-1.5 flex gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
           <input value={text} onChange={(e) => setText(e.target.value)} maxLength={CHAT.maxLength + 20} placeholder={scope === 'local' ? `Say something to all ${here_n} here…` : 'Say something to every venue…'} aria-label="Message" className="min-w-0 flex-1 rounded-2xl bg-white/10 px-3.5 py-2.5 text-[14px] outline-none placeholder:text-white/40" />
           <button type="submit" aria-label="Send" className={`flex h-11 w-11 items-center justify-center rounded-2xl ${st.tone}`}><Send size={18} /></button>
-        </form>
+        </form>}
         {expanded && (spots.length > 0 || def.crowd || here?.kind === 'showroom') && (
           <>
             <div className="mt-2 flex items-center justify-between px-1 text-[12px]"><span className="font-bold">Spots here</span><span className="flex items-center gap-1 text-white/50"><Footprints size={13} />Tap one to walk there</span></div>

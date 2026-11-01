@@ -25,7 +25,7 @@ class Fallback extends Component<{ children: ReactNode; fallback: ReactNode }, {
 export function TravelScene({ plan, onDone, startArrived = false }: { plan: TripPlan; onDone: () => void; /** TEST-ONLY: start already at the destination (used by screenshots and tests). */ startArrived?: boolean }) {
   const [arrived, setArrived] = useState(startArrived), [line, setLine] = useState(0);
   const done = useRef(false);
-  const total = plan.seconds, arriveAt = Math.max(2.2, total - 1.5);
+  const total = plan.seconds, arriveAt = Math.max(3, total - 2.6);
   const finish = () => { if (done.current) return; done.current = true; useTravelStore.getState().record(`${plan.ride}:${plan.weather}:${plan.event}`); onDone(); };
   useEffect(() => {
     const t1 = setTimeout(() => setLine(1), (arriveAt * 1000) * 0.5), t2 = setTimeout(() => setArrived(true), arriveAt * 1000), t3 = setTimeout(finish, total * 1000);

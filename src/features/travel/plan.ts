@@ -85,7 +85,8 @@ export function planTrip(input: TripInput): TripPlan {
   // start downloading the player's car model now, so it is ready by the time the scene draws it
   if (v?.model) void import('@/three/models/CarModel').then((m) => m.preloadCar(v.model!));
   const lines = [pick(LINES[ride]), pick(weather === 'rain' ? LINES.rain : event === 'jam' ? LINES.jam : event === 'crowd' ? LINES.crowd : LINES[ride])];
-  const seconds = Math.min(5, Math.max(3.5, input.seconds));
+  // a trip is a short film: 8 to 10 seconds (the Skip button is always there)
+  const seconds = Math.min(10, Math.max(8, input.seconds * 2));
   return {
     ride, vehicle, weather, event, building: buildingFor(input.landmark),
     destination: { name: input.landmark.name, icon: input.landmark.icon }, appearance: useCharacterStore.getState().appearance,

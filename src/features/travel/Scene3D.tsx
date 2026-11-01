@@ -1,30 +1,34 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { BufferAttribute, CanvasTexture, Color, MathUtils, Object3D, RepeatWrapping, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type InstancedMesh, type PerspectiveCamera, type Texture } from 'three';
+import { BackSide, BoxGeometry, BufferAttribute, CanvasTexture, Color, ConeGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute, MathUtils, MeshStandardMaterial, Object3D, RepeatWrapping, SphereGeometry, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type InstancedMesh, type PerspectiveCamera, type Texture } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Avatar, type Motion } from '@/three/avatar/Avatar';
-import { Vehicle } from '@/three/models/vehicles';
 import { PlayerCar } from '@/three/models/CarModel';
-import type { VehicleBody } from '@/data/vehicles';
 import type { Building, TripPlan } from './plan';
+import { Crowd, SeatedPerson, crowdLook, disposeBakedPeople } from './people';
+import { CarMesh, Danfo, Keke, Okada, carGeos, glassMat, lightMat, paintMat, trimMat, type CarKind } from './vehicles3d';
 
 /**
- * A trip as a short film: a few quick cuts between different cameras (third-person chase, a dolly along the pavement, a low hero shot
- * of you coming at the camera, a high three-quarter view, and a point-of-view from inside a keke, a danfo or your own car's bonnet),
- * then an arrival shot that follows the passenger to the door. The camera set is picked per trip, so no two trips cut the same way.
- * The street is dense: four lanes of traffic (two going your way, two oncoming), crowds on the pavements, umbrellas in rain, brake
- * lights in a go-slow. The destination is part of the street from the start (it comes up the road toward you as the ride slows to
- * a stop beside it); nothing grows out of the ground.
- * Deliberately cheap: no real shadows (blob shadows), instanced people, a few dozen procedural cars, a 3 to 5 second life.
+ * A trip as a short film (8 to 10 seconds): quick cuts between different cameras (third-person chase, a dolly along the pavement,
+ * a high front shot of you coming at the camera, a low rear shot, a high three-quarter view, and a point of view from inside a keke,
+ * a danfo or your own car's bonnet), then an arrival shot that follows the passenger to the door. The set of shots is picked per trip.
+ *
+ * The street is meant to feel like a real avenue, not a toy: a long straight road with depth (a hazy skyline, glass towers, palms),
+ * rounded vehicles, and the game's own sculpted characters (baked and instanced) walking the pavements. The destination is part of
+ * the street from the start and comes up the road as the ride slows to a stop beside it; nothing grows out of the ground.
+ * Deliberately cheap: buildings, cars and people are instanced or merged, there are no real shadows (blob shadows instead).
  *
  * Axes: the ride faces -z (up the screen). +x is the right-hand pavement where the destination appears. Our lanes are at
  * x = 1.1 and 3.3 (the ride sits in the kerb lane, 3.3); oncoming lanes are at x = -1.1 and -3.3.
  */
-const LOOP = 60; // length of one street strip along z; two copies leapfrog so the street never ends
-const RANGE = [-26, 24] as const; // traffic and people wrap inside this z range (a little beyond what the camera sees)
+const LOOP = 60; // length of one street strip along z; three copies leapfrog so the street never ends
+const RANGE = [-72, 28] as const; // traffic and people wrap inside this z range (long, so the road has depth)
 const rng = (seed: number) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-const SKY = { clear: { bg: '#9CCBEF', fog: '#D6E6F2', sun: '#FFF1D6', amb: 0.95 }, rain: { bg: '#58636E', fog: '#7C8893', sun: '#B8C4CF', amb: 0.75 }, dusk: { bg: '#E58A5C', fog: '#F0B085', sun: '#FFB070', amb: 0.8 } } as const;
-const SKINS = ['#F1C9A5', '#B77B4E', '#8A5A3C', '#6B4128', '#4A2C1B'], TOPS = ['#E4572E', '#2B8C5B', '#8A63D2', '#FFC21A', '#2B4C7E', '#F4F1EA', '#C23B3B', '#19C3A6'];
-const BRELLA = ['#E4572E', '#FFC21A', '#2B8C5B', '#8A63D2', '#2B4C7E', '#C23B3B', '#19C3A6'];
+const SKY = {
+  clear: { top: '#4F8FD6', hor: '#CFE3F2', fog: '#C4D8E8', sun: '#FFF1D6', amb: 0.95 },
+  rain: { top: '#4A545E', hor: '#8E99A3', fog: '#8E99A3', sun: '#B8C4CF', amb: 0.75 },
+  dusk: { top: '#5B5FA8', hor: '#F2A36B', fog: '#E3A079', sun: '#FFB070', amb: 0.8 },
+} as const;
 /** Distance from a building's middle to its door-side face, so the passenger stops at the door and the building sits just off the kerb. */
 const FRONT: Record<Building, number> = { tower: 2.1, bank: 2.1, market: 1.7, church: 2, mosque: 2, stadium: 4.6, club: 1.7, gate: 0.6, shop: 1.6 };
 const DOOR_X = 9.3, DEST_Z = -1;
@@ -36,201 +40,160 @@ function Box({ size, pos, color, rot, emissive, rough = 0.85 }: { size: V3; pos:
 function Cyl({ r, h, pos, color, rot, seg = 12 }: { r: number; h: number; pos: V3; color: string; rot?: V3; seg?: number }) {
   return <mesh position={pos} rotation={rot}><cylinderGeometry args={[r, r, h, seg]} /><meshStandardMaterial color={color} roughness={0.8} /></mesh>;
 }
+const tint = (g: BufferGeometry, hex: string): BufferGeometry => {
+  const c = new Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new Float32BufferAttribute(a, 3)); g.deleteAttribute('uv'); return g;
+};
+const flat = (gs: BufferGeometry[]) => mergeGeometries(gs.map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
 
 // ------------------------------------------------------------------ shared canvas textures
-let windows: Texture | null = null;
-/** One small canvas of windows, shared by every building so the sides do not look like blank cardboard. */
-function windowTexture(): Texture {
-  if (windows) return windows;
-  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!;
-  g.fillStyle = '#F2EEE6'; g.fillRect(0, 0, 64, 64);
-  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { g.fillStyle = '#5B7894'; g.fillRect(8 + x * 32, 8 + y * 32, 16, 20); g.fillStyle = '#B9D3E6'; g.fillRect(8 + x * 32, 8 + y * 32, 16, 7); }
-  windows = new CanvasTexture(c); windows.wrapS = windows.wrapT = RepeatWrapping; windows.colorSpace = SRGBColorSpace; return windows;
+let wallTex: Texture | null = null, glassTex: Texture | null = null, pavingTex: Texture | null = null;
+const canvas = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const tex = (c: HTMLCanvasElement) => { const t = new CanvasTexture(c); t.wrapS = t.wrapT = RepeatWrapping; t.colorSpace = SRGBColorSpace; t.anisotropy = 4; return t; };
+/** Concrete walls with rows of windows, a balcony line and some stains, so they do not look like cardboard. */
+function wallTexture(): Texture {
+  if (wallTex) return wallTex;
+  const c = canvas(128, 128), g = c.getContext('2d')!, r = rng(3);
+  g.fillStyle = '#F3EEE4'; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 70; i++) { g.fillStyle = r() < 0.5 ? '#00000010' : '#FFFFFF14'; g.fillRect(r() * 128, r() * 128, 4 + r() * 20, 6 + r() * 24); }
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { const X = 12 + x * 64, Y = 10 + y * 64; g.fillStyle = '#D8D2C6'; g.fillRect(X - 4, Y - 4, 40, 50); g.fillStyle = '#34495B'; g.fillRect(X, Y, 32, 42); g.fillStyle = '#7FA6C2'; g.fillRect(X, Y, 32, 14); g.fillStyle = '#26343F'; g.fillRect(X + 15, Y, 2, 42); g.fillStyle = '#9A9488'; g.fillRect(X - 6, Y + 44, 44, 5); }
+  return (wallTex = tex(c));
 }
-let paving: Texture | null = null;
-/** Paving slabs for the pavements: faint tile lines and speckles. */
+/** Glass curtain wall: blue-green panes with a bright sky reflection running diagonally. */
+function glassTexture(): Texture {
+  if (glassTex) return glassTex;
+  const c = canvas(128, 128), g = c.getContext('2d')!, gr = g.createLinearGradient(0, 0, 128, 128);
+  gr.addColorStop(0, '#6E9BB8'); gr.addColorStop(0.5, '#BFE0EE'); gr.addColorStop(1, '#4E7A96'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#1F3445'; g.lineWidth = 3; for (let i = 0; i <= 128; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 128); g.moveTo(0, i); g.lineTo(128, i); g.stroke(); }
+  return (glassTex = tex(c));
+}
 function pavingTexture(): Texture {
-  if (paving) return paving;
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d')!;
+  if (pavingTex) return pavingTex;
+  const c = canvas(128, 128), g = c.getContext('2d')!, r = rng(9);
   g.fillStyle = '#BDB7AC'; g.fillRect(0, 0, 128, 128);
-  const r = rng(9); for (let i = 0; i < 40; i++) { g.fillStyle = r() < 0.5 ? '#00000012' : '#FFFFFF14'; g.fillRect(r() * 128, r() * 128, 6 + r() * 14, 4 + r() * 10); }
+  for (let i = 0; i < 40; i++) { g.fillStyle = r() < 0.5 ? '#00000012' : '#FFFFFF14'; g.fillRect(r() * 128, r() * 128, 6 + r() * 14, 4 + r() * 10); }
   g.fillStyle = '#8A847A'; g.fillRect(0, 0, 128, 3); g.fillRect(0, 0, 3, 128); g.fillRect(0, 62, 128, 2); g.fillRect(62, 0, 2, 128);
-  paving = new CanvasTexture(c); paving.wrapS = paving.wrapT = RepeatWrapping; paving.colorSpace = SRGBColorSpace; paving.anisotropy = 4; return paving;
+  return (pavingTex = tex(c));
 }
 
-// ------------------------------------------------------------------ the street (one strip along z, drawn twice)
-/** A building seen from above: windowed walls, a plain roof on top, and a few roof extras (tank, AC box). */
-function Block({ w, h, d, color, roof, seed }: { w: number; h: number; d: number; color: string; roof: string; seed: number }) {
-  const map = useMemo(() => { const t = windowTexture().clone(); t.repeat.set(Math.max(1, Math.round(d / 2)), Math.max(1, Math.round(h / 2))); t.needsUpdate = true; return t; }, [d, h]);
-  const extras = useMemo(() => { const r = rng(seed); return [r(), r(), r()]; }, [seed]);
-  return (
-    <group>
-      <mesh position={[0, h / 2, 0]}>
-        <boxGeometry args={[w, h, d]} />
-        {[0, 1, 2, 3, 4, 5].map((i) => <meshStandardMaterial key={i} attach={`material-${i}`} color={i === 2 ? roof : color} map={i === 2 || i === 3 ? null : map} roughness={0.9} />)}
-      </mesh>
-      {extras[0] > 0.4 && <Cyl r={0.5} h={0.9} pos={[w * (extras[1] - 0.5) * 0.5, h + 0.45, d * (extras[2] - 0.5) * 0.5]} color="#6E7F8C" seg={10} />}
-      {extras[1] > 0.5 && <Box size={[0.9, 0.5, 0.7]} pos={[-w * 0.25, h + 0.25, d * 0.2]} color="#C9CED1" />}
-    </group>
-  );
-}
-function Strip({ weather, rowRefs }: { weather: TripPlan['weather']; rowRefs: { current: Group[] } }) {
-  const items = useMemo(() => {
-    const r = rng(21), out: { x: number; z: number; w: number; d: number; h: number; c: string; roof: string; row1: boolean }[] = [];
-    const walls = ['#E9DCC2', '#D6C7A3', '#CFD8DC', '#F1E4C8', '#C9B896', '#B9C7D6'], roofs = ['#8E5B4A', '#6F7B86', '#A67C52', '#5E6F8A', '#7D8A6E', '#9A9084'];
-    for (const side of [1, -1]) for (const row of [0, 1]) {
-      let z = r() * 3; const edge = 8.2 + row * 6.4;
-      while (z < LOOP) { const l = 3.6 + r() * 2.6, d = 4 + r() * 1.6, h = row ? 5 + r() * 12 : 3 + r() * 5; out.push({ x: side * (edge + d / 2), z: z + l / 2, w: l, d, h, c: walls[Math.floor(r() * walls.length)], roof: roofs[Math.floor(r() * roofs.length)], row1: side === 1 && row === 0 }); z += l + 0.5 + r() * 0.8; }
+// ------------------------------------------------------------------ the street
+interface BClass { id: string; h: number; glass: boolean }
+const CLASSES: BClass[] = [{ id: 'low', h: 5.5, glass: false }, { id: 'mid', h: 10, glass: false }, { id: 'tall', h: 17, glass: false }, { id: 'tower', h: 30, glass: true }];
+const classGeo = (h: number) => {
+  const g = new BoxGeometry(1, h, 1); g.translate(0, h / 2, 0);
+  const uv = g.attributes.uv as BufferAttribute; // windows repeat with the wall size (about 2 windows per 4.5 m, one storey per 3 m)
+  for (let i = 0; i < uv.count; i++) { const face = Math.floor(i / 4); if (face === 2 || face === 3) continue; uv.setXY(i, uv.getX(i) * 2, uv.getY(i) * (h / 3)); }
+  return g;
+};
+const WALLS = ['#EADFC8', '#D9CBA8', '#CFD8DC', '#F1E4C8', '#C9B896', '#B9C7D6', '#E6D3B8'], ROOFS = ['#8E5B4A', '#6F7B86', '#A67C52', '#5E6F8A', '#7D8A6E', '#9A9084'];
+interface BItem { cls: number; x: number; z: number; w: number; d: number; wall: string; roof: string; right1: boolean }
+const buildingItems = (() => {
+  const r = rng(21), out: BItem[] = [];
+  for (const side of [1, -1]) for (const row of [0, 1, 2]) {
+    let z = r() * 3; const edge = 8.3 + row * 7.5;
+    while (z < LOOP) {
+      const l = 4 + r() * 3, d = 4.5 + r() * 2, k = r();
+      const cls = row === 0 ? (k < 0.6 ? 0 : 1) : row === 1 ? (k < 0.25 ? 1 : k < 0.7 ? 2 : 3) : (k < 0.4 ? 2 : 3);
+      out.push({ cls, x: side * (edge + d / 2), z: z + l / 2, w: l, d, wall: WALLS[Math.floor(r() * WALLS.length)], roof: ROOFS[Math.floor(r() * ROOFS.length)], right1: side === 1 && row === 0 });
+      z += l + 0.8 + r() * 2.2;
     }
-    return out;
-  }, []);
-  const bits = useMemo(() => {
-    const r = rng(77);
-    return {
-      poles: Array.from({ length: 5 }, (_, i) => i * 12 + 4), trees: Array.from({ length: 6 }, (_, i) => ({ z: i * 10 + 2 + r() * 3, s: 0.9 + r() * 0.5, side: i % 2 ? 1 : -1 })),
-      stalls: Array.from({ length: 5 }, (_, i) => ({ z: i * 12 + 9 + r() * 2, c: BRELLA[Math.floor(r() * BRELLA.length)] })),
-    };
-  }, []);
-  return (
-    <group>
-      {items.map((b, i) => (
-        <group key={i} position={[b.x, 0, b.z]} ref={b.row1 ? (n) => { if (n && !rowRefs.current.includes(n)) rowRefs.current.push(n); } : undefined}>
-          {/* the building's own shape is w (along z) by d (along x): swap so the long side faces the road */}
-          <Block w={b.d} h={b.h} d={b.w} color={b.c} roof={b.roof} seed={i * 13 + 5} />
-        </group>
-      ))}
-      {bits.poles.map((z) => [4.9, -4.9].map((x) => <group key={`${x}${z}`} position={[x, 0, z]}><Cyl r={0.08} h={5.2} pos={[0, 2.6, 0]} color="#4B4540" /><Box size={[0.9, 0.1, 0.12]} pos={[x > 0 ? -0.4 : 0.4, 5.2, 0]} color="#4B4540" /><Box size={[0.3, 0.08, 0.2]} pos={[x > 0 ? -0.85 : 0.85, 5.15, 0]} color="#FFF3B0" emissive={weather === 'dusk' ? '#FFD98A' : undefined} /></group>))}
-      {bits.trees.map((t, i) => <group key={i} position={[t.side * 6.1, 0, t.z]} scale={t.s}><Cyl r={0.18} h={1.8} pos={[0, 0.9, 0]} color="#6B4A2B" /><mesh position={[0, 2.5, 0]}><sphereGeometry args={[1.25, 9, 7]} /><meshStandardMaterial color={i % 2 ? '#3FA66B' : '#2F8A55'} roughness={0.9} /></mesh></group>)}
-      {bits.stalls.map((s, i) => <group key={i} position={[-6.1, 0, s.z]}><Cyl r={0.05} h={2} pos={[0, 1, 0]} color="#4B4540" /><mesh position={[0, 2.1, 0]}><cylinderGeometry args={[1.1, 1.1, 0.1, 10]} /><meshStandardMaterial color={s.c} /></mesh><Box size={[1.3, 0.8, 0.8]} pos={[0, 0.4, 0.3]} color="#7C5A2A" /></group>)}
-      {Array.from({ length: 12 }).map((_, i) => [-2.2, 2.2].map((x) => <Box key={`${i}${x}`} size={[0.14, 0.02, 2.2]} pos={[x, 0.025, i * 5 + 1]} color="#E6E2D4" />))}
-      <Box size={[0.12, 0.02, LOOP]} pos={[-0.12, 0.03, LOOP / 2]} color="#E8B923" /><Box size={[0.12, 0.02, LOOP]} pos={[0.12, 0.03, LOOP / 2]} color="#E8B923" />
-      {[-4.55, 4.55].map((x) => <Box key={x} size={[0.12, 0.02, LOOP]} pos={[x, 0.03, LOOP / 2]} color="#E6E2D4" />)}
-      {Array.from({ length: 10 }).map((_, i) => <Box key={i} size={[0.55, 0.02, 2.6]} pos={[-4 + i * 0.9, 0.03, 34]} color="#EFEBDD" />)}
-    </group>
-  );
-}
-
-// ------------------------------------------------------------------ people (instanced: a few hundred cost almost nothing)
-function Crowd({ count, rain, speed, lanes }: { count: number; rain: boolean; speed: { current: number }; lanes: number[] }) {
-  const body = useRef<InstancedMesh>(null), head = useRef<InstancedMesh>(null), brella = useRef<InstancedMesh>(null);
-  const dummy = useMemo(() => new Object3D(), []);
-  const people = useMemo(() => {
-    const r = rng(404);
-    return Array.from({ length: count }, (_, i) => ({ x: lanes[Math.floor(r() * lanes.length)] + (r() - 0.5) * 0.5, z: RANGE[0] + r() * (RANGE[1] - RANGE[0]), dir: r() < 0.5 ? 1 : -1, sp: 1 + r() * 0.9, ph: r() * 6, skin: SKINS[Math.floor(r() * 5)], top: TOPS[Math.floor(r() * TOPS.length)], umb: BRELLA[i % BRELLA.length], hasUmb: rain && r() < 0.75 }));
-  }, [count, rain, lanes]);
-  useEffect(() => {
-    const c = new Color();
-    people.forEach((p, i) => { body.current?.setColorAt(i, c.set(p.top)); head.current?.setColorAt(i, c.set(p.skin)); brella.current?.setColorAt(i, c.set(p.umb)); });
-    for (const m of [body.current, head.current, brella.current]) if (m?.instanceColor) m.instanceColor.needsUpdate = true;
-  }, [people]);
-  useFrame(({ clock }, dtRaw) => {
-    const dt = Math.min(dtRaw, 0.25), t = clock.elapsedTime;
-    people.forEach((p, i) => {
-      p.z += (speed.current + p.dir * p.sp) * dt; if (p.z > RANGE[1]) p.z -= RANGE[1] - RANGE[0]; if (p.z < RANGE[0]) p.z += RANGE[1] - RANGE[0];
-      const bob = Math.abs(Math.sin(t * 8 + p.ph)) * 0.08, yaw = p.dir > 0 ? 0 : Math.PI;
-      dummy.rotation.set(0, yaw, 0); dummy.scale.set(1, 1, 1);
-      dummy.position.set(p.x, 0.95 + bob, p.z); dummy.updateMatrix(); body.current?.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(p.x, 1.72 + bob, p.z); dummy.updateMatrix(); head.current?.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(p.x, p.hasUmb ? 2.3 + (i % 5) * 0.05 : -50, p.z) /* slightly different heights so overlapping umbrellas do not flicker */; dummy.updateMatrix(); brella.current?.setMatrixAt(i, dummy.matrix);
-    });
-    for (const m of [body.current, head.current, brella.current]) if (m) m.instanceMatrix.needsUpdate = true;
-  });
-  return (
-    <>
-      <instancedMesh ref={body} args={[undefined, undefined, count]} frustumCulled={false}><boxGeometry args={[0.58, 1.0, 0.34]} /><meshStandardMaterial roughness={0.9} /></instancedMesh>
-      <instancedMesh ref={head} args={[undefined, undefined, count]} frustumCulled={false}><sphereGeometry args={[0.19, 8, 6]} /><meshStandardMaterial roughness={0.8} /></instancedMesh>
-      <instancedMesh ref={brella} args={[undefined, undefined, count]} frustumCulled={false}><cylinderGeometry args={[0.8, 0.8, 0.06, 10]} /><meshStandardMaterial roughness={0.7} /></instancedMesh>
-    </>
-  );
-}
-
-function Danfo() {
-  // Yellow minibus with the black stripe, a row of side windows split by pillars, a windscreen, a conductor's door and a roof load.
-  return (
-    <group>
-      <Box size={[5.2, 1.9, 2]} pos={[0, 1.4, 0]} color="#FFC21A" />
-      <Box size={[5.24, 0.28, 2.04]} pos={[0, 1.15, 0]} color="#15181B" />
-      {[-1.9, -0.7, 0.5, 1.7].map((x) => <Box key={x} size={[0.95, 0.65, 2.06]} pos={[x, 1.95, 0]} color="#9FD0E8" />)}
-      <Box size={[0.08, 0.7, 2.06]} pos={[2.62, 1.9, 0]} color="#9FD0E8" />
-      <Box size={[0.9, 1.5, 0.06]} pos={[-1.2, 1.1, 1.03]} color="#E0A810" />
-      <Box size={[1.5, 0.45, 1.6]} pos={[-0.5, 2.6, 0]} color="#7C5A2A" /><Box size={[0.9, 0.4, 1.2]} pos={[0.9, 2.55, 0]} color="#2B8C5B" />
-      <Box size={[0.1, 0.3, 1.6]} pos={[2.62, 1.0, 0]} color="#15181B" />
-      {[-1.7, 1.7].map((x) => [-1, 1].map((z) => <Cyl key={`${x}${z}`} r={0.45} h={0.32} pos={[x, 0.45, z * 0.95]} rot={[Math.PI / 2, 0, 0]} color="#15181B" />))}
-      <Box size={[0.1, 0.3, 0.3]} pos={[2.62, 0.9, 0.7]} color="#FFF3B0" emissive="#FFF3B0" /><Box size={[0.1, 0.3, 0.3]} pos={[2.62, 0.9, -0.7]} color="#FFF3B0" emissive="#FFF3B0" />
-      <Box size={[0.1, 0.25, 0.3]} pos={[-2.62, 0.9, 0.7]} color="#C21F2E" emissive="#FF2B3F" /><Box size={[0.1, 0.25, 0.3]} pos={[-2.62, 0.9, -0.7]} color="#C21F2E" emissive="#FF2B3F" />
-    </group>
-  );
-}
-function Okada({ rider, passenger, pot }: { rider: string; passenger: string; pot: boolean }) {
-  return (
-    <group>
-      {[-0.7, 0.7].map((x) => <Cyl key={x} r={0.36} h={0.12} pos={[x, 0.36, 0]} rot={[Math.PI / 2, 0, 0]} color="#15181B" />)}
-      <Box size={[1.5, 0.12, 0.12]} pos={[0, 0.65, 0]} color="#15181B" rot={[0, 0, 0.3]} />
-      <Box size={[0.9, 0.18, 0.4]} pos={[-0.2, 0.95, 0]} color="#C21F2E" />
-      <Box size={[0.08, 0.5, 0.5]} pos={[0.7, 1.0, 0]} color="#15181B" />
-      {([[-0.35, '#8A63D2', '#B77B4E'], [0.2, rider, passenger]] as [number, string, string][]).map(([x, c, skin], i) => (
-        <group key={i} position={[x, 1.05, 0]}>
-          <Box size={[0.34, 0.6, 0.4]} pos={[0, 0.35, 0]} color={c} rot={[0, 0, -0.25]} />
-          <mesh position={[0.1, 0.85, 0]}><sphereGeometry args={[0.17, 8, 6]} /><meshStandardMaterial color={skin} /></mesh>
-          {pot && <mesh position={[0.1, 1.0, 0]}><cylinderGeometry args={[0.2, 0.2, 0.05, 10]} /><meshStandardMaterial color="#B0B6BA" metalness={0.6} /></mesh>}
-        </group>
-      ))}
-    </group>
-  );
-}
-// ------------------------------------------------------------------ traffic
-interface CarD { x: number; z: number; dir: 1 | -1; f: number; follow: boolean; u: number; kind: VehicleBody | 'danfo' | 'okada'; color: string }
-const CAR_COLORS = ['#C23B3B', '#F4F1EA', '#2B4C7E', '#1B1F24', '#2B8C5B', '#C9CED1', '#8A63D2', '#E4572E', '#7C8791'];
-/** Shared bodies for traffic: the same Vehicle models as your own car, plus danfos and okadas. */
-function TrafficBody({ car, plan }: { car: CarD; plan: TripPlan }) {
-  const lights = plan.weather === 'dusk' || plan.weather === 'rain';
-  switch (car.kind) {
-    case 'danfo': return <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>;
-    case 'okada': return <group rotation={[0, Math.PI / 2, 0]} scale={1.15}><Okada rider="#8A5A3C" passenger="#4A2C1B" pot={false} /></group>;
-    default: return (
-      <group scale={car.kind === 'keke' ? 1.1 : 0.95}>
-        <Vehicle body={car.kind} color={car.color} />
-        {/* taillights (red) and headlights; modelled facing +z, so rear is -z */}
-        <Box size={[0.5, 0.16, 0.1]} pos={[0.55, 0.75, -2.3]} color="#C21F2E" emissive="#FF2B3F" /><Box size={[0.5, 0.16, 0.1]} pos={[-0.55, 0.75, -2.3]} color="#C21F2E" emissive="#FF2B3F" />
-        {lights && <><Box size={[0.4, 0.14, 0.1]} pos={[0.6, 0.7, 2.3]} color="#FFF3B0" emissive="#FFF3B0" /><Box size={[0.4, 0.14, 0.1]} pos={[-0.6, 0.7, 2.3]} color="#FFF3B0" emissive="#FFF3B0" /></>}
-      </group>
-    );
   }
-}
-/** A soft dark blob under a vehicle, so cars seen from low cameras do not float. */
-function Blob({ w = 1.1, l = 2.5 }: { w?: number; l?: number }) {
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} scale={[w, l, 1]}><circleGeometry args={[1, 16]} /><meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} /></mesh>;
-}
-function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: number }; walk: boolean }) {
-  const jam = plan.event === 'jam', nominal = 7.5;
-  const cars = useMemo<CarD[]>(() => {
-    const r = rng(plan.key.length * 31 + 5), out: CarD[] = [];
-    // [lane x, direction, speed factor, follows the ride's own speed?]. In a go-slow everyone in our two lanes crawls with you.
-    const lanes: [number, 1 | -1, number, boolean][] = [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.5, jam], [-1.1, -1, 0, false], [-3.3, -1, 0, false]];
-    const gap = jam ? 5.6 : plan.event === 'crowd' ? 8 : 10.5, gapOncoming = jam ? 8 : 9;
-    for (const [x, dir, f, follow] of lanes) {
-      const step = dir === 1 ? gap : gapOncoming; let z = RANGE[0] + r() * 2;
-      while (z < RANGE[1] - 3) {
-        const clear = !walk && x === 3.3 && Math.abs(z) < 5.4; // keep the player's own ride in clear view
-        if (!clear && (!plan.light || r() < 0.65)) {
-          const k = r(); out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 6.5 + r() * 1.5, kind: k < 0.12 ? 'danfo' : k < 0.2 ? 'okada' : k < 0.3 ? 'keke' : k < 0.5 ? 'suv' : 'sedan', color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)] });
-        }
-        z += step * (0.85 + r() * 0.35);
-      }
+  return out;
+})();
+/** Street furniture merged into one mesh: lamp posts, round trees, palms, stalls with umbrellas. */
+function furnitureGeo(): { solid: BufferGeometry; lamps: BufferGeometry } {
+  const r = rng(77), s: BufferGeometry[] = [], l: BufferGeometry[] = [];
+  for (let z = 4; z < LOOP; z += 12) for (const x of [4.9, -4.9]) {
+    s.push(tint(new CylinderGeometry(0.07, 0.1, 6.2, 7).translate(x, 3.1, z), '#4B4540'));
+    s.push(tint(new CylinderGeometry(0.05, 0.05, 1.6, 6).rotateZ(Math.PI / 2).translate(x > 0 ? x - 0.8 : x + 0.8, 6.1, z), '#4B4540'));
+    l.push(tint(new BoxGeometry(0.5, 0.1, 0.25).translate(x > 0 ? x - 1.5 : x + 1.5, 6.05, z), '#FFF3B0'));
+  }
+  for (let i = 0; i < 6; i++) { // round shade trees
+    const z = i * 10 + 2 + r() * 3, x = i % 2 ? 8.0 : -6.2, k = 0.75 + r() * 0.3;
+    s.push(tint(new CylinderGeometry(0.15 * k, 0.2 * k, 2 * k, 7).translate(x, k, z), '#6B4A2B'));
+    s.push(tint(new SphereGeometry(1.25 * k, 9, 7).translate(x, 2.7 * k, z), i % 2 ? '#3FA66B' : '#2F8A55'));
+  }
+  for (let z = 6; z < LOOP; z += 15) for (const x of [8.0, -5.6]) { // palms: a leaning trunk and a crown of drooping fronds
+    const lean = x > 0 ? -0.1 : 0.12, h = 7 + r() * 2;
+    s.push(tint(new CylinderGeometry(0.16, 0.26, h, 7).translate(0, h / 2, 0).rotateZ(lean).translate(x, 0, z), '#8A6B4A'));
+    const top = new Vector3(x - Math.sin(lean) * h, Math.cos(lean) * h, z);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2, fr = new SphereGeometry(1, 6, 4); fr.scale(1.9, 0.07, 0.34); fr.translate(1.7, -0.25, 0); fr.rotateZ(-0.25); fr.rotateY(a); fr.translate(top.x, top.y, top.z);
+      s.push(tint(fr, k % 2 ? '#3E9B52' : '#2F8545'));
     }
-    return out;
-  }, [plan.key, plan.event, plan.light, jam, walk]);
-  const refs = useRef<Group[]>([]);
-  useFrame((_, dtRaw) => {
-    const dt = Math.min(dtRaw, 0.25), S = speed.current, span = RANGE[1] - RANGE[0];
-    cars.forEach((c, i) => {
-      // ground speed S pushes everything toward the camera; our-way cars drive up the screen at their own speed, oncoming ones down it
-      const own = c.dir === 1 ? -(c.follow ? c.f * S : c.f * nominal) : c.u;
-      c.z += (S + own) * dt; if (c.z > RANGE[1]) c.z -= span; if (c.z < RANGE[0]) c.z += span;
-      const g = refs.current[i]; if (g) g.position.set(c.x, 0.02, c.z);
-    });
+  }
+  for (let i = 0; i < 4; i++) { const z = i * 15 + 9 + r() * 3; s.push(tint(new CylinderGeometry(0.05, 0.05, 2, 6).translate(-6.1, 1, z), '#4B4540')); s.push(tint(new ConeGeometry(1.2, 0.4, 10).translate(-6.1, 2.2, z), ['#E4572E', '#FFC21A', '#2B8C5B', '#8A63D2'][i])); s.push(tint(new BoxGeometry(1.3, 0.8, 0.8).translate(-6.1, 0.4, z + 0.4), '#7C5A2A')); }
+  return { solid: flat(s), lamps: flat(l) };
+}
+function markingsGeo(): BufferGeometry {
+  const m: BufferGeometry[] = [];
+  for (let i = 0; i < 12; i++) for (const x of [-2.2, 2.2]) m.push(tint(new BoxGeometry(0.14, 0.02, 2.4).translate(x, 0.025, i * 5 + 1), '#E6E2D4'));
+  for (const x of [-0.12, 0.12]) m.push(tint(new BoxGeometry(0.1, 0.02, LOOP).translate(x, 0.03, LOOP / 2), '#E8B923'));
+  for (const x of [-4.55, 4.55]) m.push(tint(new BoxGeometry(0.12, 0.02, LOOP).translate(x, 0.03, LOOP / 2), '#E6E2D4'));
+  for (let i = 0; i < 10; i++) m.push(tint(new BoxGeometry(0.55, 0.02, 2.6).translate(-4 + i * 0.9, 0.03, 34), '#EFEBDD'));
+  return flat(m);
+}
+const furnMat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+const markMat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+let street: { furn: ReturnType<typeof furnitureGeo>; marks: BufferGeometry; geos: BufferGeometry[] } | null = null;
+const streetKit = () => (street ??= { furn: furnitureGeo(), marks: markingsGeo(), geos: CLASSES.map((c) => classGeo(c.h)) });
+
+/** One 60 m piece of avenue: buildings (instanced by height class), furniture, markings. Three of them leapfrog. */
+function Strip({ weather, destZ }: { weather: TripPlan['weather']; destZ: { current: number } }) {
+  const kit = streetKit(), root = useRef<Group>(null), dummy = useMemo(() => new Object3D(), []);
+  const lists = useMemo(() => CLASSES.map((_, ci) => buildingItems.filter((b) => b.cls === ci)), []);
+  const refs = useRef<(InstancedMesh | null)[]>([]);
+  const mats = useMemo(() => {
+    const side = new MeshStandardMaterial({ map: wallTexture(), roughness: 0.9 }), glass = new MeshStandardMaterial({ map: glassTexture(), roughness: 0.25, metalness: 0.4 });
+    const roof = new MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
+    return { side, glass, roof };
+  }, []);
+  const apply = (hideZ: number | null) => lists.forEach((list, ci) => {
+    const m = refs.current[ci]; if (!m) return;
+    list.forEach((b, j) => {
+      const hidden = hideZ !== null && b.right1 && Math.abs(b.z + (root.current?.position.z ?? 0) - hideZ) < 7.5;
+      dummy.position.set(b.x, 0, b.z); dummy.scale.set(hidden ? 0.001 : b.d, hidden ? 0.001 : 1, hidden ? 0.001 : b.w); dummy.updateMatrix(); m.setMatrixAt(j, dummy.matrix);
+    }); m.instanceMatrix.needsUpdate = true;
   });
-  return <>{cars.map((c, i) => <group key={i} ref={(n) => { if (n) refs.current[i] = n; }} rotation={[0, c.dir === 1 ? Math.PI : 0, 0]}><TrafficBody car={c} plan={plan} /></group>)}</>;
+  useEffect(() => {
+    const c = new Color(); lists.forEach((list, ci) => list.forEach((b, j) => refs.current[ci]?.setColorAt(j, c.set(CLASSES[ci].glass ? ['#FFFFFF', '#DDEBFF', '#CFE3E8'][j % 3] : b.wall))));
+    refs.current.forEach((m) => { if (m?.instanceColor) m.instanceColor.needsUpdate = true; }); apply(null);
+  }, [lists]); // eslint-disable-line react-hooks/exhaustive-deps
+  const last = useRef(1e9);
+  useFrame(() => { const z = (root.current?.position.z ?? 0), key = Math.round((destZ.current - z) * 2); if (key !== last.current) { last.current = key; apply(destZ.current); } });
+  return (
+    <group ref={root}>
+      {CLASSES.map((c, ci) => lists[ci].length > 0 && (
+        <instancedMesh key={c.id} ref={(m) => { refs.current[ci] = m; }} args={[kit.geos[ci], undefined, lists[ci].length]} frustumCulled={false} material={[c.glass ? mats.glass : mats.side, c.glass ? mats.glass : mats.side, mats.roof, mats.roof, c.glass ? mats.glass : mats.side, c.glass ? mats.glass : mats.side]} />
+      ))}
+      <mesh geometry={kit.furn.solid} material={furnMat} /><mesh geometry={kit.furn.lamps}><meshBasicMaterial vertexColors color={weather === 'dusk' ? '#FFE9A0' : '#FFF6D8'} /></mesh>
+      <mesh geometry={kit.marks} material={markMat} />
+    </group>
+  );
+}
+
+/** Painted sky that follows the camera, plus a hazy skyline far away (it drifts slowly, which gives parallax and depth). */
+function SkyDome({ weather }: { weather: TripPlan['weather'] }) {
+  const sky = SKY[weather], g = useRef<Group>(null);
+  const geo = useMemo(() => {
+    const s = new SphereGeometry(400, 24, 14), p = s.attributes.position, col = new Float32Array(p.count * 3), top = new Color(sky.top), hor = new Color(sky.hor), c = new Color();
+    for (let i = 0; i < p.count; i++) { const t = MathUtils.clamp(p.getY(i) / 400, 0, 1); c.copy(hor).lerp(top, Math.pow(t, 0.55)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    s.setAttribute('color', new Float32BufferAttribute(col, 3)); return s;
+  }, [sky]);
+  const cam = useThree((st) => st.camera);
+  useFrame(() => { g.current?.position.set(cam.position.x, 0, cam.position.z); });
+  const skyline = useMemo(() => {
+    const r = rng(8), a: BufferGeometry[] = [];
+    for (let i = 0; i < 70; i++) { const side = i % 2 ? 1 : -1, h = 30 + r() * 80, w = 8 + r() * 14; a.push(tint(new BoxGeometry(w, h, w).translate(side * (70 + r() * 70), h / 2, -260 + (i / 70) * 330), '#B9C9D6')); }
+    return flat(a);
+  }, []);
+  return (
+    <group ref={g}>
+      <mesh geometry={geo} renderOrder={-10}><meshBasicMaterial vertexColors side={BackSide} depthWrite={false} fog={false} /></mesh>
+      <mesh geometry={skyline}><meshBasicMaterial vertexColors color={sky.fog} transparent opacity={0.85} /></mesh>
+    </group>
+  );
 }
 
 function DestinationModel({ type }: { type: Building }) {
@@ -255,22 +218,100 @@ function DestinationModel({ type }: { type: Building }) {
 }
 
 
+
+
+// ------------------------------------------------------------------ traffic
+type Kind = CarKind | 'danfo' | 'okada' | 'keke';
+const CAR_KINDS: CarKind[] = ['sedan', 'hatch', 'suv', 'pickup'];
+interface CarD { x: number; z: number; dir: 1 | -1; f: number; follow: boolean; u: number; kind: Kind; color: string; slogan: number; look: number }
+const CAR_COLORS = ['#C23B3B', '#F4F1EA', '#2B4C7E', '#2A2D32', '#2B8C5B', '#C9CED1', '#8A63D2', '#E4572E', '#7C8791', '#B8202E', '#E8D8B0'];
+const blobGeo = new CylinderGeometry(1, 1, 0.01, 16);
+/** A soft dark blob under a vehicle, so vehicles seen from low cameras do not float. */
+function Blob({ w = 1, l = 2.4 }: { w?: number; l?: number }) {
+  return <mesh position={[0, 0.04, 0]} scale={[w, 1, l]} geometry={blobGeo}><meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} /></mesh>;
+}
+/** Dense but not crammed: cars are instanced (four draw calls per body type); danfos, kekes and okadas are a few separate meshes. */
+function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: number }; walk: boolean }) {
+  const jam = plan.event === 'jam', nominal = 9;
+  const cars = useMemo<CarD[]>(() => {
+    const r = rng(plan.key.length * 31 + 5), out: CarD[] = [];
+    // [lane x, direction, speed factor, follows the ride's own speed?]. In a go-slow everyone in our two lanes crawls with you.
+    const lanes: [number, 1 | -1, number, boolean][] = [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.4, jam], [-1.1, -1, 0, false], [-3.3, -1, 0, false]];
+    const gap = jam ? 6 : plan.event === 'crowd' ? 11 : 15, gapOn = jam ? 10 : 13;
+    for (const [x, dir, f, follow] of lanes) {
+      const step = dir === 1 ? gap : gapOn; let z = RANGE[0] + r() * 3;
+      while (z < RANGE[1] - 3) {
+        const clear = !walk && x === 3.3 && Math.abs(z) < 6; // keep the player's own ride in clear view
+        if (!clear && (!plan.light || r() < 0.7)) {
+          const k = r(), kind: Kind = k < 0.28 ? 'sedan' : k < 0.4 ? 'hatch' : k < 0.58 ? 'suv' : k < 0.66 ? 'pickup' : k < 0.78 ? 'danfo' : k < 0.86 ? 'okada' : 'keke';
+          out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 7 + r() * 2, kind, color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)], slogan: Math.floor(r() * 8), look: Math.floor(r() * 12) });
+        }
+        z += step * (0.85 + r() * 0.4);
+      }
+    }
+    return out;
+  }, [plan.key, plan.event, plan.light, jam, walk]);
+  const fleet = useMemo(() => Object.fromEntries(CAR_KINDS.map((k) => [k, cars.map((c, i) => ({ c, i })).filter((x) => x.c.kind === k)])), [cars]);
+  const specials = useMemo(() => cars.map((c, i) => ({ c, i })).filter((x) => !(CAR_KINDS as string[]).includes(x.c.kind)), [cars]);
+  const parts = useRef<Record<string, (InstancedMesh | null)[]>>({}), blobs = useRef<InstancedMesh>(null), sp = useRef<Record<number, Group | null>>({});
+  const dummy = useMemo(() => new Object3D(), []);
+  useEffect(() => {
+    const c = new Color();
+    for (const k of CAR_KINDS) fleet[k].forEach((x, j) => parts.current[k]?.[0]?.setColorAt(j, c.set(x.c.color)));
+    for (const k of CAR_KINDS) if (parts.current[k]?.[0]?.instanceColor) parts.current[k][0]!.instanceColor!.needsUpdate = true;
+  }, [fleet]);
+  useFrame((_, dtRaw) => {
+    const dt = Math.min(dtRaw, 0.25), S = speed.current, span = RANGE[1] - RANGE[0];
+    cars.forEach((c) => {
+      // ground speed S pushes everything toward the camera; our-way cars drive up the street at their own speed, oncoming ones down it
+      const own = c.dir === 1 ? -(c.follow ? c.f * S : c.f * nominal) : c.u;
+      c.z += (S + own) * dt; if (c.z > RANGE[1]) c.z -= span; if (c.z < RANGE[0]) c.z += span;
+    });
+    for (const k of CAR_KINDS) {
+      const list = fleet[k], g = carGeos(k);
+      list.forEach(({ c, i }, j) => {
+        dummy.position.set(c.x, 0.02, c.z); dummy.rotation.set(0, c.dir === 1 ? Math.PI : 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+        for (let p = 0; p < 4; p++) parts.current[k]?.[p]?.setMatrixAt(j, dummy.matrix);
+        dummy.position.set(c.x, 0.04, c.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(g.width * 0.62, 1, g.length * 0.58); dummy.updateMatrix(); blobs.current?.setMatrixAt(i, dummy.matrix);
+      });
+      for (let p = 0; p < 4; p++) { const m = parts.current[k]?.[p]; if (m) m.instanceMatrix.needsUpdate = true; }
+    }
+    specials.forEach(({ c, i }) => { const g = sp.current[i]; if (g) g.position.set(c.x, 0.02, c.z); dummy.position.set(c.x, 0.04, c.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(c.kind === 'danfo' ? 1.2 : c.kind === 'okada' ? 0.5 : 0.9, 1, c.kind === 'danfo' ? 3 : c.kind === 'okada' ? 1.1 : 1.5); dummy.updateMatrix(); blobs.current?.setMatrixAt(i, dummy.matrix); });
+    if (blobs.current) blobs.current.instanceMatrix.needsUpdate = true;
+  });
+  return (
+    <>
+      {CAR_KINDS.map((k) => { const n = fleet[k].length, g = carGeos(k); if (!n) return null; const set = (p: number) => (m: InstancedMesh | null) => { (parts.current[k] ??= [])[p] = m; };
+        return <group key={k}><instancedMesh ref={set(0)} args={[g.paint, paintMat, n]} frustumCulled={false} /><instancedMesh ref={set(1)} args={[g.glass, glassMat, n]} frustumCulled={false} /><instancedMesh ref={set(2)} args={[g.trim, trimMat, n]} frustumCulled={false} /><instancedMesh ref={set(3)} args={[g.lights, lightMat, n]} frustumCulled={false} /></group>; })}
+      {specials.map(({ c, i }) => (
+        <group key={i} ref={(n) => { sp.current[i] = n; }}>
+          <group rotation={[0, c.dir === 1 ? Math.PI : 0, 0]}>
+            {c.kind === 'danfo' ? <Danfo slogan={c.slogan} /> : c.kind === 'okada' ? <Okada rider={crowdLook(c.look)} passenger={crowdLook(c.look + 1)} /> : <Keke driver={c.look} hex={c.look % 2 ? '#F4B91E' : '#3FA66B'} />}
+          </group>
+        </group>
+      ))}
+      <instancedMesh ref={blobs} args={[blobGeo, undefined, cars.length]} frustumCulled={false}><meshBasicMaterial color="#000000" transparent opacity={0.28} depthWrite={false} /></instancedMesh>
+    </>
+  );
+}
+
 // ------------------------------------------------------------------ the player's ride and the point-of-view interiors
 function Ride({ plan }: { plan: TripPlan }) {
-  const g = useRef<Group>(null);
+  const g = useRef<Group>(null), north = Math.PI; // vehicles are modelled facing +z; turn them to face up the street (-z)
   useFrame(({ clock }) => { if (g.current) g.current.position.y = Math.abs(Math.sin(clock.elapsedTime * 9)) * (plan.event === 'jam' ? 0.012 : 0.006); });
+  const slogan = Number(plan.key.slice(-1)) % 8;
   let body: JSX.Element | null = null;
-  const north = Math.PI; // Vehicle faces +z; turn it to face up the street (-z)
   switch (plan.ride) {
-    case 'keke': body = <group rotation={[0, north, 0]} scale={1.1}><Vehicle body="keke" color="#FFC21A" /></group>; break;
-    case 'cab': body = <group rotation={[0, north, 0]}><Vehicle body="sedan" color="#19C37D" /></group>; break;
+    case 'keke': body = <group rotation={[0, north, 0]}><Keke driver={2} /></group>; break;
+    case 'cab': body = <group rotation={[0, north, 0]}><CarMesh kind="sedan" hex="#19C37D" /></group>; break;
     case 'own': body = <group rotation={[0, north, 0]}><PlayerCar def={{ color: plan.vehicle?.color ?? '#C9CED1', model: plan.vehicle?.model ?? 'audi' }} /></group>; break;
-    case 'danfo': body = <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>; break;
-    case 'okada': body = <group rotation={[0, Math.PI / 2, 0]} scale={1.15}><Okada rider={plan.appearance.topColor} passenger={plan.appearance.skin} pot={plan.weather === 'rain'} /></group>; break;
+    case 'danfo': body = <group rotation={[0, north, 0]}><Danfo slogan={slogan} conductor /></group>; break;
+    case 'okada': body = <group rotation={[0, north, 0]}><Okada rider={crowdLook(5)} passenger={plan.appearance} pot={plan.weather === 'rain'} /></group>; break;
     default: body = null;
   }
-  return <group ref={g}>{plan.ride !== 'trek' && <Blob w={plan.ride === 'okada' ? 0.5 : 1.05} l={plan.ride === 'danfo' ? 2.8 : 2.4} />}{body}</group>;
+  return <group ref={g}>{plan.ride !== 'trek' && <Blob w={plan.ride === 'okada' ? 0.6 : plan.ride === 'danfo' ? 1.25 : 1.1} l={plan.ride === 'danfo' ? 3 : plan.ride === 'okada' ? 1.3 : 2.5} />}{body}</group>;
 }
+
 /** Seen from the passenger seat of a keke: the driver's back, the handlebar, the windscreen frame and the roof edge. */
 function KekeInterior() {
   return (
@@ -281,9 +322,8 @@ function KekeInterior() {
       {[-0.64, 0.64].map((x) => <Box key={x} size={[0.07, 1.0, 0.07]} pos={[x, 1.3, -0.95]} color="#15181B" />)}
       <Box size={[1.4, 0.09, 0.09]} pos={[0, 1.78, -0.95]} color="#15181B" />
       <Box size={[1.3, 0.28, 0.5]} pos={[0, 0.82, -0.82]} color="#15181B" />
-      <Box size={[0.46, 0.66, 0.3]} pos={[-0.12, 0.95, -0.4]} color="#2B8C5B" /><mesh position={[-0.12, 1.45, -0.4]}><sphereGeometry args={[0.15, 10, 8]} /><meshStandardMaterial color="#8A5A3C" /></mesh>
+      <SeatedPerson look={crowdLook(1)} pos={[-0.1, 0.3, -0.35]} rot={Math.PI} scale={0.88} />
       <Box size={[1.0, 0.05, 0.05]} pos={[0, 1.12, -0.82]} color="#9AA0A6" /><Box size={[0.14, 0.1, 0.05]} pos={[0, 1.55, -0.95]} color="#C9CED1" />
-      <Box size={[1.3, 0.35, 0.5]} pos={[0, 0.55, 0.85]} color="#7C5A2A" />
     </group>
   );
 }
@@ -294,7 +334,7 @@ function DanfoWindow() {
       <Box size={[0.1, 0.1, 2.6]} pos={[1.05, 2.35, 0.2]} color="#E0A810" /><Box size={[0.14, 0.18, 2.6]} pos={[1.05, 1.32, 0.2]} color="#E0A810" />
       {[-0.95, 1.35].map((z) => <Box key={z} size={[0.1, 1.1, 0.12]} pos={[1.05, 1.85, z]} color="#E0A810" />)}
       <Box size={[0.08, 0.7, 2.6]} pos={[1.05, 0.9, 0.2]} color="#FFC21A" /><Box size={[0.9, 0.06, 2.6]} pos={[0.6, 0.5, 0.2]} color="#2A2D31" />
-      <Box size={[0.55, 1.0, 0.12]} pos={[0.55, 1.2, -0.62]} color="#7C5A2A" /><mesh position={[0.6, 1.85, -0.62]}><sphereGeometry args={[0.2, 10, 8]} /><meshStandardMaterial color="#4A2C1B" /></mesh>
+      <SeatedPerson look={crowdLook(6)} pos={[0.5, 0.42, -0.75]} rot={Math.PI} scale={0.95} />
     </group>
   );
 }
@@ -305,49 +345,52 @@ type ShotName = 'chase' | 'pavement' | 'hero' | 'lowRear' | 'high34' | 'hood' | 
 /** Every shot is a function of progress u (0 to 1) through the shot and of where you are (b), so each one drifts a little rather than sitting still. */
 const SHOT: Record<ShotName, (u: number, b: Vector3) => Cam> = {
   chase: (u, b) => ({ p: [b.x + 0.5, 2.4 - 0.4 * u, b.z + 7.5 - 1.5 * u], l: [b.x, 1.0, b.z - 7], fov: 56 }),
-  pavement: (u, b) => ({ p: [b.x + 4.4, 1.7, b.z + 3.6 - 7.2 * u], l: [b.x, 0.9, b.z - 0.4], fov: 58 }),
+  pavement: (u, b) => ({ p: [b.x + 3.8, 1.7, b.z + 3.6 - 7.2 * u], l: [b.x, 0.9, b.z - 0.4], fov: 58 }),
   // from in front and above the other traffic, looking back at you coming toward the camera
   hero: (u, b) => ({ p: [b.x - 1.4, 3.7 - 0.5 * u, b.z - 9.5 + 3 * u], l: [b.x, 0.9, b.z + 0.5], fov: 50 }),
   lowRear: (u, b) => ({ p: [b.x + 1.2, 0.5, b.z + 5 - 1.2 * u], l: [b.x, 0.75, b.z - 4], fov: 64 }),
   high34: (u, b) => ({ p: [b.x - 6 + 2 * u, 8.8 - 1.2 * u, b.z + 9.5 - u], l: [b.x, 0.6, b.z - 2], fov: 46 }),
   // a camera mounted on the bonnet, looking down the street (inside the model the dark glass would fill the screen)
   hood: (u, b) => ({ p: [b.x, 1.15, b.z - 1.1], l: [b.x + 0.2 * Math.sin(u * 3), 0.85, b.z - 14], fov: 66 }),
-  kekePov: (u, b) => ({ p: [b.x + 0.3, 1.3, b.z + 0.85], l: [b.x + 0.1 + 0.1 * u, 1.2, b.z - 6], fov: 72, pov: 'keke' }),
-  danfoWin: (u, b) => ({ p: [b.x + 0.2, 1.75, b.z + 0.45], l: [b.x + 4, 1.75, b.z - 0.2 - 0.7 * u], fov: 62, pov: 'danfo' }),
+  kekePov: (u, b) => ({ p: [b.x + 0.3, 1.3, b.z + 1.1], l: [b.x + 0.1 + 0.1 * u, 1.2, b.z - 6], fov: 72, pov: 'keke' }),
+  danfoWin: (u, b) => ({ p: [b.x + 0.2, 1.75, b.z + 0.45], l: [b.x + 3, 1.7, b.z - 2.6 - 1.4 * u], fov: 62, pov: 'danfo' }),
   behind: (u, b) => ({ p: [b.x + 0.1, 2.0, b.z + 3 - 0.6 * u], l: [b.x, 1.3, b.z - 5], fov: 60 }),
   walkBehind: (u, b) => ({ p: [b.x + 0.3, 2.1, b.z + 3.4 - 0.4 * u], l: [b.x, 1.5, b.z - 5], fov: 58 }),
   walkSide: (u, b) => ({ p: [b.x - 4.6, 2.0, b.z + 2.4 - 4.8 * u], l: [b.x, 1.3, b.z], fov: 56 }),
   walkFront: (u, b) => ({ p: [b.x - 0.4, 1.3, b.z - 6.5 + 1.2 * u], l: [b.x, 1.5, b.z], fov: 48 }),
 };
-/** Three cuts before arriving. Two different sets per ride (picked from the trip's key) so repeat trips do not look the same. */
+/** Four cuts before arriving. Two different sets per ride (picked from the trip's key) so repeat trips do not look the same. */
 function shotPlan(plan: TripPlan): ShotName[] {
   const a = Number(plan.key.slice(-2)) % 2 === 0;
   switch (plan.ride) {
-    case 'own': return a ? ['chase', 'pavement', 'hood'] : ['high34', 'lowRear', 'hero'];
-    case 'cab': return a ? ['chase', 'pavement', 'hero'] : ['high34', 'lowRear', 'chase'];
-    case 'keke': return a ? ['kekePov', 'chase', 'hero'] : ['chase', 'kekePov', 'pavement'];
-    case 'danfo': return a ? ['danfoWin', 'chase', 'hero'] : ['high34', 'danfoWin', 'lowRear'];
-    case 'okada': return a ? ['behind', 'pavement', 'hero'] : ['lowRear', 'high34', 'behind'];
-    default: return a ? ['walkBehind', 'walkSide', 'walkFront'] : ['walkSide', 'high34', 'walkBehind'];
+    case 'own': return a ? ['chase', 'pavement', 'hood', 'hero'] : ['high34', 'lowRear', 'hero', 'chase'];
+    case 'cab': return a ? ['chase', 'pavement', 'hero', 'high34'] : ['high34', 'lowRear', 'chase', 'pavement'];
+    case 'keke': return a ? ['kekePov', 'chase', 'hero', 'high34'] : ['chase', 'kekePov', 'pavement', 'lowRear'];
+    case 'danfo': return a ? ['danfoWin', 'chase', 'hero', 'high34'] : ['high34', 'danfoWin', 'lowRear', 'chase'];
+    case 'okada': return a ? ['behind', 'pavement', 'hero', 'lowRear'] : ['lowRear', 'high34', 'behind', 'pavement'];
+    default: return a ? ['walkBehind', 'walkSide', 'walkFront', 'high34'] : ['walkSide', 'high34', 'walkBehind', 'walkFront'];
   }
 }
 
+
 // ------------------------------------------------------------------ the whole thing
 function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; arriveAt: number }) {
-  const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), t0 = useRef<number | null>(null);
-  const stripA = useRef<Group>(null), stripB = useRef<Group>(null), dest = useRef<Group>(null), walker = useRef<Group>(null), rowRefs = useRef<Group[]>([]);
+  const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), t0 = useRef<number | null>(null), destZRef = useRef(-100);
+  const strips = [useRef<Group>(null), useRef<Group>(null), useRef<Group>(null)], dest = useRef<Group>(null), walker = useRef<Group>(null);
   const rideRef = useRef<Group>(null), modelRef = useRef<Group>(null), kekeRef = useRef<Group>(null), danfoRef = useRef<Group>(null), rain3 = useRef<Group>(null);
   const motion = useRef<Motion>({ moving: true, lying: false, sitting: false });
   const rain = plan.weather === 'rain', jam = plan.event === 'jam', crowd = plan.event === 'crowd', walk = plan.ride === 'trek';
-  const camera = useThree((st) => st.camera) as PerspectiveCamera, tmp = useMemo(() => new Vector3(), []), look = useMemo(() => new Vector3(), []);
+  const camera = useThree((st) => st.camera) as PerspectiveCamera, look = useMemo(() => new Vector3(), []);
+  const glInfo = useThree((st) => st.gl.info); // TEST-ONLY: tests read draw calls and triangles from this
+  (globalThis as { __renderInfo?: unknown }).__renderInfo = glInfo;
   const dropGeo = useRef<BufferGeometry>(null);
   const N = plan.light ? 200 : 520;
-  const slabs = useMemo(() => { const t = pavingTexture().clone(); t.repeat.set(30, 100); t.needsUpdate = true; return t; }, []);
+  const slabs = useMemo(() => { const t = pavingTexture().clone(); t.repeat.set(30, 200); t.needsUpdate = true; return t; }, []);
   const drops = useMemo(() => { const r = rng(5), a = new Float32Array(N * 3); for (let i = 0; i < N; i++) { a[i * 3] = (r() - 0.5) * 24; a[i * 3 + 1] = r() * 14; a[i * 3 + 2] = -18 + r() * 24; } return a; }, [N]);
   useEffect(() => { dropGeo.current?.setAttribute('position', new BufferAttribute(drops, 3)); }, [drops]);
-  const crowdCount = walk ? (plan.light ? 70 : 150) : crowd ? (plan.light ? 44 : 100) : (plan.light ? 8 : 18);
+  const crowdCount = walk ? (plan.light ? 12 : 26) : crowd ? (plan.light ? 10 : 20) : (plan.light ? 4 : 8);
   const lanes = useMemo(() => (walk ? [5.2, 5.9, 7.1, 7.7, -5.2, -5.9, -7.1] : [5.3, 6.0, 7.2, -5.3, -6.0, -7.2]), [walk]);
-  const T = Math.max(1.8, arriveAt), shots = useMemo(() => shotPlan(plan), [plan]);
+  const T = Math.max(3, arriveAt), shots = useMemo(() => shotPlan(plan), [plan]);
   // The street slows from cruising speed to a stop over T seconds, covering distance D; the destination sits D ahead, so it arrives beside you.
   const cruise = walk ? 3.4 : jam ? 4.2 : 9, D = (cruise * T) / 2, front = FRONT[plan.building];
   const base = useMemo(() => new Vector3(walk ? 6.35 : 3.3, 0, 0), [walk]);
@@ -361,12 +404,9 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
     scroll.current = D * (1 - (1 - u) * (1 - u)); speed.current = u < 1 ? (2 * D * (1 - u)) / T : 0;
     slabs.offset.y = scroll.current / 2;
     const o = scroll.current % LOOP;
-    if (stripA.current) stripA.current.position.z = o - 40;
-    if (stripB.current) stripB.current.position.z = o - 40 - LOOP;
-    const destZ = DEST_Z - D + scroll.current;
+    strips.forEach((s, k) => { if (s.current) s.current.position.z = o - 40 - LOOP * k; });
+    const destZ = DEST_Z - D + scroll.current; destZRef.current = destZ;
     if (dest.current) dest.current.position.set(DOOR_X + 0.3 + front, 0, destZ);
-    // shop rows on the destination's side step aside where it stands
-    for (const g of rowRefs.current) { g.getWorldPosition(tmp); g.visible = Math.abs(tmp.z - destZ) > 7; }
     // whoever is travelling stands in the ride's door after it stops, walks to the destination's door and goes in
     if (walker.current) {
       const w = walker.current;
@@ -378,11 +418,10 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
         if (show) { const p = Math.min(1, (ta - 0.2) / 1.3); w.position.set(MathUtils.lerp(4.5, DOOR_X, p), 0.02, MathUtils.lerp(0.4, destZ, p)); motion.current.moving = p < 1; w.rotation.y = Math.PI / 2; w.scale.setScalar(p > 0.93 ? Math.max(0.01, 1 - (p - 0.93) / 0.07) : 1); }
       }
     }
-    // camera: three cuts while travelling, then a shot that follows the passenger in
+    // camera: four cuts while travelling, then a raised, angled shot from the road that fits your ride, the passenger's path and the door in a tall phone screen
     let cam: Cam;
     if (u < 1 && ta === 0) { const n = shots.length, x = Math.min(n - 0.001, (t / T) * n), i = Math.floor(x); cam = SHOT[shots[i]](x - i, base); }
-    // arrival: a wide shot from across the street (it has to fit your ride, the pavement and the door in a tall phone screen), pushing in slowly
-    else { const k = Math.min(1, ta / 2); cam = { p: [-7.8 + 1.2 * k, 4.6 - 0.6 * k, destZ + 1.6], l: [6.3, 1.2, destZ - 0.2], fov: 56 }; }
+    else { const k = Math.min(1, ta / 2.2); cam = { p: [0.4, 3.4 - 0.6 * k, destZ + 9.8 - 1.5 * k], l: [6.0, 1.3, destZ - 0.5], fov: 68 }; }
     const sh = Math.sin(clock.elapsedTime * 7) * 0.025; // a little handheld wobble
     camera.position.set(cam.p[0] + sh, cam.p[1] + Math.cos(clock.elapsedTime * 6) * 0.02, cam.p[2]);
     look.set(cam.l[0], cam.l[1], cam.l[2]); camera.lookAt(look);
@@ -397,17 +436,18 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
   });
   return (
     <>
-      <color attach="background" args={[sky.bg]} />
-      <fog attach="fog" args={[sky.fog, 38, 110]} />
+      <color attach="background" args={[sky.hor]} />
+      <fog attach="fog" args={[sky.fog, 60, 330]} />
       <hemisphereLight args={[sky.sun, '#6F6A66', sky.amb * 1.6]} />
       <directionalLight position={[8, 30, 12]} intensity={plan.weather === 'dusk' ? 2.2 : 2} color={sky.sun} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[60, 200]} /><meshStandardMaterial map={slabs} roughness={0.95} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}><planeGeometry args={[9.2, 200]} /><meshStandardMaterial color={rain ? '#25292E' : '#3B3F44'} roughness={rain ? 0.3 : 0.9} /></mesh>
-      {[-4.7, 4.7].map((x) => <Box key={x} size={[0.25, 0.14, 200]} pos={[x, 0.06, 0]} color="#D8D3C8" />)}
-      <group ref={stripA}><Strip weather={plan.weather} rowRefs={rowRefs} /></group>
-      <group ref={stripB}><Strip weather={plan.weather} rowRefs={rowRefs} /></group>
+      <SkyDome weather={plan.weather} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}><planeGeometry args={[600, 600]} /><meshStandardMaterial color="#8E9A7A" roughness={1} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[60, 400]} /><meshStandardMaterial map={slabs} roughness={0.95} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}><planeGeometry args={[9.2, 400]} /><meshStandardMaterial color={rain ? '#25292E' : '#3B3F44'} roughness={rain ? 0.3 : 0.9} /></mesh>
+      {[-4.7, 4.7].map((x) => <Box key={x} size={[0.25, 0.14, 400]} pos={[x, 0.06, 0]} color="#D8D3C8" />)}
+      {strips.map((s, k) => <group key={k} ref={s}><Strip weather={plan.weather} destZ={destZRef} /></group>)}
       <Traffic plan={plan} speed={speed} walk={walk} />
-      <Crowd count={crowdCount} rain={rain} speed={speed} lanes={lanes} />
+      <Crowd count={crowdCount} rain={rain} speed={speed} lanes={lanes} range={RANGE} />
       {!walk && (
         <group ref={rideRef} position={[3.3, 0.02, 0]}>
           <group ref={modelRef}><Ride plan={plan} /></group>
@@ -417,7 +457,7 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
       )}
       <group ref={walker} position={[walk ? 6.35 : 4.5, 0.02, 0]} visible={walk} rotation={[0, Math.PI, 0]}>
         <Avatar appearance={plan.appearance} motion={motion} />
-        {rain && <group position={[0, 2.15, 0]}><mesh><cylinderGeometry args={[0.55, 0.55, 0.04, 12]} /><meshStandardMaterial color="#E4572E" transparent opacity={0.85} /></mesh><Box size={[0.03, 0.5, 0.03]} pos={[0, -0.25, 0]} color="#2B2B2B" /></group>}
+        {rain && <group position={[0, 2.15, 0]}><mesh><coneGeometry args={[0.62, 0.28, 10, 1, true]} /><meshStandardMaterial color="#E4572E" side={DoubleSide} /></mesh><Box size={[0.03, 0.5, 0.03]} pos={[0, -0.25, 0]} color="#2B2B2B" /></group>}
       </group>
       {/* the destination is part of the street from the start and comes up the road to meet you */}
       <group ref={dest} rotation={[0, -Math.PI / 2, 0]}><DestinationModel type={plan.building} /></group>
@@ -427,11 +467,11 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
 }
 
 export default function Scene3D({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; /** seconds of travelling before the arrival shot */ arriveAt: number }) {
-  // R3F frees the scene's own geometry and materials on unmount; the two shared canvas textures are ours to free.
-  useEffect(() => () => { windows?.dispose(); windows = null; paving?.dispose(); paving = null; }, []);
+  // R3F frees the scene's own geometry and materials on unmount; the shared canvas textures and baked people are ours to free.
+  useEffect(() => () => { wallTex?.dispose(); wallTex = null; glassTex?.dispose(); glassTex = null; pavingTex?.dispose(); pavingTex = null; disposeBakedPeople(); }, []);
   return (
     <div className="absolute inset-0">
-      <Canvas dpr={[1, plan.light ? 1 : 1.5]} camera={{ fov: 56, position: [4, 2.4, 8], near: 0.2, far: 220 }} gl={{ antialias: !plan.light, powerPreference: 'high-performance' }}>
+      <Canvas dpr={[1, plan.light ? 1 : 1.5]} camera={{ fov: 56, position: [4, 2.4, 8], near: 0.2, far: 700 }} gl={{ antialias: !plan.light, powerPreference: 'high-performance' }}>
         <World plan={plan} arrived={arrived} arriveAt={arriveAt} />
       </Canvas>
     </div>
