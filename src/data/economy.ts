@@ -8,7 +8,7 @@ export const DAY_MINUTES = 1440;
 export const WEEK_MINUTES = 7 * DAY_MINUTES;
 
 /** Used by net worth: a car counts at this share of its list price (matches the old Forbes formula). */
-export const VEHICLE_NETWORTH_BPS = 8000;
+export const VEHICLE_NETWORTH_BPS = 7000;
 
 export const SAVINGS = {
   /** Weekly interest on the savings balance at the moment the weekly run happens. 50 bps = 0.5%. */

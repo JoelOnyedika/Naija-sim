@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Dev-only page used by tools/make-car-thumbs.py to render one car to a transparent picture. Not part of the game build. -->
+<html><body style="margin:0;background:transparent">
+<canvas id="c" width="800" height="500" style="display:block"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { tuneCarMaterials } from '/src/three/models/CarModel.tsx';
+const q = new URLSearchParams(location.search), model = q.get('model'), color = q.get('color') || '#C9CED1';
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), alpha: true, antialias: true, preserveDrawingBuffer: true });
+r.setClearColor(0x000000, 0); r.setSize(800, 500, false); r.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 2.2));
+const key = new THREE.DirectionalLight(0xfff1d6, 3.2); key.position.set(6, 8, 5); scene.add(key);
+const rim = new THREE.DirectionalLight(0xbcd6ff, 1.6); rim.position.set(-6, 3, -5); scene.add(rim);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01; shadow.scale.set(1.35, 2.7, 1); scene.add(shadow);
+const cam = new THREE.PerspectiveCamera(28, 800 / 500, 0.1, 100); cam.position.set(5.4, 1.9, 5.8); cam.lookAt(0, 0.55, 0);
+new GLTFLoader().load(`/models/cars/${model}.glb`, (g) => { const obj = g.scene; tuneCarMaterials(obj, color, []); scene.add(obj); r.render(scene, cam); window.__done = true; }, undefined, () => { window.__done = 'error'; });
+</script></body></html>

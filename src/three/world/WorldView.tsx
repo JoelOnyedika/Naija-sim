@@ -37,8 +37,8 @@ function Rig({ stateId, mode, selected, calm }: Pick<Props, 'stateId' | 'mode' |
     focus.current.set(c[0], 0, c[1]);
     flying.current = false;
     if (mode === 'map') {
-      // top-down: straight above the centre, tilted back a touch so buildings read as 3D
-      const r = 118 * K;
+      // opens zoomed IN so the map fills the screen; the player pinches or scrolls out to see the whole city
+      const r = 56 * K;
       camera.position.set(c[0], r * Math.cos(MAP_POLAR), c[1] + r * Math.sin(MAP_POLAR));
     } else {
       const r = 72;

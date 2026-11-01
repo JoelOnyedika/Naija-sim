@@ -35,7 +35,7 @@ export function TravelScene({ plan, onDone, startArrived = false }: { plan: Trip
   return createPortal(
     <motion.div className="fixed inset-0 z-[200] flex flex-col bg-night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-label={`Travelling to ${plan.destination.name}`}>
       <div className="relative flex min-h-0 flex-1 items-end overflow-hidden" style={{ background: skyTop(plan.weather) }}>
-        <Fallback fallback={<Sky plan={plan} />}><Suspense fallback={<Sky plan={plan} />}><Scene3D plan={plan} arrived={arrived} /></Suspense></Fallback>
+        <Fallback fallback={<Sky plan={plan} />}><Suspense fallback={<Sky plan={plan} />}><Scene3D plan={plan} arrived={arrived} arriveAt={arriveAt} /></Suspense></Fallback>
         <AnimatePresence mode="wait">
           <motion.div key={arrived ? 'arr' : line} initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+1rem)] flex justify-center px-4">
             <div className="rounded-2xl bg-white px-4 py-2 text-center text-[15px] font-extrabold text-night shadow-glass">{arrived ? `You don reach ${plan.destination.name}!` : plan.lines[line] ?? plan.lines[0]}</div>

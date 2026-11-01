@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { BufferAttribute, CanvasTexture, Color, MathUtils, Object3D, RepeatWrapping, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type InstancedMesh, type Texture } from 'three';
+import { BufferAttribute, CanvasTexture, Color, MathUtils, Object3D, RepeatWrapping, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type InstancedMesh, type PerspectiveCamera, type Texture } from 'three';
 import { Avatar, type Motion } from '@/three/avatar/Avatar';
 import { Vehicle } from '@/three/models/vehicles';
 import { PlayerCar } from '@/three/models/CarModel';
@@ -8,11 +8,13 @@ import type { VehicleBody } from '@/data/vehicles';
 import type { Building, TripPlan } from './plan';
 
 /**
- * The 3D version of a trip, seen from ABOVE (a bird's-eye camera looking down at the road). The road runs up the screen and the
- * world scrolls toward you, so your ride seems to drive (or you seem to walk) up the street. Dense traffic in four lanes (two
- * going your way, two oncoming), crowds on the pavements, umbrellas in rain, brake lights in a go-slow. On arrival the
- * destination rises beside the road and the passenger walks to its door.
- * Deliberately cheap: no shadows, instanced people, a few dozen cars, a 3 to 5 second life. Only loads when planTrip picks it.
+ * A trip as a short film: a few quick cuts between different cameras (third-person chase, a dolly along the pavement, a low hero shot
+ * of you coming at the camera, a high three-quarter view, and a point-of-view from inside a keke, a danfo or your own car's bonnet),
+ * then an arrival shot that follows the passenger to the door. The camera set is picked per trip, so no two trips cut the same way.
+ * The street is dense: four lanes of traffic (two going your way, two oncoming), crowds on the pavements, umbrellas in rain, brake
+ * lights in a go-slow. The destination is part of the street from the start (it comes up the road toward you as the ride slows to
+ * a stop beside it); nothing grows out of the ground.
+ * Deliberately cheap: no real shadows (blob shadows), instanced people, a few dozen procedural cars, a 3 to 5 second life.
  *
  * Axes: the ride faces -z (up the screen). +x is the right-hand pavement where the destination appears. Our lanes are at
  * x = 1.1 and 3.3 (the ride sits in the kerb lane, 3.3); oncoming lanes are at x = -1.1 and -3.3.
@@ -98,7 +100,7 @@ function Strip({ weather, rowRefs }: { weather: TripPlan['weather']; rowRefs: { 
         </group>
       ))}
       {bits.poles.map((z) => [4.9, -4.9].map((x) => <group key={`${x}${z}`} position={[x, 0, z]}><Cyl r={0.08} h={5.2} pos={[0, 2.6, 0]} color="#4B4540" /><Box size={[0.9, 0.1, 0.12]} pos={[x > 0 ? -0.4 : 0.4, 5.2, 0]} color="#4B4540" /><Box size={[0.3, 0.08, 0.2]} pos={[x > 0 ? -0.85 : 0.85, 5.15, 0]} color="#FFF3B0" emissive={weather === 'dusk' ? '#FFD98A' : undefined} /></group>))}
-      {bits.trees.map((t, i) => <group key={i} position={[t.side * 7.1, 0, t.z]} scale={t.s}><Cyl r={0.18} h={1.8} pos={[0, 0.9, 0]} color="#6B4A2B" /><mesh position={[0, 2.5, 0]}><sphereGeometry args={[1.25, 9, 7]} /><meshStandardMaterial color={i % 2 ? '#3FA66B' : '#2F8A55'} roughness={0.9} /></mesh></group>)}
+      {bits.trees.map((t, i) => <group key={i} position={[t.side * 6.1, 0, t.z]} scale={t.s}><Cyl r={0.18} h={1.8} pos={[0, 0.9, 0]} color="#6B4A2B" /><mesh position={[0, 2.5, 0]}><sphereGeometry args={[1.25, 9, 7]} /><meshStandardMaterial color={i % 2 ? '#3FA66B' : '#2F8A55'} roughness={0.9} /></mesh></group>)}
       {bits.stalls.map((s, i) => <group key={i} position={[-6.1, 0, s.z]}><Cyl r={0.05} h={2} pos={[0, 1, 0]} color="#4B4540" /><mesh position={[0, 2.1, 0]}><cylinderGeometry args={[1.1, 1.1, 0.1, 10]} /><meshStandardMaterial color={s.c} /></mesh><Box size={[1.3, 0.8, 0.8]} pos={[0, 0.4, 0.3]} color="#7C5A2A" /></group>)}
       {Array.from({ length: 12 }).map((_, i) => [-2.2, 2.2].map((x) => <Box key={`${i}${x}`} size={[0.14, 0.02, 2.2]} pos={[x, 0.025, i * 5 + 1]} color="#E6E2D4" />))}
       <Box size={[0.12, 0.02, LOOP]} pos={[-0.12, 0.03, LOOP / 2]} color="#E8B923" /><Box size={[0.12, 0.02, LOOP]} pos={[0.12, 0.03, LOOP / 2]} color="#E8B923" />
@@ -184,7 +186,7 @@ function TrafficBody({ car, plan }: { car: CarD; plan: TripPlan }) {
   const lights = plan.weather === 'dusk' || plan.weather === 'rain';
   switch (car.kind) {
     case 'danfo': return <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>;
-    case 'okada': return <group rotation={[0, Math.PI / 2, 0]} scale={1.3}><Okada rider="#8A5A3C" passenger="#4A2C1B" pot={false} /></group>;
+    case 'okada': return <group rotation={[0, Math.PI / 2, 0]} scale={1.15}><Okada rider="#8A5A3C" passenger="#4A2C1B" pot={false} /></group>;
     default: return (
       <group scale={car.kind === 'keke' ? 1.1 : 0.95}>
         <Vehicle body={car.kind} color={car.color} />
@@ -194,6 +196,10 @@ function TrafficBody({ car, plan }: { car: CarD; plan: TripPlan }) {
       </group>
     );
   }
+}
+/** A soft dark blob under a vehicle, so cars seen from low cameras do not float. */
+function Blob({ w = 1.1, l = 2.5 }: { w?: number; l?: number }) {
+  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} scale={[w, l, 1]}><circleGeometry args={[1, 16]} /><meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} /></mesh>;
 }
 function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: number }; walk: boolean }) {
   const jam = plan.event === 'jam', nominal = 7.5;
@@ -227,26 +233,6 @@ function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: numb
   return <>{cars.map((c, i) => <group key={i} ref={(n) => { if (n) refs.current[i] = n; }} rotation={[0, c.dir === 1 ? Math.PI : 0, 0]}><TrafficBody car={c} plan={plan} /></group>)}</>;
 }
 
-/** A bright ring on the ground so you can always tell which vehicle or person is you in the traffic. */
-function Ring({ r, stretch }: { r: number; stretch: number }) {
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]} scale={[1, stretch, 1]}><ringGeometry args={[r, r + 0.18, 32]} /><meshBasicMaterial color="#FFE14A" transparent opacity={0.9} /></mesh>;
-}
-function Ride({ plan }: { plan: TripPlan }) {
-  const g = useRef<Group>(null);
-  useFrame(({ clock }) => { if (g.current) g.current.position.y = Math.abs(Math.sin(clock.elapsedTime * 9)) * (plan.event === 'jam' ? 0.012 : 0.006); });
-  let body: JSX.Element | null = null;
-  const north = Math.PI; // Vehicle faces +z; turn it to face up the screen (-z)
-  switch (plan.ride) {
-    case 'keke': body = <group rotation={[0, north, 0]} scale={1.1}><Vehicle body="keke" color="#FFC21A" /></group>; break;
-    case 'cab': body = <group rotation={[0, north, 0]}><Vehicle body="sedan" color="#19C37D" /></group>; break;
-    case 'own': body = <group rotation={[0, north, 0]}><PlayerCar def={{ type: plan.vehicle?.body ?? 'sedan', color: plan.vehicle?.color ?? '#C9CED1', model: plan.vehicle?.model }} /></group>; break;
-    case 'danfo': body = <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>; break;
-    case 'okada': body = <group rotation={[0, Math.PI / 2, 0]} scale={1.3}><Okada rider={plan.appearance.topColor} passenger={plan.appearance.skin} pot={plan.weather === 'rain'} /></group>; break;
-    default: body = null;
-  }
-  return <group ref={g}>{body}</group>;
-}
-
 function DestinationModel({ type }: { type: Building }) {
   switch (type) {
     case 'tower': case 'bank':
@@ -268,57 +254,151 @@ function DestinationModel({ type }: { type: Building }) {
   }
 }
 
+
+// ------------------------------------------------------------------ the player's ride and the point-of-view interiors
+function Ride({ plan }: { plan: TripPlan }) {
+  const g = useRef<Group>(null);
+  useFrame(({ clock }) => { if (g.current) g.current.position.y = Math.abs(Math.sin(clock.elapsedTime * 9)) * (plan.event === 'jam' ? 0.012 : 0.006); });
+  let body: JSX.Element | null = null;
+  const north = Math.PI; // Vehicle faces +z; turn it to face up the street (-z)
+  switch (plan.ride) {
+    case 'keke': body = <group rotation={[0, north, 0]} scale={1.1}><Vehicle body="keke" color="#FFC21A" /></group>; break;
+    case 'cab': body = <group rotation={[0, north, 0]}><Vehicle body="sedan" color="#19C37D" /></group>; break;
+    case 'own': body = <group rotation={[0, north, 0]}><PlayerCar def={{ color: plan.vehicle?.color ?? '#C9CED1', model: plan.vehicle?.model ?? 'audi' }} /></group>; break;
+    case 'danfo': body = <group rotation={[0, Math.PI / 2, 0]}><Danfo /></group>; break;
+    case 'okada': body = <group rotation={[0, Math.PI / 2, 0]} scale={1.15}><Okada rider={plan.appearance.topColor} passenger={plan.appearance.skin} pot={plan.weather === 'rain'} /></group>; break;
+    default: body = null;
+  }
+  return <group ref={g}>{plan.ride !== 'trek' && <Blob w={plan.ride === 'okada' ? 0.5 : 1.05} l={plan.ride === 'danfo' ? 2.8 : 2.4} />}{body}</group>;
+}
+/** Seen from the passenger seat of a keke: the driver's back, the handlebar, the windscreen frame and the roof edge. */
+function KekeInterior() {
+  return (
+    <group>
+      <Box size={[1.3, 0.05, 2.2]} pos={[0, 0.3, 0]} color="#2A2D31" />
+      {[-0.66, 0.66].map((x) => <Box key={x} size={[0.06, 1.05, 2.0]} pos={[x, 0.85, 0.1]} color="#FFC21A" />)}
+      <Box size={[1.5, 0.07, 2.2]} pos={[0, 1.8, 0.05]} color="#1F4E47" />
+      {[-0.64, 0.64].map((x) => <Box key={x} size={[0.07, 1.0, 0.07]} pos={[x, 1.3, -0.95]} color="#15181B" />)}
+      <Box size={[1.4, 0.09, 0.09]} pos={[0, 1.78, -0.95]} color="#15181B" />
+      <Box size={[1.3, 0.28, 0.5]} pos={[0, 0.82, -0.82]} color="#15181B" />
+      <Box size={[0.46, 0.66, 0.3]} pos={[-0.12, 0.95, -0.4]} color="#2B8C5B" /><mesh position={[-0.12, 1.45, -0.4]}><sphereGeometry args={[0.15, 10, 8]} /><meshStandardMaterial color="#8A5A3C" /></mesh>
+      <Box size={[1.0, 0.05, 0.05]} pos={[0, 1.12, -0.82]} color="#9AA0A6" /><Box size={[0.14, 0.1, 0.05]} pos={[0, 1.55, -0.95]} color="#C9CED1" />
+      <Box size={[1.3, 0.35, 0.5]} pos={[0, 0.55, 0.85]} color="#7C5A2A" />
+    </group>
+  );
+}
+/** Seen from a danfo seat: the window frame, the yellow door panel, the seat in front and another passenger's head. */
+function DanfoWindow() {
+  return (
+    <group>
+      <Box size={[0.1, 0.1, 2.6]} pos={[1.05, 2.35, 0.2]} color="#E0A810" /><Box size={[0.14, 0.18, 2.6]} pos={[1.05, 1.32, 0.2]} color="#E0A810" />
+      {[-0.95, 1.35].map((z) => <Box key={z} size={[0.1, 1.1, 0.12]} pos={[1.05, 1.85, z]} color="#E0A810" />)}
+      <Box size={[0.08, 0.7, 2.6]} pos={[1.05, 0.9, 0.2]} color="#FFC21A" /><Box size={[0.9, 0.06, 2.6]} pos={[0.6, 0.5, 0.2]} color="#2A2D31" />
+      <Box size={[0.55, 1.0, 0.12]} pos={[0.55, 1.2, -0.62]} color="#7C5A2A" /><mesh position={[0.6, 1.85, -0.62]}><sphereGeometry args={[0.2, 10, 8]} /><meshStandardMaterial color="#4A2C1B" /></mesh>
+    </group>
+  );
+}
+
+// ------------------------------------------------------------------ cameras
+interface Cam { p: V3; l: V3; fov: number; pov?: 'keke' | 'danfo' }
+type ShotName = 'chase' | 'pavement' | 'hero' | 'lowRear' | 'high34' | 'hood' | 'kekePov' | 'danfoWin' | 'behind' | 'walkBehind' | 'walkSide' | 'walkFront';
+/** Every shot is a function of progress u (0 to 1) through the shot and of where you are (b), so each one drifts a little rather than sitting still. */
+const SHOT: Record<ShotName, (u: number, b: Vector3) => Cam> = {
+  chase: (u, b) => ({ p: [b.x + 0.5, 2.4 - 0.4 * u, b.z + 7.5 - 1.5 * u], l: [b.x, 1.0, b.z - 7], fov: 56 }),
+  pavement: (u, b) => ({ p: [b.x + 4.4, 1.7, b.z + 3.6 - 7.2 * u], l: [b.x, 0.9, b.z - 0.4], fov: 58 }),
+  // from in front and above the other traffic, looking back at you coming toward the camera
+  hero: (u, b) => ({ p: [b.x - 1.4, 3.7 - 0.5 * u, b.z - 9.5 + 3 * u], l: [b.x, 0.9, b.z + 0.5], fov: 50 }),
+  lowRear: (u, b) => ({ p: [b.x + 1.2, 0.5, b.z + 5 - 1.2 * u], l: [b.x, 0.75, b.z - 4], fov: 64 }),
+  high34: (u, b) => ({ p: [b.x - 6 + 2 * u, 8.8 - 1.2 * u, b.z + 9.5 - u], l: [b.x, 0.6, b.z - 2], fov: 46 }),
+  // a camera mounted on the bonnet, looking down the street (inside the model the dark glass would fill the screen)
+  hood: (u, b) => ({ p: [b.x, 1.15, b.z - 1.1], l: [b.x + 0.2 * Math.sin(u * 3), 0.85, b.z - 14], fov: 66 }),
+  kekePov: (u, b) => ({ p: [b.x + 0.3, 1.3, b.z + 0.85], l: [b.x + 0.1 + 0.1 * u, 1.2, b.z - 6], fov: 72, pov: 'keke' }),
+  danfoWin: (u, b) => ({ p: [b.x + 0.2, 1.75, b.z + 0.45], l: [b.x + 4, 1.75, b.z - 0.2 - 0.7 * u], fov: 62, pov: 'danfo' }),
+  behind: (u, b) => ({ p: [b.x + 0.1, 2.0, b.z + 3 - 0.6 * u], l: [b.x, 1.3, b.z - 5], fov: 60 }),
+  walkBehind: (u, b) => ({ p: [b.x + 0.3, 2.1, b.z + 3.4 - 0.4 * u], l: [b.x, 1.5, b.z - 5], fov: 58 }),
+  walkSide: (u, b) => ({ p: [b.x - 4.6, 2.0, b.z + 2.4 - 4.8 * u], l: [b.x, 1.3, b.z], fov: 56 }),
+  walkFront: (u, b) => ({ p: [b.x - 0.4, 1.3, b.z - 6.5 + 1.2 * u], l: [b.x, 1.5, b.z], fov: 48 }),
+};
+/** Three cuts before arriving. Two different sets per ride (picked from the trip's key) so repeat trips do not look the same. */
+function shotPlan(plan: TripPlan): ShotName[] {
+  const a = Number(plan.key.slice(-2)) % 2 === 0;
+  switch (plan.ride) {
+    case 'own': return a ? ['chase', 'pavement', 'hood'] : ['high34', 'lowRear', 'hero'];
+    case 'cab': return a ? ['chase', 'pavement', 'hero'] : ['high34', 'lowRear', 'chase'];
+    case 'keke': return a ? ['kekePov', 'chase', 'hero'] : ['chase', 'kekePov', 'pavement'];
+    case 'danfo': return a ? ['danfoWin', 'chase', 'hero'] : ['high34', 'danfoWin', 'lowRear'];
+    case 'okada': return a ? ['behind', 'pavement', 'hero'] : ['lowRear', 'high34', 'behind'];
+    default: return a ? ['walkBehind', 'walkSide', 'walkFront'] : ['walkSide', 'high34', 'walkBehind'];
+  }
+}
+
 // ------------------------------------------------------------------ the whole thing
-function World({ plan, arrived }: { plan: TripPlan; arrived: boolean }) {
-  const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), arriveT = useRef(0);
+function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; arriveAt: number }) {
+  const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), t0 = useRef<number | null>(null);
   const stripA = useRef<Group>(null), stripB = useRef<Group>(null), dest = useRef<Group>(null), walker = useRef<Group>(null), rowRefs = useRef<Group[]>([]);
+  const rideRef = useRef<Group>(null), modelRef = useRef<Group>(null), kekeRef = useRef<Group>(null), danfoRef = useRef<Group>(null), rain3 = useRef<Group>(null);
   const motion = useRef<Motion>({ moving: true, lying: false, sitting: false });
   const rain = plan.weather === 'rain', jam = plan.event === 'jam', crowd = plan.event === 'crowd', walk = plan.ride === 'trek';
-  const camera = useThree((s) => s.camera), tmp = useMemo(() => new Vector3(), []);
+  const camera = useThree((st) => st.camera) as PerspectiveCamera, tmp = useMemo(() => new Vector3(), []), look = useMemo(() => new Vector3(), []);
   const dropGeo = useRef<BufferGeometry>(null);
   const N = plan.light ? 200 : 520;
   const slabs = useMemo(() => { const t = pavingTexture().clone(); t.repeat.set(30, 100); t.needsUpdate = true; return t; }, []);
-  const drops = useMemo(() => { const r = rng(5), a = new Float32Array(N * 3); for (let i = 0; i < N; i++) { a[i * 3] = (r() - 0.5) * 26; a[i * 3 + 1] = r() * 30; a[i * 3 + 2] = -24 + r() * 40; } return a; }, [N]);
+  const drops = useMemo(() => { const r = rng(5), a = new Float32Array(N * 3); for (let i = 0; i < N; i++) { a[i * 3] = (r() - 0.5) * 24; a[i * 3 + 1] = r() * 14; a[i * 3 + 2] = -18 + r() * 24; } return a; }, [N]);
   useEffect(() => { dropGeo.current?.setAttribute('position', new BufferAttribute(drops, 3)); }, [drops]);
-  // people: a trek is walked through a packed pavement; otherwise the pavements are busy only in a crowd event
-  const crowdCount = walk ? (plan.light ? 70 : 150) : crowd ? (plan.light ? 44 : 100) : (plan.light ? 6 : 14);
+  const crowdCount = walk ? (plan.light ? 70 : 150) : crowd ? (plan.light ? 44 : 100) : (plan.light ? 8 : 18);
   const lanes = useMemo(() => (walk ? [5.2, 5.9, 7.1, 7.7, -5.2, -5.9, -7.1] : [5.3, 6.0, 7.2, -5.3, -6.0, -7.2]), [walk]);
-  useFrame((_, dtRaw) => {
-    const dt = Math.min(dtRaw, 0.25), target = arrived ? 0 : jam ? 1.8 : walk ? 2.2 : 7.5;
-    speed.current += (target - speed.current) * (1 - Math.exp(-dt * (arrived ? 3.5 : 2.2)));
-    scroll.current += speed.current * dt;
-    slabs.offset.y = scroll.current / 2; // the paving slides toward you with the street
+  const T = Math.max(1.8, arriveAt), shots = useMemo(() => shotPlan(plan), [plan]);
+  // The street slows from cruising speed to a stop over T seconds, covering distance D; the destination sits D ahead, so it arrives beside you.
+  const cruise = walk ? 3.4 : jam ? 4.2 : 9, D = (cruise * T) / 2, front = FRONT[plan.building];
+  const base = useMemo(() => new Vector3(walk ? 6.35 : 3.3, 0, 0), [walk]);
+  const lastFov = useRef(0);
+  useFrame(({ clock }, dtRaw) => {
+    const dt = Math.min(dtRaw, 0.25);
+    if (t0.current === null) t0.current = clock.elapsedTime;
+    let t = clock.elapsedTime - t0.current; if (arrived) t = Math.max(t, T);
+    const forced = (globalThis as { __travelT?: number }).__travelT; if (typeof forced === 'number') t = forced; // TEST-ONLY: lets screenshots freeze the film at a chosen second
+    const u = Math.min(1, t / T), ta = Math.max(0, t - T);
+    scroll.current = D * (1 - (1 - u) * (1 - u)); speed.current = u < 1 ? (2 * D * (1 - u)) / T : 0;
+    slabs.offset.y = scroll.current / 2;
     const o = scroll.current % LOOP;
     if (stripA.current) stripA.current.position.z = o - 40;
     if (stripB.current) stripB.current.position.z = o - 40 - LOOP;
-    if (arrived) arriveT.current = Math.min(1, arriveT.current + dt / 0.9);
-    const k = MathUtils.smoothstep(arriveT.current, 0, 1), front = FRONT[plan.building];
-    if (dest.current) { dest.current.visible = arrived; dest.current.scale.y = Math.max(0.001, k); dest.current.position.set(DOOR_X + 0.3 + front, 0, DEST_Z); }
-    // make room: shop rows on the destination's side step aside where the building rises
-    if (arrived) for (const g of rowRefs.current) { g.getWorldPosition(tmp); g.visible = Math.abs(tmp.z - DEST_Z) > 7; }
-    // whoever is travelling steps out and walks to the door, then shrinks away through it
+    const destZ = DEST_Z - D + scroll.current;
+    if (dest.current) dest.current.position.set(DOOR_X + 0.3 + front, 0, destZ);
+    // shop rows on the destination's side step aside where it stands
+    for (const g of rowRefs.current) { g.getWorldPosition(tmp); g.visible = Math.abs(tmp.z - destZ) > 7; }
+    // whoever is travelling stands in the ride's door after it stops, walks to the destination's door and goes in
     if (walker.current) {
       const w = walker.current;
       if (walk) {
-        if (arrived) { w.position.x = Math.min(DOOR_X, w.position.x + dt * 1.9); w.position.z = MathUtils.lerp(w.position.z, DEST_Z, 1 - Math.exp(-dt * 2)); }
-        const atDoor = arrived && w.position.x >= DOOR_X; motion.current.moving = !atDoor; w.rotation.y = arrived ? Math.PI / 2 : Math.PI;
-        w.scale.setScalar(atDoor ? Math.max(0.01, w.scale.x - dt * 3) : 1.7);
+        if (ta > 0) { const p = Math.min(1, ta / 1.5); w.position.set(MathUtils.lerp(6.35, DOOR_X, p), 0.02, MathUtils.lerp(0, destZ, p)); w.rotation.y = MathUtils.lerp(Math.PI, Math.PI / 2, Math.min(1, ta * 3)); motion.current.moving = p < 1; w.scale.setScalar(p > 0.93 ? Math.max(0.01, 1 - (p - 0.93) / 0.07) : 1); }
+        else { w.position.set(6.35, 0.02, 0); w.rotation.y = Math.PI; motion.current.moving = true; }
       } else {
-        const show = arrived && arriveT.current > 0.3; w.visible = show;
-        if (show) { const p = Math.min(1, (arriveT.current - 0.3) / 0.7); w.position.set(4.5 + p * (DOOR_X - 4.5), 0.02, 0.4 + p * (DEST_Z - 0.4)); motion.current.moving = p < 1; w.rotation.y = Math.PI / 2; w.scale.setScalar(p > 0.92 ? Math.max(0.01, 1.7 * (1 - (p - 0.92) / 0.08)) : 1.7); }
+        const show = ta > 0.2; w.visible = show;
+        if (show) { const p = Math.min(1, (ta - 0.2) / 1.3); w.position.set(MathUtils.lerp(4.5, DOOR_X, p), 0.02, MathUtils.lerp(0.4, destZ, p)); motion.current.moving = p < 1; w.rotation.y = Math.PI / 2; w.scale.setScalar(p > 0.93 ? Math.max(0.01, 1 - (p - 0.93) / 0.07) : 1); }
       }
     }
-    // camera: high above, a little behind (a bird's-eye view with a touch of tilt so you still see faces of buildings); it slides toward the destination on arrival
-    const cx = MathUtils.lerp(walk ? 3.8 : 1.6, 7.6, k) + Math.sin(scroll.current * 0.04) * 0.15;
-    camera.position.set(cx, 34, 17 + k * 1);
-    camera.lookAt(cx, 0, MathUtils.lerp(-3, -3.5, k));
+    // camera: three cuts while travelling, then a shot that follows the passenger in
+    let cam: Cam;
+    if (u < 1 && ta === 0) { const n = shots.length, x = Math.min(n - 0.001, (t / T) * n), i = Math.floor(x); cam = SHOT[shots[i]](x - i, base); }
+    // arrival: a wide shot from across the street (it has to fit your ride, the pavement and the door in a tall phone screen), pushing in slowly
+    else { const k = Math.min(1, ta / 2); cam = { p: [-7.8 + 1.2 * k, 4.6 - 0.6 * k, destZ + 1.6], l: [6.3, 1.2, destZ - 0.2], fov: 56 }; }
+    const sh = Math.sin(clock.elapsedTime * 7) * 0.025; // a little handheld wobble
+    camera.position.set(cam.p[0] + sh, cam.p[1] + Math.cos(clock.elapsedTime * 6) * 0.02, cam.p[2]);
+    look.set(cam.l[0], cam.l[1], cam.l[2]); camera.lookAt(look);
+    if (lastFov.current !== cam.fov) { camera.fov = cam.fov; camera.updateProjectionMatrix(); lastFov.current = cam.fov; }
+    // point-of-view shots hide the outside of your ride and show its inside
+    if (modelRef.current) modelRef.current.visible = !cam.pov;
+    if (kekeRef.current) kekeRef.current.visible = cam.pov === 'keke';
+    if (danfoRef.current) danfoRef.current.visible = cam.pov === 'danfo';
+    if (rain3.current) rain3.current.position.set(camera.position.x, 0, camera.position.z - 6);
     const p = dropGeo.current?.attributes.position as BufferAttribute | undefined;
-    if (rain && p) { for (let i = 0; i < N; i++) { let y = p.getY(i) - 24 * dt; if (y < 0) y += 30; p.setXYZ(i, p.getX(i), y, p.getZ(i)); } p.needsUpdate = true; }
+    if (rain && p) { for (let i = 0; i < N; i++) { let y = p.getY(i) - 20 * dt; if (y < 0) y += 14; p.setXYZ(i, p.getX(i), y, p.getZ(i)); } p.needsUpdate = true; }
   });
   return (
     <>
       <color attach="background" args={[sky.bg]} />
-      <fog attach="fog" args={[sky.fog, 70, 150]} />
+      <fog attach="fog" args={[sky.fog, 38, 110]} />
       <hemisphereLight args={[sky.sun, '#6F6A66', sky.amb * 1.6]} />
       <directionalLight position={[8, 30, 12]} intensity={plan.weather === 'dusk' ? 2.2 : 2} color={sky.sun} />
       <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[60, 200]} /><meshStandardMaterial map={slabs} roughness={0.95} /></mesh>
@@ -328,26 +408,31 @@ function World({ plan, arrived }: { plan: TripPlan; arrived: boolean }) {
       <group ref={stripB}><Strip weather={plan.weather} rowRefs={rowRefs} /></group>
       <Traffic plan={plan} speed={speed} walk={walk} />
       <Crowd count={crowdCount} rain={rain} speed={speed} lanes={lanes} />
-      {!walk && <group position={[3.3, 0.02, 0]}><Ride plan={plan} /><Ring r={1.6} stretch={1.75} /></group>}
-      <group ref={walker} position={[walk ? 6.35 : 4.5, 0.02, 0]} visible={walk} rotation={[0, Math.PI, 0]} scale={1.7}>
+      {!walk && (
+        <group ref={rideRef} position={[3.3, 0.02, 0]}>
+          <group ref={modelRef}><Ride plan={plan} /></group>
+          {plan.ride === 'keke' && <group ref={kekeRef} visible={false}><KekeInterior /></group>}
+          {plan.ride === 'danfo' && <group ref={danfoRef} visible={false}><DanfoWindow /></group>}
+        </group>
+      )}
+      <group ref={walker} position={[walk ? 6.35 : 4.5, 0.02, 0]} visible={walk} rotation={[0, Math.PI, 0]}>
         <Avatar appearance={plan.appearance} motion={motion} />
-        <Ring r={0.75} stretch={1} />
-        {/* see-through so you can still watch the walking from above */}
-        {rain && <group position={[0, 2.1, 0]}><mesh><cylinderGeometry args={[0.85, 0.85, 0.04, 12]} /><meshStandardMaterial color="#E4572E" transparent opacity={0.4} /></mesh><Box size={[0.03, 0.5, 0.03]} pos={[0, -0.25, 0]} color="#2B2B2B" /></group>}
+        {rain && <group position={[0, 2.15, 0]}><mesh><cylinderGeometry args={[0.55, 0.55, 0.04, 12]} /><meshStandardMaterial color="#E4572E" transparent opacity={0.85} /></mesh><Box size={[0.03, 0.5, 0.03]} pos={[0, -0.25, 0]} color="#2B2B2B" /></group>}
       </group>
-      <group ref={dest} visible={false} rotation={[0, -Math.PI / 2, 0]}><DestinationModel type={plan.building} /></group>
-      {rain && <points frustumCulled={false}><bufferGeometry ref={dropGeo} /><pointsMaterial color="#CFE6F7" size={0.12} transparent opacity={0.8} sizeAttenuation /></points>}
+      {/* the destination is part of the street from the start and comes up the road to meet you */}
+      <group ref={dest} rotation={[0, -Math.PI / 2, 0]}><DestinationModel type={plan.building} /></group>
+      {rain && <group ref={rain3}><points frustumCulled={false}><bufferGeometry ref={dropGeo} /><pointsMaterial color="#CFE6F7" size={0.07} transparent opacity={0.8} sizeAttenuation /></points></group>}
     </>
   );
 }
 
-export default function Scene3D({ plan, arrived }: { plan: TripPlan; arrived: boolean }) {
+export default function Scene3D({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; /** seconds of travelling before the arrival shot */ arriveAt: number }) {
   // R3F frees the scene's own geometry and materials on unmount; the two shared canvas textures are ours to free.
   useEffect(() => () => { windows?.dispose(); windows = null; paving?.dispose(); paving = null; }, []);
   return (
     <div className="absolute inset-0">
-      <Canvas dpr={[1, plan.light ? 1 : 1.5]} camera={{ fov: 40, position: [1.6, 34, 17], near: 1, far: 260 }} gl={{ antialias: !plan.light, powerPreference: 'high-performance' }}>
-        <World plan={plan} arrived={arrived} />
+      <Canvas dpr={[1, plan.light ? 1 : 1.5]} camera={{ fov: 56, position: [4, 2.4, 8], near: 0.2, far: 220 }} gl={{ antialias: !plan.light, powerPreference: 'high-performance' }}>
+        <World plan={plan} arrived={arrived} arriveAt={arriveAt} />
       </Canvas>
     </div>
   );

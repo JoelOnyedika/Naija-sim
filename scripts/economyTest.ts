@@ -174,8 +174,8 @@ fresh(1_000_000);
 const nw = computeNetWorth();
 const ownedHomes = usePropertyStore.getState().ownedIds.length;
 ok(nw.total === nw.wallet + nw.savings + nw.bonds + nw.homes + nw.land + nw.markets + nw.companies + nw.vehicles && ownedHomes === 1, 'net worth is exactly the sum of its parts');
-useVehicleStore.getState().add('corolla');
-ok(computeNetWorth().vehicles === Math.floor(6_500_000 * 0.8), 'cars count at 80% of list price');
+useVehicleStore.getState().add('audi');
+ok(computeNetWorth().vehicles === Math.floor(55_000_000 * 0.7), 'cars count at 70% of list price (what they would sell for)');
 
 // ── Scheduler
 console.log('Scheduler');

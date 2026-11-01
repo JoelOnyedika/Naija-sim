@@ -27,7 +27,7 @@ import { enterInterior, leaveInterior, travelToVenue } from '../src/game/interio
 import { startNewLife } from '../src/game/life';
 import { advance } from '../src/game/loop';
 import { priceOf } from '../src/game/pricing';
-import { buyVehicle, vehiclePrice } from '../src/game/vehicles';
+import { salePrice, sellVehicle, buyVehicle, vehiclePrice } from '../src/game/vehicles';
 import { useActorStore } from '../src/stores/actorStore';
 import { useChatStore } from '../src/stores/chatStore';
 import { useClubStore } from '../src/stores/clubStore';
@@ -36,7 +36,7 @@ import { useInteriorStore } from '../src/stores/interiorStore';
 import { useJailStore } from '../src/stores/jailStore';
 import { useStatsStore } from '../src/stores/statsStore';
 import { useUiStore } from '../src/stores/uiStore';
-import { useVehicleStore } from '../src/stores/vehicleStore';
+import { migrateVehicles, useVehicleStore } from '../src/stores/vehicleStore';
 import { interiorLayout, venueItems } from '../src/world/interiors/build';
 import { buildNavGrid, findPath, isFree, nearestFree } from '../src/world/navigation';
 import { liveNpcs, livePlayer } from '../src/world/npcLive';
@@ -302,17 +302,32 @@ ok(pods.length === VEHICLES.length && pods.every((p, i) => podiumIndexOf(p.uid) 
 const withModel = VEHICLES.filter((v) => v.model);
 ok(withModel.length === 6 && withModel.every((v) => hasRealModel(v.id) && existsSync(`public/models/cars/${v.model}.glb`)), 'the six GLB cars are configured and their files exist in public/models/cars');
 ok(VEHICLES.filter((v) => !v.model).every((v) => !hasRealModel(v.id)), 'cars without a GLB are still reported as placeholders');
-fresh(); ok(!buyVehicle('corolla').ok && useVehicleStore.getState().owned.length === 0, 'a car cannot be bought outside the showroom');
+fresh(); ok(!buyVehicle('audi').ok && useVehicleStore.getState().owned.length === 0, 'a car cannot be bought outside the showroom');
 const cars = readFileSync('src/features/phone/apps/Cars.tsx', 'utf8');
 ok(!/debit\(|post\(|\.add\(/.test(cars) && /travelToVenue\(POLANCO/.test(cars) && /Visit Polanco Motors/.test(cars), 'the phone app cannot buy: it asks to visit Polanco Motors and travels there');
 const cash = E().money;
-ok(travelToVenue('lagos.polanco', 'corolla').ok && I().current?.kind === 'showroom' && I().current?.vehicleId === 'corolla', 'confirming in the phone takes you to the showroom with that car remembered');
+ok(travelToVenue('lagos.polanco', 'audi').ok && I().current?.kind === 'showroom' && I().current?.vehicleId === 'audi', 'confirming in the phone takes you to the showroom with that car remembered');
 ok(E().money <= cash, 'the showroom entry fee (if any) is the only thing charged by travelling');
 const c0 = E().money;
-const bought = buyVehicle('corolla');
-ok(bought.ok && c0 - E().money === vehiclePrice('corolla') && vehiclePrice('corolla') === priceOf(6_500_000) && useVehicleStore.getState().owned.includes('corolla'), 'buying charges the shared-pricing price and the car is yours');
-ok(!buyVehicle('corolla').ok && E().money === c0 - vehiclePrice('corolla'), 'buying the same car twice is refused and charges nothing');
-const poor = E().money; E().debit(poor - 10, 'broke', 'purchase'); ok(!buyVehicle('camry').ok && !useVehicleStore.getState().owned.includes('camry'), 'when you cannot afford it, you do not get the car');
+const bought = buyVehicle('audi');
+ok(bought.ok && c0 - E().money === vehiclePrice('audi') && vehiclePrice('audi') === priceOf(55_000_000) && useVehicleStore.getState().owned.includes('audi'), 'buying charges the shared-pricing price and the car is yours');
+ok(!buyVehicle('audi').ok && E().money === c0 - vehiclePrice('audi'), 'buying the same car twice is refused and charges nothing');
+// selling: 70% of what was paid, only for cars you own, and a sold car can be bought again
+{
+  const have = E().money, paidFor = vehiclePrice('audi');
+  const sold = sellVehicle('audi');
+  ok(sold.ok && E().money - have === Math.round(paidFor * 0.7) && !useVehicleStore.getState().owned.includes('audi'), 'selling a car pays 70% of what you paid and removes it from your cars');
+  ok(!sellVehicle('audi').ok, 'you cannot sell a car you do not own');
+  const again = buyVehicle('audi');
+  ok(again.ok && useVehicleStore.getState().owned.includes('audi') && useVehicleStore.getState().paid.audi === paidFor, 'a sold car can be bought again (it is not mistaken for a double purchase)');
+  ok(salePrice('audi') === Math.round(paidFor * 0.7), 'salePrice reports the same 70%');
+}
+// old saves: cars that no longer exist are dropped and refunded in full
+{
+  const gone = migrateVehicles({ owned: ['corolla', 'audi', 'gwagon'] }, 1);
+  ok(gone.owned.join() === 'audi' && gone.refund === 6_500_000 + 220_000_000, 'a v1 save loses cars without a model and is owed their full old price');
+}
+const poor = E().money; E().debit(poor - 10, 'broke', 'purchase'); ok(!buyVehicle('dodge').ok && !useVehicleStore.getState().owned.includes('dodge'), 'when you cannot afford it, you do not get the car');
 ok(!buyVehicle('flying-saucer').ok, 'an unknown car is refused');
 leaveInterior();
 ok(interactWith !== undefined, 'interactions loaded');

@@ -19,6 +19,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { TaskCard } from '@/ui/TaskCard';
+import { BuyCarCards, SellCarCards } from './CarCards';
 import { captureScene } from '@/three/capture';
 import { livePlayer, liveNpcs } from '@/world/npcLive';
 
@@ -164,15 +165,20 @@ export function InteriorChat() {
           <input value={text} onChange={(e) => setText(e.target.value)} maxLength={CHAT.maxLength + 20} placeholder={scope === 'local' ? `Say something to all ${here_n} here…` : 'Say something to every venue…'} aria-label="Message" className="min-w-0 flex-1 rounded-2xl bg-white/10 px-3.5 py-2.5 text-[14px] outline-none placeholder:text-white/40" />
           <button type="submit" aria-label="Send" className={`flex h-11 w-11 items-center justify-center rounded-2xl ${st.tone}`}><Send size={18} /></button>
         </form>
-        {expanded && (spots.length > 0 || def.crowd) && (
+        {expanded && (spots.length > 0 || def.crowd || here?.kind === 'showroom') && (
           <>
             <div className="mt-2 flex items-center justify-between px-1 text-[12px]"><span className="font-bold">Spots here</span><span className="flex items-center gap-1 text-white/50"><Footprints size={13} />Tap one to walk there</span></div>
             <div className="no-scrollbar mt-1 flex gap-1.5 overflow-x-auto pb-0.5">
+              {here?.kind === 'showroom' && [['__buycars', '\u{1F697} Buy cars'], ['__sellcars', '\u{1F4B0} Sell cars']].map(([id, label]) => (
+                <button key={id} aria-pressed={spotUid === id} onClick={() => setSpotUid(spotUid === id ? null : id)} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === id ? 'bg-white text-night' : 'bg-white/10'}`}>{label}</button>
+              ))}
               {def.crowd && <button aria-pressed={spotUid === '__crowd'} onClick={() => setSpotUid(spotUid === '__crowd' ? null : '__crowd')} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === '__crowd' ? 'bg-white text-night' : 'bg-white/10'}`}><span>👥</span>The crowd</button>}
               {spots.map((x) => <button key={x.uid} aria-pressed={spotUid === x.uid} onClick={() => setSpotUid(spotUid === x.uid ? null : x.uid)} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === x.uid ? 'bg-white text-night' : 'bg-white/10'}`}><span>{x.glyph}</span>{x.name}</button>)}
             </div>
           </>
         )}
+        {expanded && spotUid === '__buycars' && <BuyCarCards onPick={() => { setSpotUid(null); setExpanded(false); }} />}
+        {expanded && spotUid === '__sellcars' && <SellCarCards />}
         {expanded && spotUid === '__crowd' && (
           <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
             <button onClick={() => { const id = nearestNpc(); if (id) { setExpanded(false); useInteriorStore.getState().selectNpc(id); } }} className="flex w-[11.5rem] shrink-0 flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-2.5 text-left active:bg-white/10"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg">💬</span><div className="mt-1.5 text-[12px] font-bold text-emerald-300">Free</div><div className="text-[14px] font-extrabold leading-tight">Chat with someone nearby</div><div className="mt-1.5 flex flex-wrap gap-1"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">+Social</span><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">+Fun</span></div></button>

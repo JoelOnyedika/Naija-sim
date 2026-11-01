@@ -75,7 +75,7 @@ ok(goHome().ok && useRideStore.getState().at === null && !goHome().ok, 'you can 
 clearGuard(); eco().debit(eco().money - 100, 'spend');
 ok(!travel('freedom', 'cab').ok && useRideStore.getState().at === null && eco().money === 100, 'an unaffordable fare fails and changes nothing');
 ok(travel('freedom', 'walk').ok && eco().money === 100, 'trekking is free');
-useVehicleStore.getState().add('corolla'); clearGuard(); goHome(); clearGuard();
+useVehicleStore.getState().add('audi'); clearGuard(); goHome(); clearGuard();
 ok(travelBlocker('balogun', 'own') === null && travel('balogun', 'own').ok, 'your own car works once you own one');
 
 console.log('Games lobby');

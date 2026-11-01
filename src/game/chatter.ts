@@ -11,7 +11,7 @@ const LINES: Record<string, string[]> = {
   gallery: ['Look at the colours on that one.', 'Who made this piece?', 'I could stare at this all day.', 'Lagos artists are different.'],
   stadium: ['Referee, are you blind?!', 'GOAL! Did you see that?', 'Up Naija!', 'Pass the ball, pass the ball!'],
   club: ['DJ, play that one again!', 'Bottle service on the left!', 'This place is packed tonight.', 'Who is paying for the table?', 'Lagos nights are unmatched.'],
-  showroom: ['That Range Rover is clean.', 'How much for the G-Wagon?', 'Test drive, please.'],
+  showroom: ['That Challenger is clean.', 'How much for the Agera?', 'Test drive, please.'],
 };
 let nextAt = 0;
 /** Ambient lines from NPCs in the LOCAL channel only, always marked as NPCs. They never speak in global chat and never pose as players. */

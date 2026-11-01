@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { VEHICLES } from '@/data/vehicles';
-import { homeParking, vehiclePrice } from '@/game/vehicles';
+import { homeParking, salePrice, sellVehicle, vehiclePrice } from '@/game/vehicles';
+import { getVehicle } from '@/data/vehicles';
 import { travelToVenue } from '@/game/interiors';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { toast } from '@/stores/uiStore';
@@ -29,6 +30,14 @@ export function CarsApp() {
   return (
     <div className="p-3">
       <Card className="mb-3 bg-sky-50 text-sm"><b>Your home:</b> {spaces} parking space{spaces === 1 ? '' : 's'} · {owned.length} car{owned.length === 1 ? '' : 's'}. Cars are bought in person at Polanco Motors.</Card>
+      {owned.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wide text-slate-500">Sell a car (you get 70% of what you paid)</p>
+          <div className="space-y-2">{owned.map((id) => { const c = getVehicle(id); if (!c) return null; return (
+            <Card key={id}><Row glyph="\u{1F4B0}" title={c.name} sub={`Polanco Motors pays ${formatNaira(salePrice(id))}`} right={<Btn tone="light" onClick={() => { const r = sellVehicle(id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); } else { sfx.error(); toast(r.message, 'bad'); } }}>Sell</Btn>} /></Card>
+          ); })}</div>
+        </div>
+      )}
       <div className="space-y-2">{VEHICLES.map((v) => (
         <Card key={v.id}><Row glyph={v.type === 'keke' ? '🛺' : v.type === 'truck' ? '🛻' : v.type === 'sport' ? '🏎️' : '🚙'} title={v.name} sub={`${v.blurb} ${formatNaira(vehiclePrice(v.id))}`} right={owned.includes(v.id) ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Owned</span> : <Btn onClick={() => setPick(v.id)}>View</Btn>} /></Card>
       ))}</div>

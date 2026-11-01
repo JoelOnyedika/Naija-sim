@@ -1,3 +1,11 @@
+## v15: cinematic travel, GLB-only cars, buy and sell at the dealership
+- **Travel is a short film, not one camera.** Three quick cuts then an arrival shot, from a set chosen per trip and per ride: third-person chase, a dolly along the pavement, a high front "hero" shot, a low rear shot, a high three-quarter view, a bonnet camera on your own car, a point-of-view from inside a keke (driver, handlebar, windscreen) and from a danfo window, over-the-shoulder behind an okada rider or behind you when you walk. The destination is part of the street from the start and the ride slows to stop beside it (nothing grows from the ground). Arrival is a wide shot from across the street that follows the passenger to the door. Blob shadows, handheld wobble, dense traffic and crowds kept.
+- **Cars:** only cars with a real model exist now (Audi R8, Dodge Challenger, Tesla Roadster, Nissan GT-R, Lamborghini Huracan, Koenigsegg Agera). The garage, showroom and road never draw a stand-in. Old saves that owned the removed cars are refunded their full price once. Nepo now starts with the Dodge and Audi.
+- **Sell cars:** 70% of what you paid, at the showroom (Sell cars), in the car's sheet, and in the phone Cars app. A sold car can be bought again.
+- **Dealership:** the venue panel has "Buy cars" first (a picture, name and price per car; tap one to open it), then "Sell cars". Pictures are pre-rendered WebP files, so no second 3D view is running.
+- **Map** opens zoomed in; pinch or scroll out to see the whole city.
+- Showroom hall back to 24x14 with 6 podiums (one per car). Test-only: `__travelT` freezes the travel film at a chosen second.
+
 ## v13: bird's-eye travel only, real car models
 - **All travel animation is 3D and bird's-eye.** The 2D and 2.5D versions are deleted (`Scene2D.tsx`, the renderer choice). If WebGL fails the trip still plays over a plain sky.
 - **Your GLB cars are in the game** (garage at home, Polanco showroom, the road). Only the player's own car uses a GLB; traffic stays procedural. Files are in `public/models/cars/` (optimised: 5.2 MB to 1.8 MB, Agera 39k to 16k triangles, stray geometry removed, baked to 4.5 m, centred, wheels on the floor). Originals are kept in `assets-src/cars-original/`. See `docs/ASSETS.md` for how to add cars and how to move assets to a server.

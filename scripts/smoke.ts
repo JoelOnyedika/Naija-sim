@@ -85,7 +85,7 @@ ok(r.ok && getActiveHome()!.property.id === 'lagos.3-bedroom-flat-ikeja', 'bough
 ok(getActiveHome()!.placed.length + useInventoryStore.getState().count('chair') >= 1, `furniture moved (${countBefore} before, ${getActiveHome()!.placed.length} after)`);
 r = acquireProperty('lagos.luxury-duplex-ikoyi');
 ok(r.ok, 'bought Luxury Duplex (Ikoyi)');
-useVehicleStore.getState().reset(['gwagon', 'camry', 'supercar', 'rangerover']);
+useVehicleStore.getState().reset(['tesla', 'dodge', 'supercar', 'gtr']);
 ok(carSlots(getActiveHome()!.layout).length === 2, `luxury duplex has ${carSlots(getActiveHome()!.layout).length} car slots`);
 r = acquireProperty('lagos.face-me-i-face-you');
 ok(!r.ok === false, 'can move back to a cheaper owned/purchasable property');

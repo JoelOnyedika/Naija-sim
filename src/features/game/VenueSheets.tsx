@@ -4,11 +4,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { CLUB, CLUB_OPTIONS } from '@/data/club';
-import { hasRealModel } from '@/data/showroom';
+import { CarImage } from './CarCards';
 import { getVehicle } from '@/data/vehicles';
 import { buyClub, clubPrice, announcementText } from '@/game/club';
 import { renderReceiptPng } from '@/game/receiptImage';
-import { buyVehicle, vehiclePrice } from '@/game/vehicles';
+import { buyVehicle, salePrice, sellVehicle, vehiclePrice } from '@/game/vehicles';
 import { useClubStore } from '@/stores/clubStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
@@ -133,11 +133,11 @@ export function VehicleSheet() {
     <Sheet open={!!v && here?.kind === 'showroom'} label="Vehicle" onClose={close}>
       {v && (
         <>
+          <CarImage car={v} className="-mt-1 mb-1 rounded-2xl bg-gradient-to-b from-white/10 to-transparent" />
           <div className="pr-10"><div className="font-display text-lg font-extrabold">{v.name}</div><div className="text-[12px] capitalize text-white/60">{v.type === 'keke' ? 'Tricycle' : v.type}</div></div>
           <p className="mt-2 text-[13px] text-white/80">{v.blurb}</p>
           <div className="mt-3 flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2"><span className="text-[12px] text-white/60">Price</span><span className="font-display text-lg font-extrabold text-danfo">{formatNaira(vehiclePrice(v.id))}</span></div>
-          {!hasRealModel(v.id) && <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-[12px] font-semibold text-amber-300">The car on the podium is a placeholder model. The real 3D model has not been added yet.</p>}
-          {owned.includes(v.id) ? <div className="mt-3 rounded-xl bg-emerald-500/15 py-3 text-center text-sm font-bold text-emerald-300">You own this car</div>
+          {owned.includes(v.id) ? <div className="mt-3 space-y-2"><div className="rounded-xl bg-emerald-500/15 py-3 text-center text-sm font-bold text-emerald-300">You own this car</div><button onClick={() => { const r = sellVehicle(v.id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); close(); } else { sfx.error(); toast(r.message, 'bad'); } }} className="h-11 w-full rounded-xl bg-white/10 text-[14px] font-bold">Sell for {formatNaira(salePrice(v.id))} (70%)</button></div>
             : <button onClick={buy} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold">Buy for {formatNaira(vehiclePrice(v.id))}</button>}
         </>
       )}

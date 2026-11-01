@@ -31,7 +31,7 @@ export const LIFE_TYPES: Record<LifeTypeId, LifeTypeDef> = {
     moneyRange: [25_000_000, 80_000_000], phone: 'ios', phoneName: 'iPhone-style flagship',
     startingFurniture: ['king_bed', 'sofa', 'tv', 'fridge', 'ac', 'rug', 'plant', 'wardrobe', 'wall_frame', 'lamp'],
     startingInventory: { table: 1, chair: 2, jollof: 2, zobo: 2 },
-    startingVehicles: ['gwagon', 'camry'],
+    startingVehicles: ['dodge', 'audi'],
     conditions: ['Serious starting cash', 'Upscale Lekki home with garage', 'Flagship iPhone', 'Furnished and fancy'],
     color: '#FFC21A',
   },
