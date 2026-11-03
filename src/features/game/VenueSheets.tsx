@@ -128,7 +128,7 @@ export function VehicleSheet() {
   const id = useUiStore((s) => s.showroomVehicle), here = useInteriorStore((s) => s.current), owned = useVehicleStore((s) => s.owned);
   const close = () => useUiStore.getState().setShowroomVehicle(null);
   const v = id ? getVehicle(id) : undefined;
-  const buy = () => { if (!v) return; const r = buyVehicle(v.id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); close(); } else { sfx.error(); toast(r.message, 'bad'); } };
+  const buy = () => { if (!v) return; const r = buyVehicle(v.id); if (r.ok) { close(); useUiStore.getState().setCarReveal(v.id); /* the celebration film plays, then tells you the car is yours */ } else { sfx.error(); toast(r.message, 'bad'); } };
   return (
     <Sheet open={!!v && here?.kind === 'showroom'} label="Vehicle" onClose={close}>
       {v && (

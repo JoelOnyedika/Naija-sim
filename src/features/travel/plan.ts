@@ -8,7 +8,6 @@ export type Weather = 'clear' | 'rain' | 'dusk';
 /** What happens on the way. `jam` is the go-slow, `crowd` is a street packed with people. */
 export type Event = 'none' | 'jam' | 'crowd';
 export type Ride = 'trek' | 'keke' | 'danfo' | 'okada' | 'cab' | 'own';
-export type Building = 'tower' | 'market' | 'church' | 'mosque' | 'stadium' | 'club' | 'gate' | 'shop' | 'bank';
 
 export interface TripPlan {
   ride: Ride;
@@ -16,8 +15,7 @@ export interface TripPlan {
   vehicle?: { body: VehicleBody; color: string; name: string; /** GLB in public/models/cars/ (drawn on the road), if the car has one. */ model?: string };
   weather: Weather;
   event: Event;
-  building: Building;
-  destination: { name: string; icon: string };
+  destination: { id: string; name: string; icon: string; category: string };
   appearance: Appearance;
   seconds: number;
   /** A short Nigerian caption for each beat of the ride. */
@@ -41,18 +39,6 @@ export function deviceScore(): number {
   if ((nav.deviceMemory ?? 8) <= 2) s -= 0.35;
   if (nav.connection?.saveData) s -= 0.2;
   return Math.max(0, Math.min(1, s));
-}
-
-function buildingFor(l: TripPlace): Building {
-  const n = `${l.name} ${l.id}`.toLowerCase();
-  if (/mosque/.test(n)) return 'mosque';
-  if (/church|cathedral|redeemed|chapel/.test(n)) return 'church';
-  if (/stadium|arena|teslim|national.*stad/.test(n)) return 'stadium';
-  if (/club|quilox|lounge|nightlife/.test(n) || l.category === 'club') return 'club';
-  if (/tower|marina|plaza|house|towers|bank|exchange|securities|hub|tech/.test(n) || ['bank', 'business', 'tech', 'government'].includes(l.category)) return /bank/.test(n) ? 'bank' : 'tower';
-  if (l.category === 'market' || l.category === 'shopping' || /market|mall/.test(n)) return 'market';
-  if (l.category === 'park' || l.category === 'beach') return 'gate';
-  return 'shop';
 }
 
 const LINES: Record<string, string[]> = {
@@ -84,12 +70,12 @@ export function planTrip(input: TripInput): TripPlan {
   const vehicle = v ? { body: v.type, color: v.color, name: v.name, model: v.model } : undefined;
   // start downloading the player's car model now, so it is ready by the time the scene draws it
   if (v?.model) void import('@/three/models/CarModel').then((m) => m.preloadCar(v.model!));
-  const lines = [pick(LINES[ride]), pick(weather === 'rain' ? LINES.rain : event === 'jam' ? LINES.jam : event === 'crowd' ? LINES.crowd : LINES[ride])];
-  // a trip is a short film: 8 to 10 seconds (the Skip button is always there)
-  const seconds = Math.min(10, Math.max(8, input.seconds * 2));
+  const lines = [pick(LINES[ride]), pick(weather === 'rain' ? LINES.rain : event === 'jam' ? LINES.jam : event === 'crowd' ? LINES.crowd : LINES[ride]), pick(LINES[ride])];
+  // a trip is a short film: 12 to 15 seconds (the Skip button is always there)
+  const seconds = Math.min(15, Math.max(12, input.seconds * 3));
   return {
-    ride, vehicle, weather, event, building: buildingFor(input.landmark),
-    destination: { name: input.landmark.name, icon: input.landmark.icon }, appearance: useCharacterStore.getState().appearance,
+    ride, vehicle, weather, event,
+    destination: { id: input.landmark.id, name: input.landmark.name, icon: input.landmark.icon, category: input.landmark.category }, appearance: useCharacterStore.getState().appearance,
     seconds, lines, light: device < 0.6, key: `${Date.now()}`, ...override,
   };
 }

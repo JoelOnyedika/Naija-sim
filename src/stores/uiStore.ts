@@ -36,6 +36,8 @@ interface UiState {
   clubMenuOpen: boolean; setClubMenu: (v: boolean) => void;
   receiptId: string | null; setReceipt: (id: string | null) => void;
   showroomVehicle: string | null; setShowroomVehicle: (id: string | null) => void;
+  /** The car whose purchase celebration is playing (a film plays over the game until it ends or is skipped). */
+  carReveal: string | null; setCarReveal: (id: string | null) => void;
   setActionMenu: (uid: string | null) => void;
   online: number;
   toasts: Toast[];
@@ -61,7 +63,7 @@ interface UiState {
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
   mode: 'home', taskPanelOpen: true, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
-  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
+  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), carReveal: null, setCarReveal: (carReveal) => set({ carReveal }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),
   toggleTasks: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),

@@ -28,11 +28,22 @@ export function crowdLook(i: number): Appearance {
   };
 }
 
-export type PoseName = 'stride' | 'sit';
+export type PoseName = 'stride' | 'stride2' | 'sit' | 'hang' | 'cheer' | 'pop';
 function setPose(rig: Rig, pose: PoseName) {
   if (pose === 'stride') {
     rig.hipL.rotation.x = 0.5; rig.hipR.rotation.x = -0.5; rig.kneeL.rotation.x = 0.05; rig.kneeR.rotation.x = 0.55;
     rig.shoulderL.rotation.x = -0.45; rig.shoulderR.rotation.x = 0.45; rig.elbowL.rotation.x = -0.25; rig.elbowR.rotation.x = -0.45;
+  } else if (pose === 'stride2') { // the other half of a walk cycle: swap two baked meshes to make someone walk
+    rig.hipL.rotation.x = -0.5; rig.hipR.rotation.x = 0.5; rig.kneeL.rotation.x = 0.55; rig.kneeR.rotation.x = 0.05;
+    rig.shoulderL.rotation.x = 0.45; rig.shoulderR.rotation.x = -0.45; rig.elbowL.rotation.x = -0.45; rig.elbowR.rotation.x = -0.25;
+  } else if (pose === 'cheer') { // both arms up, whooping
+    rig.hipL.rotation.x = -0.1; rig.hipR.rotation.x = 0.1; rig.shoulderL.rotation.x = rig.shoulderR.rotation.x = -2.9; rig.shoulderL.rotation.z = 0.25; rig.shoulderR.rotation.z = -0.25; rig.elbowL.rotation.x = rig.elbowR.rotation.x = -0.15; rig.head.rotation.x = -0.2;
+  } else if (pose === 'pop') { // champagne bottle held high in one hand, the other on the hip
+    rig.hipL.rotation.x = -0.15; rig.hipR.rotation.x = 0.15; rig.shoulderR.rotation.x = -2.6; rig.shoulderR.rotation.z = -0.15; rig.elbowR.rotation.x = -0.3; rig.shoulderL.rotation.x = 0.25; rig.elbowL.rotation.x = -1.5; rig.head.rotation.x = -0.25;
+  } else if (pose === 'hang') { // the danfo conductor: one hand on the door frame, the other cupped to his mouth, shouting, head a bit big for comedy
+    rig.hipL.rotation.x = -0.25; rig.hipR.rotation.x = 0.1; rig.kneeL.rotation.x = 0.5; rig.kneeR.rotation.x = 0.1;
+    rig.shoulderL.rotation.z = 0.2; rig.shoulderL.rotation.x = -2.9; rig.elbowL.rotation.x = -0.1;
+    rig.shoulderR.rotation.x = -2.0; rig.shoulderR.rotation.z = -0.35; rig.elbowR.rotation.x = -2.3; rig.head.scale.set(1.22, 1.16, 1.16); rig.head.rotation.x = -0.25;
   } else { // seated, hands forward on the handlebar or the lap
     rig.hipL.rotation.x = rig.hipR.rotation.x = -1.4; rig.kneeL.rotation.x = rig.kneeR.rotation.x = 1.45;
     rig.shoulderL.rotation.x = rig.shoulderR.rotation.x = -0.95; rig.elbowL.rotation.x = rig.elbowR.rotation.x = -0.35;
@@ -65,6 +76,12 @@ export function disposeBakedPeople() { cache.forEach((g) => g.dispose()); cache.
 export function SeatedPerson({ look, pos = [0, 0, 0], rot = 0, scale = 1 }: { look: Appearance; pos?: [number, number, number]; rot?: number; scale?: number }) {
   const g = useMemo(() => bakeCharacter(look, 'sit'), [look]);
   return <mesh geometry={g} material={bakedMat} position={pos} rotation={[0, rot, 0]} scale={scale} />;
+}
+
+/** Any baked person in any pose, placed and tilted (used for the danfo conductor leaning out of the door). */
+export function PosedPerson({ look, pose, pos = [0, 0, 0], rot = 0, lean = 0, scale = 1 }: { look: Appearance; pose: PoseName; pos?: [number, number, number]; rot?: number; lean?: number; scale?: number }) {
+  const g = useMemo(() => bakeCharacter(look, pose), [look, pose]);
+  return <group position={pos} rotation={[0, rot, 0]}><group rotation={[0, 0, lean]} scale={scale}><mesh geometry={g} material={bakedMat} /></group></group>;
 }
 
 /** A moving crowd of real people on the pavements, instanced per look. */

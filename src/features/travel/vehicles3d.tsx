@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { BoxGeometry, CanvasTexture, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, MeshBasicMaterial, MeshStandardMaterial, Shape, Quaternion, SphereGeometry, SRGBColorSpace, TorusGeometry, Vector3, type BufferGeometry } from 'three';
 import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Appearance } from '@/types/game';
-import { SeatedPerson, crowdLook } from './people';
+import { PosedPerson, SeatedPerson, crowdLook } from './people';
 
 /**
  * Vehicles for the travel scene, built to look like vehicles rather than stacks of boxes: bodies are extruded from side profiles
@@ -21,7 +21,7 @@ function tint(g: BufferGeometry, hex: string): BufferGeometry {
 function side(shape: Shape, width: number, bevel = 0.09, segs = 2): BufferGeometry {
   let g: BufferGeometry = new ExtrudeGeometry(shape, { depth: Math.max(0.02, width - bevel * 2), bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: segs, curveSegments: 10 });
   g.rotateY(-Math.PI / 2); g.computeBoundingBox(); const b = g.boundingBox!; g.translate(-(b.min.x + b.max.x) / 2, 0, -(b.min.z + b.max.z) / 2);
-  g.deleteAttribute('uv'); g = toCreasedNormals(g, Math.PI / 3.2); return g;
+  g.deleteAttribute('uv'); g = toCreasedNormals(g, Math.PI / 5); return g;
 }
 const poly = (pts: [number, number][]) => { const s = new Shape(); s.moveTo(...pts[0]); pts.slice(1).forEach((p) => s.lineTo(...p)); s.closePath(); return s; };
 const noUv = (g: BufferGeometry) => { g.deleteAttribute('uv'); return g; };
@@ -47,14 +47,19 @@ export function carGeos(kind: CarKind): CarGeos {
   const rake = kind === 'hatch' || kind === 'suv' ? 0.35 : 0.5;
   const cab = poly([[cabF, belt], [cabF - 0.55, roof - 0.04], [cabF - 0.7, roof], [cabR + (kind === 'sedan' ? 0.75 : rake), roof], [cabR + (kind === 'sedan' ? 0.5 : 0.1), roof - 0.1], [cabR, belt]]);
   const cap = poly([[cabF - 0.66, roof + 0.015], [cabR + (kind === 'sedan' ? 0.75 : rake), roof + 0.015], [cabR + (kind === 'sedan' ? 0.7 : rake - 0.05), roof - 0.07], [cabF - 0.62, roof - 0.07]]);
-  const paintParts = [side(body, W, 0.1), side(cap, cabW * 0.92, 0.04, 1)];
+  const paintParts = [side(body, W, 0.045, 1), side(cap, cabW * 0.92, 0.03, 1)];
+  const pillar = (z: number, th = 0.09) => noUv(new BoxGeometry(cabW + 0.03, roof - belt - 0.06, th).translate(0, (roof + belt) / 2 - 0.01, z));
+  paintParts.push(pillar((cabF + cabR) / 2 + 0.05), pillar(cabF - 0.5, 0.12), pillar(cabR + 0.25, 0.14));
   if (kind === 'pickup') paintParts.push(noUv(new BoxGeometry(W * 0.96, 0.08, 1.9).translate(0, belt + 0.14, -h + 1.05)));
-  const glass = side(cab, cabW, 0.05, 1);
+  const glass = side(cab, cabW, 0.02, 1);
   const trimParts: BufferGeometry[] = []; const t = (g: BufferGeometry, hex: string) => trimParts.push(tint(noUv(g), hex));
   for (const sx of [-1, 1]) for (const z of [-wb / 2, wb / 2]) {
     t(new CylinderGeometry(wheelR, wheelR, 0.26, 14).rotateZ(Math.PI / 2).translate(sx * (W / 2 - 0.1), wheelR, z), '#16181B');
     t(new CylinderGeometry(wheelR * 0.62, wheelR * 0.62, 0.27, 10).rotateZ(Math.PI / 2).translate(sx * (W / 2 - 0.09), wheelR, z), '#B9BEC4');
   }
+  for (const sx of [-1, 1]) for (const z of [-wb / 2, wb / 2]) t(new CylinderGeometry(wheelR + 0.08, wheelR + 0.08, 0.04, 16).rotateZ(Math.PI / 2).translate(sx * (W / 2 + 0.005), wheelR + 0.02, z), '#0D0E10'); // wheel arches
+  for (const sx of [-1, 1]) { for (const z of [cabF - 0.3, (cabF + cabR) / 2 + 0.05, cabR + 0.3]) t(new BoxGeometry(0.015, belt - 0.5, 0.025).translate(sx * (W / 2 + 0.008), (belt + 0.35) / 2, z), '#16171A'); t(new BoxGeometry(0.16, 0.1, 0.18).translate(sx * (W / 2 + 0.1), belt + 0.1, cabF - 0.12), '#1A1B1E'); t(new BoxGeometry(0.1, 0.03, 0.2).translate(sx * (W / 2 - 0.02), belt - 0.05, cabF - 0.3), '#8C9196'); } // door seams, mirrors, handles
+  t(new BoxGeometry(0.5, 0.12, 0.02).translate(0, belt * 0.68, -h - 0.02), '#F2F2F2'); // number plate
   t(new BoxGeometry(W * 0.94, 0.2, 0.18).translate(0, 0.42, h - 0.03), '#2A2D32'); t(new BoxGeometry(W * 0.94, 0.2, 0.18).translate(0, 0.42, -h + 0.03), '#2A2D32');
   t(new BoxGeometry(W * 0.5, 0.17, 0.05).translate(0, belt * 0.56, h + 0.02), '#1B1D21'); // grille
   const lightParts: BufferGeometry[] = []; const l = (g: BufferGeometry, hex: string) => lightParts.push(tint(noUv(g), hex));
@@ -70,9 +75,16 @@ const matCache = new Map<string, MeshStandardMaterial>();
 export const paintOf = (hex: string) => { let m = matCache.get(hex); if (!m) { m = paintMat.clone(); m.color.set(hex); matCache.set(hex, m); } return m; };
 
 /** One car as meshes (for your cab, or any single vehicle). Traffic uses the same geometries through instancing in Scene3D. */
-export function CarMesh({ kind, hex }: { kind: CarKind; hex: string }) {
-  const g = useMemo(() => carGeos(kind), [kind]);
-  return <group><mesh geometry={g.paint} material={paintOf(hex)} /><mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} /><mesh geometry={g.lights} material={lightMat} /></group>;
+export function CarMesh({ kind, hex, taxi = false }: { kind: CarKind; hex: string; taxi?: boolean }) {
+  const g = useMemo(() => carGeos(kind), [kind]), sp = SPEC[kind], tex = useMemo(() => (taxi ? signTexture('TAXI') : null), [taxi]);
+  return (
+    <group><mesh geometry={g.paint} material={paintOf(hex)} /><mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} /><mesh geometry={g.lights} material={lightMat} />
+      {taxi && <>
+        {[-1, 1].map((sx) => <mesh key={sx} position={[sx * (sp.W / 2 + 0.012), sp.belt * 0.6, 0]}><boxGeometry args={[0.02, 0.14, sp.L * 0.78]} /><meshStandardMaterial color="#101113" /></mesh>)}
+        <group position={[0, sp.roof + 0.17, (sp.cabF + sp.cabR) / 2 + 0.05]}><mesh><boxGeometry args={[0.7, 0.2, 0.28]} /><meshStandardMaterial color="#F6F3E8" emissive="#FFE9A0" emissiveIntensity={0.8} /></mesh>{[-1, 1].map((k) => <mesh key={k} position={[0, 0, k * 0.141]} rotation={[0, k > 0 ? 0 : Math.PI, 0]}><planeGeometry args={[0.62, 0.15]} /><meshBasicMaterial map={tex} /></mesh>)}</group>
+      </>}
+    </group>
+  );
 }
 
 // ------------------------------------------------------------------ danfo
@@ -106,25 +118,40 @@ function danfoParts() {
   danfoGeos = { body: side(body, 2.04, 0.12), stripe: side(stripe, 2.1, 0.01, 1), glass: mergeGeometries(glass.map((g) => g), false)!, trim: mergeGeometries(trim.map((g) => (g.index ? g.toNonIndexed() : g)), false)! };
   return danfoGeos;
 }
-const bagColors = ['#7C5A2A', '#E8E4D8', '#2B4C7E', '#C23B3B', '#2B8C5B'];
-/** A Lagos danfo: yellow, black stripe, windows, a roof rack piled with luggage and a painted slogan across the back. */
+let luggage: BufferGeometry | null = null;
+/** Roof rack and cargo like the real thing: rails, a mattress, boxes and sacks tied down with rope, a couple of jerrycans. All boxy, nothing floating. */
+function luggageGeo(): BufferGeometry {
+  if (luggage) return luggage;
+  const p: BufferGeometry[] = []; const t = (g: BufferGeometry, hex: string) => p.push(tint(noUv(g), hex));
+  for (const x of [-0.92, 0.92]) t(new BoxGeometry(0.05, 0.28, 4.5).translate(x, 2.6, 0), '#2A2D32');
+  for (const z of [-2.1, -0.7, 0.7, 2.1]) t(new BoxGeometry(1.9, 0.05, 0.05).translate(0, 2.52, z), '#2A2D32');
+  t(new BoxGeometry(1.7, 0.32, 2.0).translate(0, 2.72, -1.1), '#E8E1CC'); t(new BoxGeometry(1.6, 0.02, 0.1).translate(0, 2.89, -1.6), '#9A8A5A'); // mattress and its strap
+  t(new BoxGeometry(1.0, 0.7, 0.8).rotateY(0.1).translate(-0.35, 3.2, -1.35), '#B83A32'); t(new BoxGeometry(0.8, 0.55, 0.9).rotateY(-0.12).translate(0.45, 3.1, -0.55), '#2F5E9E');
+  t(new BoxGeometry(1.5, 0.6, 1.1).translate(0, 2.84, 0.85), '#CDB892'); t(new BoxGeometry(0.9, 0.45, 0.7).rotateY(0.2).translate(-0.3, 3.35, 0.9), '#6B4A2B');
+  t(new BoxGeometry(1.4, 0.55, 0.8).translate(0, 2.8, 1.95), '#4C7A3E');
+  for (const [x, z] of [[0.55, 1.95], [0.75, 0.2]]) t(new BoxGeometry(0.28, 0.4, 0.2).translate(x, 3.15, z), '#E4B422'); // jerrycans
+  for (const z of [-1.3, 0.85, 1.95]) t(new BoxGeometry(1.95, 0.03, 0.04).translate(0, 3.0 + (z > 0 ? 0.0 : 0.1), z), '#2A2D32'); // ropes
+  luggage = flat(p); return luggage;
+}
+function flat(gs: BufferGeometry[]) { return mergeGeometries(gs.map((g) => (g.index ? g.toNonIndexed() : g)), false)!; }
+/** A Lagos danfo: yellow, black stripe, windows, a rack piled with cargo, a painted slogan across the back, a footboard and a conductor hanging off the side door. */
 export function Danfo({ slogan = 0, conductor = false }: { slogan?: number; conductor?: boolean }) {
-  const g = useMemo(danfoParts, []), tex = useMemo(() => signTexture(SLOGANS[slogan % SLOGANS.length]), [slogan]);
-  const bags = useMemo(() => bagColors.map((c, i) => ({ c, x: -0.5 + (i % 3) * 0.5, z: -1.6 + i * 0.75, s: 0.34 + (i % 2) * 0.1 })), []);
+  const g = useMemo(danfoParts, []), lug = useMemo(luggageGeo, []), tex = useMemo(() => signTexture(SLOGANS[slogan % SLOGANS.length]), [slogan]);
   return (
     <group>
       <mesh geometry={g.body}><meshStandardMaterial color="#F4B91E" roughness={0.45} metalness={0.2} /></mesh>
       <mesh geometry={g.stripe}><meshStandardMaterial color="#121315" roughness={0.6} /></mesh>
-      <mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} />
+      <mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} /><mesh geometry={lug} material={trimMat} />
       <mesh position={[0, 0.86, -2.6]}><planeGeometry args={[1.5, 0.33]} /><meshBasicMaterial map={tex} side={DoubleSide} /></mesh>
-      {[-0.95, 0.95].map((x) => <mesh key={x} position={[x * 1.07, 1.62, 0.0]} rotation={[0, x > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}><planeGeometry args={[1.3, 0.2]} /><meshBasicMaterial map={signTexture('LAGOS')} side={DoubleSide} /></mesh>)}
-      {[-0.9, 0.9].map((x) => <mesh key={x} position={[x, 2.55, 0]}><boxGeometry args={[0.05, 0.1, 4.3]} /><meshStandardMaterial color="#2A2D32" /></mesh>)}
-      {bags.map((b, i) => <mesh key={i} position={[b.x, 2.7 + b.s * 0.5, b.z]} scale={[b.s * 1.5, b.s, b.s * 1.4]}><sphereGeometry args={[1, 9, 7]} /><meshStandardMaterial color={b.c} roughness={0.9} /></mesh>)}
-      <mesh position={[0.2, 2.75, 0.4]}><boxGeometry args={[1.2, 0.3, 1.5]} /><meshStandardMaterial color="#C9B896" roughness={0.9} /></mesh>
-      {conductor && <SeatedPerson look={crowdLook(3)} pos={[0.95, 0.15, -2.35]} rot={Math.PI} scale={0.9} />}
+      {[-1, 1].map((x) => <mesh key={x} position={[x * 1.07, 1.62, 0.0]} rotation={[0, x > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}><planeGeometry args={[1.3, 0.2]} /><meshBasicMaterial map={signTexture('LAGOS')} side={DoubleSide} /></mesh>)}
+      <mesh position={[-1.18, 0.42, -1.05]}><boxGeometry args={[0.4, 0.07, 0.95]} /><meshStandardMaterial color="#2A2D32" /></mesh>
+      <mesh position={[-1.05, 1.55, -0.58]}><boxGeometry args={[0.07, 0.9, 0.07]} /><meshStandardMaterial color="#B9BEC4" metalness={0.7} roughness={0.3} /></mesh>
+      {conductor && <PosedPerson look={CONDUCTOR} pose="hang" pos={[-1.42, 0.5, -1.05]} rot={-Math.PI / 2} lean={0.22} scale={0.95} />}
     </group>
   );
 }
+/** The conductor: a lean, loud man in a vest. His position on the danfo is where the camera finds his face. */
+export const CONDUCTOR: Appearance = { skin: '#6B4128', body: 'masc', eye: '#2A1A10', beard: 'stubble', hairStyle: 'lowcut', hairColor: '#17110D', top: 'tee', topColor: '#C23B3B', bottom: 'trousers', bottomColor: '#2B2B2B', shoes: 'sandals', shoeColor: '#2A2A2A', accessory: 'none' };
 
 // ------------------------------------------------------------------ keke napep
 let kekeGeos: { body: BufferGeometry; roof: BufferGeometry; glass: BufferGeometry; trim: BufferGeometry } | null = null;
@@ -180,7 +207,7 @@ export function Okada({ rider, passenger, pot = false }: { rider?: Appearance; p
   return (
     <group>
       <mesh geometry={g.frame} material={trimMat} /><mesh geometry={g.tyres} material={trimMat} />
-      <SeatedPerson look={a} pos={[0, 0.5, 0.15]} scale={0.95} /><SeatedPerson look={b} pos={[0, 0.5, -0.62]} scale={0.95} />
+      <SeatedPerson look={a} pos={[0, 0.3, 0.12]} scale={0.95} /><SeatedPerson look={b} pos={[0, 0.3, -0.6]} scale={0.95} />
       {pot && <mesh position={[0, 2.18, 0.12]}><cylinderGeometry args={[0.2, 0.2, 0.04, 10]} /><meshStandardMaterial color="#B0B6BA" metalness={0.6} roughness={0.4} /></mesh>}
     </group>
   );

@@ -20,6 +20,7 @@ import { Hud } from './Hud';
 import { InteriorShell } from './InteriorShell';
 import { InteriorChat } from './InteriorChat';
 import { ClubBanner, ClubMenu, ReceiptSheet, VehicleSheet } from './VenueSheets';
+import { CarReveal } from '../carReveal/CarReveal';
 import { NpcSheet } from './NpcSheet';
 import { LoadingOverlay } from './LoadingOverlay';
 import { RotateButton } from './RotateButton';
@@ -59,6 +60,7 @@ export function GameScreen() {
       <ReceiptSheet />
       <ClubBanner />
       <VehicleSheet />
+      <CarReveal />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />
