@@ -62,6 +62,10 @@ STILL OPEN (do these next, in order):
 - **Performance** (measured with the dev hook `window.__r3f`, `three/property/CaptureBridge.tsx`): the extra props pushed the busiest venue to about 3,800 draw calls and 1.2M triangles. Fixes: thin and tiny box parts are plain boxes that do not cast shadows (`three/models/primitives.tsx`), fewer decorative meshes in the street and on stalls, and people far from the player are drawn as a 4-part simple figure while nearby ones keep the full avatar (`SimpleFigure` in `Npcs.tsx`). Now about 1,900 calls and 0.26M triangles in the market and 400 to 900 in most others. The market and tech hub are still the heaviest. **Test on a real mid-range phone**; if it stutters the next steps are instancing repeated props and merging static geometry.
 - **Still open**: the open world is untouched (owner said not yet); the map's centre still has crowded pins; the club and stadium could take more tasks; audio is synthesised, not recorded; vendors only react at their own prop.
 
+## 0e. v20 (daily rewards, daily quests, street moments)
+
+Built and tested; see `docs/NAIJA_LIFE_LOOP.md` for what exists, how to add content and the build order (weekly goals, NEPA bills, more moments for thin venues, chains, calendar events). Do not build a second reward or event system: extend `data/streetEvents.ts` and `data/daily.ts`.
+
 ## 1. What this is
 
 A mobile-first 3D Nigerian life simulator in the browser. React + TypeScript + Three.js (react-three-fiber), zustand stores, vite. No backend exists. Everything that touches money, other players, chat, jail timers or rewards is a **local simulation with a hand-off point** for a future server (section 6).

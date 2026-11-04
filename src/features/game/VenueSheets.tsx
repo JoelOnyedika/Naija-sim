@@ -14,7 +14,7 @@ import { useInteriorStore } from '@/stores/interiorStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 
-export function Sheet({ open, label, onClose, children, z = 75 }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number }) {
+export function Sheet({ open, label, onClose, children, z = 75, solid = false }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number; /** An opaque panel, for long sheets that must not show the game through them. */ solid?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -24,7 +24,7 @@ export function Sheet({ open, label, onClose, children, z = 75 }: { open: boolea
     <AnimatePresence>
       {open && (
         <motion.div key={label} className="pointer-events-auto absolute inset-0 flex items-end justify-center bg-black/45 px-2" style={{ zIndex: z }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-          <motion.div role="dialog" aria-label={label} onClick={(e) => e.stopPropagation()} className="panel pb-safe mb-2 max-h-[82vh] w-full max-w-md overflow-y-auto rounded-2xl p-4" initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+          <motion.div role="dialog" aria-label={label} onClick={(e) => e.stopPropagation()} className={`${solid ? 'panel-solid shadow-[0_18px_50px_rgba(0,0,0,0.6)]' : 'panel'} relative pb-safe mb-2 max-h-[82vh] w-full max-w-md overflow-y-auto rounded-2xl p-4`} initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
             <button onClick={onClose} aria-label={`Close ${label}`} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={18} /></button>
             {children}
           </motion.div>

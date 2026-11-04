@@ -27,11 +27,15 @@ import { RotateButton } from './RotateButton';
 import { ProfileSheet } from './ProfileSheet';
 import { StatsWidget } from './StatsWidget';
 import { TaskPanel } from './TaskPanel';
+import { EventPrompt } from './EventPrompt';
+import { DailySheet } from './DailySheet';
+import { useDailyPopup } from './useDailyPopup';
 
 /** The game: the 3D home is always underneath; everything else is an overlay on top of it. */
 export function GameScreen() {
   useGameLoop();
   useAmbience();
+  useDailyPopup();
   const mode = useUiStore((s) => s.mode);
   const activeId = usePropertyStore((s) => s.activeId);
   // Entering the game and every change of home rebuilds the 3D scene: cover it with the loading screen until it is drawn.
@@ -61,6 +65,8 @@ export function GameScreen() {
       <ClubBanner />
       <VehicleSheet />
       <CarReveal />
+      <EventPrompt />
+      <DailySheet />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

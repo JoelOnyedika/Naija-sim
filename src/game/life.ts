@@ -35,6 +35,8 @@ import { usePropertyStore } from '@/stores/propertyStore';
 import { useActorStore } from '@/stores/actorStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useTaskStore } from '@/stores/taskStore';
+import { useDailyStore } from '@/stores/dailyStore';
+import { resetEventSession } from './streetEvents';
 import { useUiStore } from '@/stores/uiStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { getLayout, getProperty, getState } from '@/world/registry';
@@ -72,6 +74,8 @@ export function startNewLife(type: LifeTypeId) {
   usePropertyStore.getState().setFurniture(propertyId, placed);
   leftover.forEach((id) => useInventoryStore.getState().add(id));
   useTaskStore.getState().reset();
+  useDailyStore.getState().newLife();
+  resetEventSession();
   useClockStore.getState().reset();
   useSchedulerStore.getState().reset();
   useBankStore.getState().reset();

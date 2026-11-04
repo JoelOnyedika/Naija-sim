@@ -26,11 +26,24 @@ import { makeCode } from './referrals';
 import { getAuthority } from './authority';
 import { useReferralStore } from '@/stores/referralStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useInteriorStore } from '@/stores/interiorStore';
+import { dailyHit, ensureToday } from './daily';
+import { stepEvents } from './streetEvents';
+
+/** Feed the daily quests: what finished, and how much it paid. */
+function trackDaily(a: Activity, paid: number) {
+  dailyHit('act');
+  if (a.kind === 'job') dailyHit('act:job');
+  if (a.kind === 'social') dailyHit('act:social');
+  if (useInteriorStore.getState().current) dailyHit('act:venue');
+  if (a.skill) dailyHit('skill');
+  if (paid > 0) dailyHit('earn', paid);
+}
 
 function onFinished(a: Activity) {
   // a gamble: lost means no pay, no XP, and a penalty; won adds a bonus
   if (a.risk) {
-    if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); vendorReact(a.targetUid, 'lose'); return; }
+    if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); vendorReact(a.targetUid, 'lose'); trackDaily(a, 0); return; }
     useStatsStore.getState().apply(a.risk.winEffects); toast(a.risk.winMessage, 'good'); vendorReact(a.targetUid, 'win');
     const prize = a.activityKey && a.risk.winMoney ? getAuthority().approvePayout(`${a.activityKey}:win`, a.risk.winMoney) : 0;
     if (prize) { useEconomyStore.getState().credit(prize, a.label, 'salary'); sfx.coin(); }
@@ -43,6 +56,7 @@ function onFinished(a: Activity) {
     sfx.coin();
     if (a.careerId) completeCareerShift(a.careerId);
   } else if (a.doneMessage) toast(a.doneMessage, 'good');
+  trackDaily(a, paid ?? 0);
   if (a.slept) toast('You woke up rested.', 'good');
   if (a.skill) {
     const { before, after } = useSkillStore.getState().add(a.skill.id, a.skill.xp);
@@ -77,6 +91,8 @@ export function advance(dt: number) {
   if (finished) onFinished(finished);
   useClockStore.getState().advance(dt);
   runDueEvents();
+  ensureToday();
+  stepEvents();
   stepPower(dt);
   stepPets(dt);
   stepJail();

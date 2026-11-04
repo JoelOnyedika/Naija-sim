@@ -235,3 +235,6 @@ All tunables for these live in `src/data/balance.ts`.
 
 ## M. Venues, NPCs, chat, crime, club, showroom (v8 part 7, in progress)
 See `docs/NEXT_CHAT_HANDOFF.md` sections 3 and 6 for the file map and the backend hand-off points. Tests: `npm run test:venues`.
+
+## N. Daily loop and street moments (v20)
+See `docs/NAIJA_LIFE_LOOP.md` for the full design, content lists and how to add moments and quests. Short version: `game/daily.ts` owns the calendar, streak and quests (`dailyHit(key)` is the only way progress moves); `game/streetEvents.ts` owns when a moment appears (`stepEvents`, called once a second from `game/loop.ts`), what is on screen (`dailyStore.pending`) and the result (`answerEvent`). Content is data in `data/daily.ts` and `data/streetEvents.ts`. Money, stats and skills go through the existing stores. Test: `npm run test:daily`.

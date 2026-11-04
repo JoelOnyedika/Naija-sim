@@ -154,30 +154,52 @@ export function Danfo({ slogan = 0, conductor = false }: { slogan?: number; cond
 export const CONDUCTOR: Appearance = { skin: '#6B4128', body: 'masc', eye: '#2A1A10', beard: 'stubble', hairStyle: 'lowcut', hairColor: '#17110D', top: 'tee', topColor: '#C23B3B', bottom: 'trousers', bottomColor: '#2B2B2B', shoes: 'sandals', shoeColor: '#2A2A2A', accessory: 'none' };
 
 // ------------------------------------------------------------------ keke napep
-let kekeGeos: { body: BufferGeometry; roof: BufferGeometry; glass: BufferGeometry; trim: BufferGeometry } | null = null;
+let kekeGeos: { body: BufferGeometry; rear: BufferGeometry; roof: BufferGeometry; glass: BufferGeometry; trim: BufferGeometry } | null = null;
+/**
+ * A keke napep (Piaggio-style three-wheeler), about 2.7 m long: a narrow nose over a single front wheel with a curved windscreen and a
+ * motorbike-style handlebar, an open cab with a black hard-top on thin posts, a wider rear tub with a bench seat, and two rear wheels
+ * under fenders. Front is +z, wheels on y = 0.
+ */
 function kekeParts() {
   if (kekeGeos) return kekeGeos;
-  const shell = new Shape(); // yellow lower shell with a rounded nose
-  shell.moveTo(-1.25, 0.35); shell.lineTo(1.0, 0.35); shell.quadraticCurveTo(1.35, 0.4, 1.4, 0.75); shell.quadraticCurveTo(1.38, 1.05, 1.05, 1.1); shell.lineTo(0.35, 1.1); shell.lineTo(0.25, 0.8); shell.lineTo(-1.15, 0.8); shell.quadraticCurveTo(-1.28, 0.75, -1.25, 0.35); shell.closePath();
-  const roof = new Shape(); roof.moveTo(-1.25, 1.62); roof.lineTo(0.75, 1.68); roof.quadraticCurveTo(1.05, 1.68, 1.1, 1.5); roof.lineTo(1.05, 1.4); roof.lineTo(-1.25, 1.4); roof.closePath();
+  const nose = new Shape(); // side profile of the front cowl: bullet nose over the wheel, sloping up to the windscreen base
+  nose.moveTo(-0.2, 0.36); nose.lineTo(1.2, 0.36); nose.quadraticCurveTo(1.5, 0.4, 1.52, 0.72); nose.quadraticCurveTo(1.5, 1.02, 1.12, 1.1); nose.lineTo(0.55, 1.14); nose.lineTo(0.2, 1.0); nose.lineTo(-0.2, 0.9); nose.closePath();
+  const rear = new Shape(); // the passenger tub behind: lower sides, curved tail
+  rear.moveTo(-1.38, 0.38); rear.lineTo(0.0, 0.38); rear.lineTo(0.0, 0.88); rear.lineTo(-1.15, 0.9); rear.quadraticCurveTo(-1.38, 0.88, -1.4, 0.6); rear.closePath();
+  const roof = new Shape(); // the hard-top: a thin curved slab, overhanging the windscreen
+  roof.moveTo(-1.42, 1.62); roof.lineTo(0.55, 1.68); roof.quadraticCurveTo(0.85, 1.68, 0.88, 1.56); roof.lineTo(0.85, 1.5); roof.lineTo(-1.4, 1.52); roof.closePath();
   const trim: BufferGeometry[] = []; const t = (g: BufferGeometry, hex: string) => trim.push(tint(noUv(g), hex));
-  t(new CylinderGeometry(0.3, 0.3, 0.16, 12).rotateZ(Math.PI / 2).translate(0, 0.3, 1.2), '#16181B'); t(new CylinderGeometry(0.17, 0.17, 0.17, 8).rotateZ(Math.PI / 2).translate(0, 0.3, 1.2), '#B9BEC4');
-  for (const sx of [-1, 1]) { t(new CylinderGeometry(0.31, 0.31, 0.2, 12).rotateZ(Math.PI / 2).translate(sx * 0.72, 0.31, -0.7), '#16181B'); t(new CylinderGeometry(0.18, 0.18, 0.21, 8).rotateZ(Math.PI / 2).translate(sx * 0.72, 0.31, -0.7), '#B9BEC4'); }
-  for (const sx of [-1, 1]) for (const z of [-0.95, 0.85]) t(new BoxGeometry(0.06, 0.62, 0.06).translate(sx * 0.72, 1.4, z), '#16181B');
-  t(new SphereGeometry(0.13, 8, 6).translate(0, 0.78, 1.42), '#FFF6C8'); t(new BoxGeometry(1.1, 0.28, 0.06).translate(0, 0.75, -1.22), '#1B1D21');
-  for (const sx of [-1, 1]) t(new BoxGeometry(0.2, 0.12, 0.05).translate(sx * 0.5, 0.78, -1.23), '#E22B2B');
-  const glass = noUv(new BoxGeometry(1.35, 0.55, 0.05).rotateX(-0.5).translate(0, 1.2, 1.12));
-  kekeGeos = { body: side(shell, 1.5, 0.1), roof: side(roof, 1.6, 0.08), glass, trim: mergeGeometries(trim.map((g) => (g.index ? g.toNonIndexed() : g)), false)! };
+  // wheels: one in front, two behind, with fenders
+  t(new CylinderGeometry(0.29, 0.29, 0.15, 14).rotateZ(Math.PI / 2).translate(0, 0.29, 1.05), '#16181B'); t(new CylinderGeometry(0.17, 0.17, 0.16, 8).rotateZ(Math.PI / 2).translate(0, 0.29, 1.05), '#B9BEC4');
+  t(new BoxGeometry(0.2, 0.06, 0.8).translate(0, 0.62, 1.05), '#2A2D32'); // front fender
+  for (const sx of [-1, 1]) {
+    t(new CylinderGeometry(0.3, 0.3, 0.2, 14).rotateZ(Math.PI / 2).translate(sx * 0.66, 0.3, -0.85), '#16181B'); t(new CylinderGeometry(0.18, 0.18, 0.21, 8).rotateZ(Math.PI / 2).translate(sx * 0.66, 0.3, -0.85), '#B9BEC4');
+    t(new BoxGeometry(0.26, 0.05, 0.8).translate(sx * 0.66, 0.64, -0.85), '#2A2D32');
+    t(new BoxGeometry(0.05, 0.8, 0.05).translate(sx * 0.66, 1.12, -1.3), '#16181B'); t(new BoxGeometry(0.05, 0.8, 0.05).translate(sx * 0.62, 1.12, 0.45), '#16181B'); // roof posts
+  }
+  t(new CylinderGeometry(0.03, 0.03, 0.55, 6).translate(0, 0.9, 0.78), '#2A2D32'); t(new CylinderGeometry(0.025, 0.025, 0.72, 6).rotateZ(Math.PI / 2).translate(0, 1.2, 0.74), '#16181B'); // steering stem and handlebar
+  for (const sx of [-1, 1]) t(new SphereGeometry(0.045, 6, 5).translate(sx * 0.36, 1.2, 0.74), '#16181B');
+  t(new SphereGeometry(0.14, 10, 8).translate(0, 0.8, 1.5), '#FFF6C8'); // headlamp
+  t(new BoxGeometry(0.08, 0.07, 0.04).translate(0.4, 1.28, 0.66), '#B9BEC4'); t(new BoxGeometry(0.08, 0.07, 0.04).translate(-0.4, 1.28, 0.66), '#B9BEC4'); // mirrors
+  t(new BoxGeometry(1.0, 0.24, 0.5).translate(0, 0.55, -0.7), '#3A2E24'); t(new BoxGeometry(1.0, 0.5, 0.1).translate(0, 0.88, -1.12), '#3A2E24'); // rear bench and its back
+  t(new BoxGeometry(0.4, 0.2, 0.34).translate(0, 0.52, 0.1), '#3A2E24'); // driver's seat
+  for (const sx of [-1, 1]) t(new BoxGeometry(0.22, 0.1, 0.05).translate(sx * 0.45, 0.8, -1.42), '#E22B2B'); // tail lights
+  t(new BoxGeometry(0.4, 0.1, 0.02).translate(0, 0.62, -1.43), '#F2F2F2'); // plate
+  t(new BoxGeometry(1.4, 0.07, 0.05).translate(0, 1.5, -1.43), '#16181B');
+  const glass: BufferGeometry[] = [noUv(new BoxGeometry(0.86, 0.55, 0.03).rotateX(-0.55).translate(0, 1.38, 0.5)), noUv(new BoxGeometry(1.15, 0.5, 0.03).translate(0, 1.15, -1.42))];
+  kekeGeos = { body: side(nose, 0.8, 0.07, 1), rear: side(rear, 1.36, 0.07, 1), roof: side(roof, 1.56, 0.06, 1), glass: flat(glass), trim: flat(trim) };
   return kekeGeos;
 }
-/** A keke napep: a yellow shell, black canopy, a windscreen, one wheel in front, two behind, and a driver on the seat. */
-export function Keke({ hex = '#F4B91E', driver = 1 }: { hex?: string; driver?: number }) {
+/** A keke napep with a driver and, optionally, a passenger on the rear bench. */
+export function Keke({ hex = '#F4B91E', driver = 1, passenger }: { hex?: string; driver?: number; passenger?: Appearance }) {
   const g = useMemo(kekeParts, []);
   return (
     <group>
-      <mesh geometry={g.body} material={paintOf(hex)} /><mesh geometry={g.roof}><meshStandardMaterial color="#1A1C1F" roughness={0.6} /></mesh>
+      <mesh geometry={g.body} material={paintOf(hex)} /><mesh geometry={g.rear} material={paintOf(hex)} /><mesh geometry={g.roof}><meshStandardMaterial color="#17191C" roughness={0.6} /></mesh>
       <mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} />
-      <SeatedPerson look={crowdLook(driver)} pos={[0, 0.25, 0.45]} scale={0.88} />
+      <mesh position={[0, 0.7, 0.3]}><boxGeometry args={[0.05, 0.02, 0.02]} /><meshBasicMaterial color={hex} /></mesh>
+      <SeatedPerson look={crowdLook(driver)} pos={[0, 0.24, 0.12]} scale={0.84} />
+      {passenger && <SeatedPerson look={passenger} pos={[0, 0.26, -0.78]} scale={0.84} />}
     </group>
   );
 }
