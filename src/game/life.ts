@@ -37,6 +37,8 @@ import { useStatsStore } from '@/stores/statsStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useDailyStore } from '@/stores/dailyStore';
 import { resetEventSession } from './streetEvents';
+import { resetBillEffects } from './billEffects';
+import { useAgberoStore } from '@/stores/agberoStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { getLayout, getProperty, getState } from '@/world/registry';
@@ -76,6 +78,8 @@ export function startNewLife(type: LifeTypeId) {
   useTaskStore.getState().reset();
   useDailyStore.getState().newLife();
   resetEventSession();
+  resetBillEffects();
+  useAgberoStore.getState().reset();
   useClockStore.getState().reset();
   useSchedulerStore.getState().reset();
   useBankStore.getState().reset();

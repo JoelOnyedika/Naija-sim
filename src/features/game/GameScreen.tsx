@@ -29,6 +29,7 @@ import { StatsWidget } from './StatsWidget';
 import { TaskPanel } from './TaskPanel';
 import { EventPrompt } from './EventPrompt';
 import { DailySheet } from './DailySheet';
+import { RoadBlock } from './RoadBlock';
 import { useDailyPopup } from './useDailyPopup';
 
 /** The game: the 3D home is always underneath; everything else is an overlay on top of it. */
@@ -67,6 +68,7 @@ export function GameScreen() {
       <CarReveal />
       <EventPrompt />
       <DailySheet />
+      <RoadBlock />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

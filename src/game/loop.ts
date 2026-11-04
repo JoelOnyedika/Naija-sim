@@ -29,6 +29,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { dailyHit, ensureToday } from './daily';
 import { stepEvents } from './streetEvents';
+import { stepDisconnect, stepNoData } from './billEffects';
 
 /** Feed the daily quests: what finished, and how much it paid. */
 function trackDaily(a: Activity, paid: number) {
@@ -74,6 +75,7 @@ function stepPower(dt: number) {
   const home = getActiveHome();
   if (!home) return;
   const ps = usePowerStore.getState();
+  if (stepDisconnect(home.layout.publicPower)) return;
   const event = ps.step(dt, home.layout.publicPower);
   if (!event) return;
   const b = backupIn(home.placed);
@@ -94,6 +96,7 @@ export function advance(dt: number) {
   ensureToday();
   stepEvents();
   stepPower(dt);
+  stepNoData(dt);
   stepPets(dt);
   stepJail();
   stepChatter();

@@ -34,6 +34,21 @@ Files: `data/daily.ts`, `data/streetEvents.ts` (content, pure data), `stores/dai
 - Three goals per week (Monday to Sunday) from a pool of 10 in `data/weekly.ts`, fed by the same counters as the daily quests, with a **weekly chest** (₦15,000, +5 Charisma, +5 Social). They live under the **This week** tab of the daily sheet.
 - **Streak shield**: one free per calendar week. If you miss exactly ONE day it forgives it and the streak continues. Two missed days in a row, or a second miss in the same week, still break it.
 
+### 2.2c Bills with teeth: NEPA and data (v22)
+- The weekly **electricity** bill already existed (auto-charged for your home). v22 adds a flat **mobile data bundle** bill (₦1,000 a week) and gives both bills consequences:
+  - Electricity overdue: **NEPA cuts your light**. The house stays in an outage (only solar, a generator or an Ibeta keep it lit) and the outage does not end by itself until you pay in the Bank app, under Bills. A notification opens the Bank.
+  - Data overdue: **mood drains slowly** (0.03 per second) until paid.
+  - Nothing is ever taken beyond your balance, and a home with no public power cannot be disconnected. Code: `game/billEffects.ts`; test: `npm run test:bills`.
+
+### 2.2d The Agbero on the road (v22)
+- After a trip (the map or the Ride app) there is a **28% chance** of a roadblock: never on your first trip and never two trips in a row. An animated street scene shows the Agbero asking for "ticket" money, and you pick:
+  - **Give him the money**: always works, costs what he asks (a share of your wallet inside his range: ₦500-1,000, ₦1,500-3,000 or ₦3,000-6,000).
+  - **Run**, **Fight** or **Talk**: dice rolls whose odds are shown on each button and come from your **health, energy, charisma** and the **fitness** and **communication** skills, minus the opponent's strength. Odds are always between 5% and 90%.
+  - Win a fight: you take his money, +3 Charisma, +3 Social. Lose a fight: you pay double and lose 15 health. Win a talk: free, trains communication. Lose a run: you pay 1.5x and get hurt.
+- Each scene is animated: the fight is a dust-cloud punch-up where the loser gets knocked down, the run is a sprint with dust, paying throws coins, talking trades speech bubbles.
+- **The Agbero story** (shown on the daily sheet's This week tab): winning fights and talks moves you from Ticket Boy, to Area Boy Kazeem (2 wins), to the Alhaji Area Boss (5 wins). At 8 wins the boss himself stops you and you choose an ending: **Join the union** (₦5,000 now, ₦1,500 dues every trip, -3 Charisma, no more roadblocks) or **walk away and report him** (₦10,000, +5 Charisma, +5 Social, no more roadblocks). Arguing the street Agbero down in a street moment also counts as a win. A new life restarts the story.
+- Code: `data/agbero.ts`, `stores/agberoStore.ts`, `game/agbero.ts`, `features/game/RoadBlock.tsx`; test: `npm run test:agbero`. Dice are local; a server must own them.
+
 ### 2.3 Street moments (45 so far)
 A moment appears about every 100 to 220 real seconds (first one a minute after the game starts) **only when the screen is free**: home mode, no activity running, no phone, sheet, map, loading screen, NPC sheet, or jail. You get ~25 seconds. Close the card or let it run out and you ignored them (sometimes a small cost). Pacing is `EVENT_PACING` in `data/streetEvents.ts`.
 
@@ -125,9 +140,9 @@ The brief says the open world is deferred. Street moments are keyed by **place**
 
 ## 7. Build order from here
 1. ~~Weekly goals and the streak shield~~ (done in v21).
-2. NEPA bill and data bills as recurring obligations (reuse bank bills and `power.ts`).
+2. ~~NEPA bill and data bills~~ (done in v22).
 3. ~~20 more moments for the quiet venues~~ (done in v21: stadium, club, airport, port, bank, hotel, cinema, government, business, eatery, park, gallery). Next: a second pass for concert, recreation and showroom, and more road moments once the open world exists.
-4. Chains (5.3), starting with the Agbero chain.
+4. More chains (5.3). The Agbero chain is done in v22; next: Mama Agbo's customer, the hackathon season, the owambe circuit.
 5. Calendar events (5.4).
 6. Mini-games (5.5).
 7. Titles and the profile page.

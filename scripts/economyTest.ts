@@ -115,14 +115,14 @@ console.log('Bills');
 fresh(5_000_000, 'nepo');
 eco().reset(5_000_000);
 const expectedBills = billables();
-ok(expectedBills.length === 3, `a nepo life is billed for its home and 2 cars (${expectedBills.length})`);
+ok(expectedBills.length === 4, `a nepo life is billed for its home (electricity and data) and 2 cars (${expectedBills.length})`);
 const billTotal = expectedBills.reduce((s, b) => s + b.amount, 0);
 setClock(WEEK_MINUTES + 100);
 for (let i = 0; i < 5; i++) runDueEvents();
-ok(txCount('bill') === 3 && eco().money === 5_000_000 - billTotal, 'each bill is charged once for the week, however often events run');
+ok(txCount('bill') === 4 && eco().money === 5_000_000 - billTotal, 'each bill is charged once for the week, however often events run');
 ok(bank().bills.every((b) => b.status === 'paid' && b.onTime), 'bills paid at the run are on time');
 setClock(WEEK_MINUTES * 2 + 100); runDueEvents(); runDueEvents();
-ok(txCount('bill') === 6, 'the next week charges once more');
+ok(txCount('bill') === 8, 'the next week charges once more');
 // insufficient funds
 fresh(0, 'nepo'); eco().reset(1_000); setClock(WEEK_MINUTES + 10); runDueEvents();
 ok(eco().money >= 0 && bank().bills.some((b) => b.status === 'overdue'), 'with too little money bills become overdue and the balance never goes negative');

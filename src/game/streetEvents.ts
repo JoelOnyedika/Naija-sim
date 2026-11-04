@@ -11,6 +11,8 @@ import { useStatsStore } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { isJailed } from './crime';
 import { dailyHit } from './daily';
+import { addRoadWin } from './agbero';
+import { useAgberoStore } from '@/stores/agberoStore';
 
 /**
  * Street moments. While you play, somebody sometimes stops you: a market woman with agbo, an Agbero wanting "ticket", your landlord
@@ -55,7 +57,7 @@ export function pickEvent(list: StreetEvent[], r = Math.random()): StreetEvent |
 export function screenBusy(): boolean {
   const ui = useUiStore.getState();
   return !!(useStatsStore.getState().activity || usePhoneStore.getState().open || ui.mode !== 'home' || ui.sceneLoading || ui.actionMenuUid || ui.clubMenuOpen || ui.receiptId
-    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || D().sheetOpen || !!D().pending || isJailed());
+    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || D().sheetOpen || !!D().pending || !!useAgberoStore.getState().active || isJailed());
 }
 
 const scheduleNext = (now = Date.now()) => D().set({ nextEventAt: now + rand(EVENT_PACING.minGap, EVENT_PACING.maxGap) * 1000 });
@@ -122,6 +124,7 @@ export function answerEvent(choiceId: string, now = Date.now()): AnswerResult {
   if (c.skill) { const { before, after } = useSkillStore.getState().add(c.skill.id, c.skill.xp); text += after > before ? ` ${skillName(c.skill.id)} level ${after}!` : ` +${c.skill.xp} ${skillName(c.skill.id)} XP`; }
   const bad = c.risk ? !won : false;
   toast(text, bad ? 'bad' : 'good'); (bad ? sfx.error : sfx.coin)();
+  if (ev.id === 'agbero_levy' && c.id === 'argue' && won) addRoadWin();
   dailyHit('street'); if (c.tag) dailyHit(`street:${c.tag}`);
   D().set({ answered: D().answered + 1 });
   finish(now);

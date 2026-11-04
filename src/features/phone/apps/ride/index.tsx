@@ -12,6 +12,7 @@ import { useEconomyStore } from '@/stores/economyStore';
 import { toast } from '@/stores/uiStore';
 import { planTrip, type TripPlan, type TripPlace } from '@/features/travel/plan';
 import { TravelScene } from '@/features/travel/TravelScene';
+import { maybeRoadblock } from '@/game/agbero';
 import { Btn, Card, Chip, EmptyState, Note, Row, SearchField } from '../../ui';
 
 const say = (r: Result, ok: string) => { if (r.ok) { sfx.pop(); toast(ok, 'good'); } else { sfx.error(); toast(r.error, 'bad'); } };
@@ -42,7 +43,7 @@ function Detail({ d, back }: { d: Destination; back: () => void }) {
         <div className="space-y-2">{METHODS.map((m) => { const why = travelBlocker(d.id, m.id); return (
           <Card key={m.id}><Row glyph={m.glyph} title={m.label} sub={`${m.minutes[d.distance]} game min · ${m.blurb}`} right={<Btn tone={why ? 'light' : 'dark'} disabled={!!why} onClick={() => go(m)}>{m.fare[d.distance] ? formatNaira(m.fare[d.distance]) : 'Free'}</Btn>} />{why && <p className="mt-1 text-[11.5px] text-slate-500">{why}</p>}</Card>); })}</div>
       </>)}
-      {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { sfx.pop(); toast(trip.arrivedMsg, 'good'); setTrip(null); }} />}
+      {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { sfx.pop(); toast(trip.arrivedMsg, 'good'); setTrip(null); maybeRoadblock(() => {}); }} />}
       <Note>Trips are simulated: you pay, time passes and your stats change, but your character stays put in the 3D world. Fares and times are game rules.</Note>
     </div>
   );

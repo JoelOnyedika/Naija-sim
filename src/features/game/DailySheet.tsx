@@ -8,6 +8,9 @@ import { canClaimDaily, claimBonus, claimDaily, claimQuest, claimWeekly, claimWe
 import { useDailyStore, type QuestRun } from '@/stores/dailyStore';
 import { toast } from '@/stores/uiStore';
 import { Confetti } from '../roulette/Confetti';
+import { ROAD, STAGES } from '@/data/agbero';
+import { stageOf } from '@/game/agbero';
+import { useAgberoStore } from '@/stores/agberoStore';
 import { Sheet } from './VenueSheets';
 
 /** Number of things waiting (claimable login reward, finished quests and goals, the chests). Reactive. */
@@ -53,6 +56,22 @@ function Chest({ title, sub, label, claimed, ready, count, total, onClaim }: { t
       <span className="min-w-0 flex-1"><span className="block text-[14px] font-extrabold">{title}</span><span className="block text-[11px] text-white/60">{sub}</span><span className="block text-[11px] font-bold text-danfo">{label}</span></span>
       <span className="text-[12px] font-extrabold tabular-nums text-danfo">{claimed ? 'Done' : ready ? 'Claim!' : `${count}/${total}`}</span>
     </motion.button>
+  );
+}
+
+/** The Agbero story: which opponent you are on, how many wins until the next, and how it ended. */
+function StoryCard() {
+  const { wins, ending, encounters } = useAgberoStore();
+  const stage = stageOf(wins), next = stage === 0 ? ROAD.stageWins[0] : stage === 1 ? ROAD.stageWins[1] : ROAD.finaleWins;
+  const from = stage === 0 ? 0 : stage === 1 ? ROAD.stageWins[0] : ROAD.stageWins[1];
+  const pct = ending ? 1 : Math.min(1, (wins - from) / (next - from));
+  return (
+    <div className="mt-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-3" aria-label="Street story">
+      <div className="flex items-center gap-2"><span className="text-[26px]">🧢</span><div className="min-w-0 flex-1"><div className="text-[11px] font-extrabold uppercase tracking-wide text-hibiscus">Street story</div><div className="text-[15px] font-extrabold leading-tight">The Agbero</div></div><div className="text-right text-[11px] font-semibold text-white/55">{encounters} roadblock{encounters === 1 ? '' : 's'}</div></div>
+      <div className="mt-2 flex items-center justify-between text-[12px]"><span className="font-bold">{ending === 'joined' ? 'Union member' : ending === 'reformed' ? 'The street is calm' : STAGES[stage]}</span><span className="tabular-nums text-white/55">{ending ? 'Story complete' : `${wins} / ${next} wins`}</span></div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-black/40"><div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: 'linear-gradient(90deg,#FF4D6D,#FFC21A)' }} /></div>
+      <div className="mt-1.5 text-[11px] leading-snug text-white/50">{ending ? 'Nobody blocks your road any more.' : 'After a trip, somebody may stop you. Win fights or talk your way out to move up the street.'}</div>
+    </div>
   );
 }
 
@@ -125,6 +144,7 @@ export function DailySheet() {
             {s.weekly.map((q) => { const d = getWeekly(q.id); return d ? <QuestCard key={q.id} run={q} def={d} onClaim={() => { const r = claimWeekly(q.id); if (!r.ok) toast(r.reason ?? '', 'bad'); }} /> : null; })}
             <Chest title="Weekly chest" sub="Finish all three goals" label={WEEKLY_BONUS.label} claimed={s.weeklyBonusClaimed} ready={weekAll && !s.weeklyBonusClaimed} count={s.weekly.filter((q) => q.claimed).length} total={s.weekly.length} onClaim={() => { const r = claimWeeklyBonus(); if (r.ok) setBurst((b) => b + 1); else toast(r.reason ?? '', 'bad'); }} />
           </div>
+          <StoryCard />
         </>
       )}
       <div className="mt-3 text-center text-[10.5px] text-white/40">In-game naira only. Nothing here is real money.</div>
