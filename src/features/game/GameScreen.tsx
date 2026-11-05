@@ -30,6 +30,8 @@ import { TaskPanel } from './TaskPanel';
 import { EventPrompt } from './EventPrompt';
 import { DailySheet } from './DailySheet';
 import { RoadBlock } from './RoadBlock';
+import { TestDrive } from './TestDrive';
+import { preloadTravel } from '@/features/travel/preload';
 import { useDailyPopup } from './useDailyPopup';
 
 /** The game: the 3D home is always underneath; everything else is an overlay on top of it. */
@@ -42,6 +44,7 @@ export function GameScreen() {
   // Entering the game and every change of home rebuilds the 3D scene: cover it with the loading screen until it is drawn.
   useEffect(() => { if (activeId) useUiStore.getState().setSceneLoading(true); }, [activeId]);
   useEffect(() => () => useUiStore.getState().setSceneLoading(false), []);
+  useEffect(() => { preloadTravel(); }, []); // fetch the 3D travel scene in the background so the first trip is as smooth as the tenth
   return (
     <div className="absolute inset-0 bg-night">
       <ErrorBoundary inline label="The 3D home"><PropertyScene /></ErrorBoundary>
@@ -65,6 +68,7 @@ export function GameScreen() {
       <ReceiptSheet />
       <ClubBanner />
       <VehicleSheet />
+      <TestDrive />
       <CarReveal />
       <EventPrompt />
       <DailySheet />

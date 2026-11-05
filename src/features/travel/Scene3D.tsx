@@ -33,6 +33,27 @@ const SKY = {
 } as const;
 const DOOR_X = 9.3, DEST_Z = -1;
 
+/**
+ * How fast the street rushes past, second by second: a launch, a fast cruise that surges and eases, and a long brake to a stop beside
+ * the destination. (It used to start at one low speed and just slow down, which felt like a crawl.) Speeds are in metres per second.
+ */
+const CRUISE: Record<string, number> = { own: 38, cab: 30, danfo: 25, okada: 27, keke: 17, trek: 3.4 };
+export interface Profile { speed: (t: number) => number; dist: (t: number) => number; total: number; cruise: number }
+export function makeProfile(ride: string, jam: boolean, T: number): Profile {
+  const walk = ride === 'trek', cruise = (CRUISE[ride] ?? 25) * (jam ? 0.3 : 1);
+  const launch = walk ? 0.5 : Math.min(2.4, T * 0.25), brake = walk ? 1.2 : Math.min(3.4, T * 0.34);
+  const speed = (t: number): number => {
+    if (t <= 0) return 0; if (t >= T) return 0;
+    if (t < launch) { const u = t / launch; return cruise * (1 - (1 - u) * (1 - u) * (1 - u)); } // hard launch
+    const surge = walk ? 1 : 1 + 0.13 * Math.sin(t * 1.5) + (jam ? 0 : 0.08 * Math.sin(t * 3.1 + 1));
+    if (t > T - brake) { const u = (T - t) / brake; return cruise * surge * Math.pow(u, 1.5); } // long, firm brake
+    return cruise * surge;
+  };
+  const n = Math.ceil(T * 120), table = new Float32Array(n + 1); let acc = 0;
+  for (let i = 1; i <= n; i++) { acc += speed(((i - 0.5) / n) * T) * (T / n); table[i] = acc; }
+  return { speed, dist: (t) => { const x = Math.max(0, Math.min(1, t / T)) * n, i = Math.floor(x); return i >= n ? table[n] : table[i] + (table[i + 1] - table[i]) * (x - i); }, total: acc, cruise };
+}
+
 type V3 = [number, number, number];
 function Box({ size, pos, color, rot, emissive, rough = 0.85 }: { size: V3; pos: V3; color: string; rot?: V3; emissive?: string; rough?: number }) {
   return <mesh position={pos} rotation={rot}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={rough} emissive={emissive ?? '#000000'} emissiveIntensity={emissive ? 1.2 : 0} /></mesh>;
@@ -179,19 +200,19 @@ function Blob({ w = 1, l = 2.4 }: { w?: number; l?: number }) {
 }
 /** Dense but not crammed: cars are instanced (four draw calls per body type); danfos, kekes and okadas are a few separate meshes. */
 function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: number }; walk: boolean }) {
-  const jam = plan.event === 'jam', nominal = 9;
+  const jam = plan.event === 'jam', nominal = 13;
   const cars = useMemo<CarD[]>(() => {
     const r = rng(plan.key.length * 31 + 5), out: CarD[] = [];
     // [lane x, direction, speed factor, follows the ride's own speed?]. In a go-slow everyone in our two lanes crawls with you.
-    const lanes: [number, 1 | -1, number, boolean][] = [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.4, jam], [-3.1, -1, 0, false], [-5.3, -1, 0, false]];
-    const gap = jam ? 6 : plan.event === 'crowd' ? 20 : 34, gapOn = jam ? 10 : plan.event === 'crowd' ? 18 : 30; // wide open road unless it is a go-slow
+    const lanes: [number, 1 | -1, number, boolean][] = [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.15, jam], [-3.1, -1, 0, false], [-5.3, -1, 0, false]];
+    const gap = jam ? 6 : plan.event === 'crowd' ? 14 : 17, gapOn = jam ? 10 : plan.event === 'crowd' ? 12 : 13; // lively but flowing: cars to overtake and oncoming traffic. Only a go-slow is packed
     for (const [x, dir, f, follow] of lanes) {
       const step = dir === 1 ? gap : gapOn; let z = RANGE[0] + r() * 3;
       while (z < RANGE[1] - 3) {
         const clear = !walk && (x === 3.3 || x === 1.1) && z > -9 && z < 22; // keep your ride and the chase camera behind it in clear view
         if (!clear && (!plan.light || r() < 0.7)) {
           const k = r(), kind: Kind = k < 0.28 ? 'sedan' : k < 0.4 ? 'hatch' : k < 0.58 ? 'suv' : k < 0.66 ? 'pickup' : k < 0.78 ? 'danfo' : k < 0.86 ? 'okada' : 'keke';
-          out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 7 + r() * 2, kind, color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)], slogan: Math.floor(r() * 8), look: Math.floor(r() * 12) });
+          out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 12 + r() * 5, kind, color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)], slogan: Math.floor(r() * 8), look: Math.floor(r() * 12) });
         }
         z += step * (0.85 + r() * 0.4);
       }
@@ -262,9 +283,11 @@ function Ride({ plan }: { plan: TripPlan }) {
 interface Cam { p: V3; l: V3; fov: number }
 
 // ------------------------------------------------------------------ the whole thing
-function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; arriveAt: number }) {
+function World({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: boolean; arriveAt: number; onReady?: () => void }) {
   const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), t0 = useRef<number | null>(null), destRef = useRef({ z: -100, half: 7.5 }), openRef = useRef(0), clip = useMemo(() => new Plane(new Vector3(-1, 0, 0), DOOR_X + 0.3 + 0.02), []);
   const strips = [useRef<Group>(null), useRef<Group>(null), useRef<Group>(null)], dest = useRef<Group>(null), walker = useRef<Group>(null);
+  const dummyS = useMemo(() => new Object3D(), []);
+  const prevSpeed = useRef(0), pitch = useRef(0), frames = useRef(0), streaks = useRef<InstancedMesh>(null), rushRef = useRef(0);
   const rideRef = useRef<Group>(null), rain3 = useRef<Group>(null);
   const motion = useRef<Motion>({ moving: true, lying: false, sitting: false });
   const rain = plan.weather === 'rain', jam = plan.event === 'jam', crowd = plan.event === 'crowd', walk = plan.ride === 'trek';
@@ -280,7 +303,7 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
   const lanes = useMemo(() => (walk ? [5.2, 5.9, 7.1, 7.7, -7.4, -8.1, -9.0] : [5.3, 6.0, 7.2, -7.4, -8.2, -9.0]), [walk]);
   const T = Math.max(3, arriveAt);
   // The street slows from cruising speed to a stop over T seconds, covering distance D; the destination sits D ahead, so it arrives beside you.
-  const cruise = walk ? 3.4 : jam ? 4.2 : 9, D = (cruise * T) / 2, style = useMemo(() => styleFor(plan.destination), [plan.destination]), front = style.d / 2, walkThrough = style.kind === 'gate';
+  const prof = useMemo(() => makeProfile(plan.ride, jam, T), [plan.ride, jam, T]), D = prof.total, style = useMemo(() => styleFor(plan.destination), [plan.destination]), front = style.d / 2, walkThrough = style.kind === 'gate';
   const base = useMemo(() => new Vector3(walk ? 6.35 : 3.3, 0, 0), [walk]);
   const lastFov = useRef(0), planes = useMemo(() => [clip], [clip]), glr = useThree((st) => st.gl);
   useEffect(() => { glr.localClippingEnabled = true; }, [glr]);
@@ -290,7 +313,10 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
     let t = clock.elapsedTime - t0.current; if (arrived) t = Math.max(t, T);
     const forced = (globalThis as { __travelT?: number }).__travelT; if (typeof forced === 'number') t = forced; // TEST-ONLY: lets screenshots freeze the film at a chosen second
     const u = Math.min(1, t / T), ta = Math.max(0, t - T);
-    scroll.current = D * (1 - (1 - u) * (1 - u)); speed.current = u < 1 ? (2 * D * (1 - u)) / T : 0;
+    scroll.current = prof.dist(t); speed.current = u < 1 ? prof.speed(t) : 0;
+    const lastS = prevSpeed.current, accel = dt > 0 ? (speed.current - lastS) / dt : 0; prevSpeed.current = speed.current; pitch.current += (MathUtils.clamp(accel * 0.0035, -0.07, 0.05) - pitch.current) * Math.min(1, dt * 5); // nose lifts when you launch, dips when you brake
+    frames.current++; if (frames.current === 3) onReady?.();
+    const rush = prof.cruise > 0 ? Math.min(1.3, speed.current / prof.cruise) : 0; // 0 standing .. 1 at full speed
     slabs.offset.y = scroll.current / 2;
     const o = scroll.current % LOOP;
     strips.forEach((s, k) => { if (s.current) s.current.position.z = o - 40 - LOOP * k; });
@@ -313,9 +339,24 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
     // ONE continuous camera, no cuts: a third-person chase behind you (a little above, a little to the side), which drifts smoothly toward the destination once you arrive
     const ch = walk ? { d: 4.0, h: 2.1, dx: 0.4 } : plan.ride === 'danfo' ? { d: 10.8, h: 3.8, dx: 1.6 } : plan.ride === 'okada' ? { d: 6.4, h: 2.7, dx: 0.4 } : plan.ride === 'keke' ? { d: 7.4, h: 3.0, dx: 0.5 } : { d: 9.0, h: 3.4, dx: 0.6 };
     const k = MathUtils.smoothstep(ta / 2.6, 0, 1), end: Cam = walk ? { p: [2.4, 2.8, destZ + 9], l: [7.2, 1.4, destZ - 0.3], fov: 62 } : { p: [0.8, 3.5, destZ + 12.5], l: [6.6, 1.5, destZ - 0.4], fov: 64 };
-    const cam: Cam = { p: [MathUtils.lerp(base.x + ch.dx, end.p[0], k), MathUtils.lerp(ch.h, end.p[1], k), MathUtils.lerp(base.z + ch.d, end.p[2], k)], l: [MathUtils.lerp(base.x + 0.1, end.l[0], k), MathUtils.lerp(1.3, end.l[1], k), MathUtils.lerp(base.z - 7, end.l[2], k)], fov: MathUtils.lerp(56, end.fov, k) };
+    const fast = walk ? 0 : Math.min(1, rush); rushRef.current = fast;
+    const cam: Cam = { p: [MathUtils.lerp(base.x + ch.dx, end.p[0], k), MathUtils.lerp(ch.h - fast * 0.35, end.p[1], k), MathUtils.lerp(base.z + ch.d + fast * 1.6, end.p[2], k)], l: [MathUtils.lerp(base.x + 0.1, end.l[0], k), MathUtils.lerp(1.3, end.l[1], k), MathUtils.lerp(base.z - 7, end.l[2], k)], fov: MathUtils.lerp(56 + fast * 15, end.fov, k) }; // the view widens and the camera pulls back with speed
     const sh = Math.sin(clock.elapsedTime * 1.3) * 0.12; // a slow drift, so it feels like a camera on a moving rig
-    camera.position.set(cam.p[0] + sh, cam.p[1] + Math.cos(clock.elapsedTime * 1.1) * 0.05, cam.p[2]);
+    const rough = fast * (1 - k) * 0.035; // a little road buzz at speed
+    camera.position.set(cam.p[0] + sh + Math.sin(clock.elapsedTime * 47) * rough, cam.p[1] + Math.cos(clock.elapsedTime * 1.1) * 0.05 + Math.sin(clock.elapsedTime * 61) * rough, cam.p[2]);
+    if (rideRef.current && !walk) { // the ride weaves a little between lanes at speed and its nose lifts and dips with the throttle and the brake
+      const sw = Math.sin(clock.elapsedTime * 0.9) * 0.32 * fast;
+      rideRef.current.position.x = 3.3 + sw; rideRef.current.rotation.y = -Math.cos(clock.elapsedTime * 0.9) * 0.09 * fast; rideRef.current.rotation.x = pitch.current;
+    }
+    if (streaks.current) { // speed lines: thin streaks rush past the camera, longer the faster you go
+      const m = streaks.current; m.visible = fast > 0.3 && !arrived;
+      if (m.visible) for (let i = 0; i < 44; i++) {
+        const a = (i * 0.618034) % 1, b = (i * 0.381966 + 0.13) % 1, side = i % 2 ? 1 : -1;
+        dummyS.position.set(side * (3.2 + a * 7) + 3.3, 0.3 + b * 3.4, ((a * 90 + b * 70 + scroll.current * 1.05) % 90) - 70);
+        dummyS.scale.set(0.035, 0.035, 1 + fast * 7); dummyS.updateMatrix(); m.setMatrixAt(i, dummyS.matrix);
+      }
+      m.instanceMatrix.needsUpdate = true;
+    }
     look.set(cam.l[0], cam.l[1], cam.l[2]); camera.lookAt(look);
     if (lastFov.current !== cam.fov) { camera.fov = cam.fov; camera.updateProjectionMatrix(); lastFov.current = cam.fov; }
     if (rain3.current) rain3.current.position.set(camera.position.x, 0, camera.position.z - 6);
@@ -336,6 +377,7 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
       {strips.map((s, k) => <group key={k} ref={s}><Strip weather={plan.weather} dest={destRef} /></group>)}
       <Traffic plan={plan} speed={speed} walk={walk} />
       <Crowd count={crowdCount} rain={rain} speed={speed} lanes={lanes} range={RANGE} />
+      {!walk && <instancedMesh ref={streaks} args={[undefined, undefined, 44]} frustumCulled={false} visible={false}><boxGeometry args={[1, 1, 1]} /><meshBasicMaterial color="#FFFFFF" transparent opacity={0.3} depthWrite={false} fog={false} /></instancedMesh>}
       {!walk && (
         <group ref={rideRef} position={[3.3, 0.02, 0]}>
           <Ride plan={plan} />
@@ -352,13 +394,13 @@ function World({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; 
   );
 }
 
-export default function Scene3D({ plan, arrived, arriveAt }: { plan: TripPlan; arrived: boolean; /** seconds of travelling before the arrival */ arriveAt: number }) {
+export default function Scene3D({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: boolean; /** seconds of travelling before the arrival */ arriveAt: number; /** called once the street has drawn its first frames */ onReady?: () => void }) {
   // R3F frees the scene's own geometry and materials on unmount; the shared canvas textures and baked people are ours to free.
   useEffect(() => () => { disposeTextures(); disposeBakedPeople(); disposeDestinations(); }, []);
   return (
     <div className="absolute inset-0">
       <Canvas dpr={[1, plan.light ? 1 : 1.5]} camera={{ fov: 56, position: [4, 2.4, 8], near: 0.2, far: 700 }} gl={{ antialias: !plan.light, powerPreference: 'high-performance' }}>
-        <World plan={plan} arrived={arrived} arriveAt={arriveAt} />
+        <World plan={plan} arrived={arrived} arriveAt={arriveAt} onReady={onReady} />
       </Canvas>
     </div>
   );

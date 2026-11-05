@@ -1,6 +1,7 @@
 import type { Effects } from '@/types/game';
 import type { InteriorKind } from './interiors';
 import type { SkillId } from '@/stores/skillStore';
+import type { ChainId } from './circuits';
 
 /**
  * Street moments: short Nigerian encounters that interrupt you while you live your life. Somebody stops you, you pick what to
@@ -19,6 +20,8 @@ export interface EventChoice {
   text: string;
   /** Extra daily-quest counter to bump, e.g. 'agbo' counts for "street:agbo". */
   tag?: string;
+  /** Counts one step of a long story (Mama Agbo purchases, owambe parties), or ends it with this ending. */
+  step?: ChainId; ending?: string;
 }
 export type EventPlace = 'home' | 'venue' | InteriorKind[];
 export interface StreetEvent {
@@ -29,6 +32,8 @@ export interface StreetEvent {
   hours?: [number, number];
   lifeType?: 'lapo' | 'nepo';
   weight: number;
+  /** Only appears while the player is at these levels (0 to 3) of a long story; `open` also needs the story not yet ended. */
+  chain?: { id: ChainId; min?: number; max?: number; open?: boolean };
   /** Real minutes before this one can appear again. */
   cooldownMin: number;
   /** Real seconds the player has to answer. */
@@ -45,10 +50,10 @@ const SKIP = (label = 'No, thank you'): EventChoice => ({ id: 'skip', label, tex
 export const STREET_EVENTS: StreetEvent[] = [
   // ---------- the market ----------
   { id: 'agbo_mama', icon: '🌿', who: 'Mama Agbo', title: 'Agbo for your body', text: '"My pikin, come drink agbo! E go wash your blood and clear your eyes. Only ₦500!"',
-    where: ['market'], weight: 10, cooldownMin: 6,
+    where: ['market'], weight: 10, cooldownMin: 6, chain: { id: 'mama', max: 0 },
     choices: [
-      { id: 'buy', label: 'Buy agbo (₦500)', cost: 500, effects: { health: 12, hygiene: 4, happiness: -4 }, text: 'Bitter! But your body feels clean. Mama Agbo smiles.', tag: 'agbo' },
-      { id: 'haggle', label: 'Haggle to ₦300', tag: 'agbo', risk: { winChance: 0.55, winText: 'She hisses, then agrees. ₦300 agbo, enjoy.', loseText: 'She says "Last price na ₦500!" You pay and drink.', winEffects: { health: 12, hygiene: 4, happiness: -2, charisma: 1 }, loseEffects: { health: 12, hygiene: 4, happiness: -4 }, winMoney: -300, loseMoney: -500 }, text: '' },
+      { id: 'buy', label: 'Buy agbo (₦500)', cost: 500, effects: { health: 12, hygiene: 4, happiness: -4 }, text: 'Bitter! But your body feels clean. Mama Agbo smiles.', tag: 'agbo', step: 'mama' },
+      { id: 'haggle', label: 'Haggle to ₦300', tag: 'agbo', step: 'mama', risk: { winChance: 0.55, winText: 'She hisses, then agrees. ₦300 agbo, enjoy.', loseText: 'She says "Last price na ₦500!" You pay and drink.', winEffects: { health: 12, hygiene: 4, happiness: -2, charisma: 1 }, loseEffects: { health: 12, hygiene: 4, happiness: -4 }, winMoney: -300, loseMoney: -500 }, text: '' },
       SKIP(),
     ], ignore: { text: 'Mama Agbo shakes her head and moves on to the next person.' } },
   { id: 'fabric_haggle', icon: '🧵', who: 'Alhaji Dansiru', title: 'Original Ankara!', text: '"Oga, see this Ankara! Original Holland wax. For you, ₦8,000, no problem!"',
@@ -328,6 +333,50 @@ export const STREET_EVENTS: StreetEvent[] = [
       { id: 'buy', label: 'Buy a small painting (₦4,000)', cost: 4000, skill: { id: 'creativity', xp: 6 }, effects: { charisma: 2, happiness: 6 }, text: 'You feel like a patron of the arts. She is thrilled.' },
       SKIP('I love it but not today'),
     ], ignore: { text: 'She smiles and returns to her canvas.' } },
+
+  // ---------- long stories: Mama Agbo, the regular customer ----------
+  { id: 'mama_regular', icon: '🌿', who: 'Mama Agbo', title: 'My regular customer!', text: '\"Ah ah! See my customer! Come, I don keep your own bottle. For you, na ₦300 only.\"',
+    where: ['market'], weight: 12, cooldownMin: 5, chain: { id: 'mama', min: 1, max: 1 },
+    choices: [
+      { id: 'buy', label: 'Buy the usual (₦300)', cost: 300, effects: { health: 13, hygiene: 4, charisma: 1 }, text: 'She wraps it with a smile. \"Na my pikin!\"', tag: 'agbo', step: 'mama' },
+      { id: 'two', label: 'Buy two bottles (₦700)', cost: 700, effects: { health: 22, hygiene: 6, energy: 4 }, text: 'Two bottles and a free blessing. Your body feels brand new.', tag: 'agbo', step: 'mama' },
+      SKIP(),
+    ], ignore: { text: 'Mama Agbo shrugs. \"I go keep am for next time.\"' } },
+  { id: 'mama_special', icon: '🍶', who: 'Mama Agbo', title: 'The special bottle', text: '\"For my regular customers only. Strong agbo, the one wey dey wake the dead. ₦1,500.\"',
+    where: ['market'], weight: 12, cooldownMin: 5, chain: { id: 'mama', min: 2, max: 2 },
+    choices: [
+      { id: 'special', label: 'Take the special (₦1,500)', cost: 1500, effects: { health: 20, energy: 15, hygiene: 4, happiness: -3 }, text: 'It burns all the way down. Then you feel like you can lift a danfo.', tag: 'agbo', step: 'mama' },
+      { id: 'gist', label: 'Sit and gist with her', effects: { social: 4, happiness: 3 }, text: 'She tells you who is getting married, who owes whom, and which wrapper is fake.', step: 'mama' },
+      SKIP(),
+    ], ignore: { text: 'Mama Agbo packs her bottles. \"Next time, my pikin.\"' } },
+  { id: 'mama_recipe', icon: '📜', who: 'Mama Agbo', title: 'The family recipe', text: '\"You don come my stall plenty times. I want make you part of my family. Learn the recipe, or help me run the stall.\"',
+    where: ['market'], weight: 20, cooldownMin: 3, seconds: 40, chain: { id: 'mama', min: 3, open: true },
+    choices: [
+      { id: 'recipe', label: 'Learn the recipe (₦15,000)', cost: 15000, effects: { charisma: 2, health: 10 }, text: 'She hands you a folded paper and a handful of roots. Every agbo you drink now hits harder.', ending: 'recipe' },
+      { id: 'helper', label: 'Help run the stall', money: 8000, effects: { social: 5, happiness: 6 }, text: 'You carry bottles, count change and learn every gossip. She pays you well.', ending: 'helper' },
+    ], ignore: { text: 'Mama Agbo waits, then smiles. \"The offer no go expire, my pikin.\"' } },
+
+  // ---------- long stories: the owambe circuit ----------
+  { id: 'owambe_asoebi', icon: '💌', who: 'A friend of a friend', title: 'Aso-ebi invitation', text: '\"Our owambe is Saturday! Aso-ebi is ready, just ₦8,000. Come and show face, jare.\"',
+    where: 'venue', hours: [9, 22], weight: 7, cooldownMin: 8, chain: { id: 'owambe', max: 1 },
+    choices: [
+      { id: 'attend', label: 'Buy aso-ebi and go (₦8,000)', cost: 8000, effects: { social: 12, happiness: 10, energy: -8, charisma: 2 }, text: 'Jollof, small chops, a live band and aunties asking when you will marry. Great night.', step: 'owambe' },
+      { id: 'gift', label: 'Send a gift envelope (₦2,000)', cost: 2000, effects: { social: 3 }, text: 'You send a gift and a prayer. They post your name in the thank-you list.' },
+      SKIP('Maybe next time'),
+    ], ignore: { text: 'The invite goes unread. Somebody else buys your aso-ebi.' } },
+  { id: 'owambe_big', icon: '🎊', who: 'Auntie Bisi', title: 'Big owambe, big names', text: '\"Two thousand guests, a governor and a live Fuji band. Aso-ebi ₦6,000, and you are on my table.\"',
+    where: 'venue', hours: [9, 22], weight: 9, cooldownMin: 8, chain: { id: 'owambe', min: 1, max: 2 },
+    choices: [
+      { id: 'attend', label: 'Buy aso-ebi and go (₦6,000)', cost: 6000, effects: { social: 14, happiness: 12, energy: -10, charisma: 2 }, text: 'You dance, you spray, you are on three different cameras. Everybody knows your face now.', step: 'owambe' },
+      { id: 'dance', label: 'Crash the dance floor (free)', risk: { winChance: 0.5, winText: 'The crowd forms a circle round you. The MC screams your name.', loseText: 'You trip over an auntie\'s gele. Everybody saw.', winEffects: { social: 8, charisma: 2, happiness: 6, energy: -6 }, loseEffects: { happiness: -3, social: -2 } }, text: '', step: 'owambe' },
+      SKIP(),
+    ], ignore: { text: 'Auntie Bisi sighs and goes to find another guest.' } },
+  { id: 'owambe_mic', icon: '🎤', who: 'The MC', title: 'Take the microphone', text: '\"Everybody knows you now. Be my co-MC tonight and I will pay you, or host your own owambe and let me hype it.\"',
+    where: 'venue', hours: [9, 22], weight: 20, cooldownMin: 3, seconds: 40, chain: { id: 'owambe', min: 3, open: true },
+    choices: [
+      { id: 'mc', label: 'Be the MC', money: 15000, effects: { charisma: 5, social: 6 }, text: 'You take the mic and the hall is yours. They pay you at the end of the night.', ending: 'mc' },
+      { id: 'host', label: 'Host your own owambe (₦25,000)', cost: 25000, effects: { social: 12, charisma: 3, happiness: 10 }, text: 'Your name is on the banner. Hundreds come, and they all say it was the party of the year.', ending: 'host' },
+    ], ignore: { text: 'The MC hands the mic to somebody else, but the offer stands.' } },
 ];
 
 export const getStreetEvent = (id: string) => STREET_EVENTS.find((e) => e.id === id);

@@ -11,6 +11,8 @@ import { Confetti } from '../roulette/Confetti';
 import { ROAD, STAGES } from '@/data/agbero';
 import { stageOf } from '@/game/agbero';
 import { useAgberoStore } from '@/stores/agberoStore';
+import { CHAINS, levelFor, type ChainId } from '@/data/circuits';
+import { useCircuitStore } from '@/stores/circuitStore';
 import { Sheet } from './VenueSheets';
 
 /** Number of things waiting (claimable login reward, finished quests and goals, the chests). Reactive. */
@@ -71,6 +73,21 @@ function StoryCard() {
       <div className="mt-2 flex items-center justify-between text-[12px]"><span className="font-bold">{ending === 'joined' ? 'Union member' : ending === 'reformed' ? 'The street is calm' : STAGES[stage]}</span><span className="tabular-nums text-white/55">{ending ? 'Story complete' : `${wins} / ${next} wins`}</span></div>
       <div className="mt-1 h-2 overflow-hidden rounded-full bg-black/40"><div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: 'linear-gradient(90deg,#FF4D6D,#FFC21A)' }} /></div>
       <div className="mt-1.5 text-[11px] leading-snug text-white/50">{ending ? 'Nobody blocks your road any more.' : 'After a trip, somebody may stop you. Win fights or talk your way out to move up the street.'}</div>
+    </div>
+  );
+}
+
+/** One long street story (Mama Agbo or the owambe circuit): the level you are on and how far to the next. */
+function ChainCard({ id }: { id: ChainId }) {
+  const steps = useCircuitStore((s) => s.steps[id]), ending = useCircuitStore((s) => s.ending[id]);
+  const def = CHAINS[id], th: number[] = def.thresholds, lvl = levelFor(id, steps), next = th[Math.min(lvl, 2)], from = lvl === 0 ? 0 : th[lvl - 1];
+  const pct = ending ? 1 : lvl === 3 ? 1 : Math.min(1, (steps - from) / (next - from));
+  return (
+    <div className="mt-3 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-3" aria-label={def.title}>
+      <div className="flex items-center gap-2"><span className="text-[26px]">{def.icon}</span><div className="min-w-0 flex-1"><div className="text-[11px] font-extrabold uppercase tracking-wide text-hibiscus">Street story</div><div className="text-[15px] font-extrabold leading-tight">{def.title}</div></div></div>
+      <div className="mt-2 flex items-center justify-between text-[12px]"><span className="font-bold">{ending ? def.endings[ending] : def.levels[lvl]}</span><span className="tabular-nums text-white/55">{ending ? 'Story complete' : lvl === 3 ? 'A big offer is coming' : `${steps} / ${next} ${def.noun}`}</span></div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-black/40"><div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: 'linear-gradient(90deg,#34D399,#FFC21A)' }} /></div>
+      <div className="mt-1.5 text-[11px] leading-snug text-white/50">{ending ? 'You finished this story.' : def.hint}</div>
     </div>
   );
 }
@@ -145,6 +162,8 @@ export function DailySheet() {
             <Chest title="Weekly chest" sub="Finish all three goals" label={WEEKLY_BONUS.label} claimed={s.weeklyBonusClaimed} ready={weekAll && !s.weeklyBonusClaimed} count={s.weekly.filter((q) => q.claimed).length} total={s.weekly.length} onClaim={() => { const r = claimWeeklyBonus(); if (r.ok) setBurst((b) => b + 1); else toast(r.reason ?? '', 'bad'); }} />
           </div>
           <StoryCard />
+          <ChainCard id="mama" />
+          <ChainCard id="owambe" />
         </>
       )}
       <div className="mt-3 text-center text-[10.5px] text-white/40">In-game naira only. Nothing here is real money.</div>

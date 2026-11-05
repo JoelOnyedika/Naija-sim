@@ -1,7 +1,7 @@
 import './mockStorage';
 import { registerContent } from '../src/content';
-import { FINALE, OPPONENTS, ROAD } from '../src/data/agbero';
-import { addRoadWin, chooseRoad, demandFor, fighterNow, finishRoadblock, finaleReady, maybeRoadblock, oddsFight, oddsRun, oddsTalk, resolveFinale, stageOf, type Fighter } from '../src/game/agbero';
+import { FINALE, OPPONENTS, ROAD, THUG_LOOKS, lookFor } from '../src/data/agbero';
+import { crewFromRoll, oddsFor, addRoadWin, chooseRoad, demandFor, fighterNow, finishRoadblock, finaleReady, maybeRoadblock, oddsFight, oddsRun, oddsTalk, resolveFinale, stageOf, type Fighter } from '../src/game/agbero';
 import { startNewLife } from '../src/game/life';
 import { useAgberoStore } from '../src/stores/agberoStore';
 import { useEconomyStore } from '../src/stores/economyStore';
@@ -90,5 +90,21 @@ ok(E().money === m3 + FINALE.report.money && A().ending === 'reformed', 'reporti
 finishRoadblock(); useTravelStore.setState({ trips: 210 }); ok(!maybeRoadblock(() => {}, () => 0) && E().money === m3 + FINALE.report.money, 'after reporting: no more roadblocks, no dues');
 startNewLife('lapo'); ok(A().wins === 0 && A().ending === null, 'a new life starts the story again');
 ok(fighterNow().fitness >= 0 && fighterNow().communication >= 0, 'skill levels convert to bonuses of 0 or more');
+
+// ---- the crew: 1, 2 or 3 men
+const fit: Fighter = { health: 100, energy: 100, charisma: 50, fitness: 2, communication: 2 };
+ok([0, 0.33, 0.34, 0.66, 0.67, 0.999].map(crewFromRoll).join() === '1,1,2,2,3,3', 'a roll of 0 to 1 picks 1, 2 or 3 men with equal chance');
+ok(oddsFight(fit, 1, 3) < oddsFight(fit, 1, 2) && oddsFight(fit, 1, 2) < oddsFight(fit, 1, 1), 'every extra man lowers your odds');
+ok(Math.abs(oddsFight(fit, 1, 1) - oddsFight(fit, 1, 3) - 2 * ROAD.crewOddsPenalty) < 1e-9 && oddsFor('pay', fit, 2, 3) === 1, 'each costs 6 points and paying always works');
+ok(demandFor('kazeem', 0, 1) === 1500 && demandFor('kazeem', 0, 3) > demandFor('kazeem', 0, 2) && demandFor('kazeem', 0, 2) > 1500, 'a gang asks for more');
+ok(THUG_LOOKS.length === 8 && lookFor(9) === THUG_LOOKS[1] && lookFor(-1) === THUG_LOOKS[7], 'looks wrap around safely');
+ok(new Set(THUG_LOOKS.map((l) => l.weapon)).size >= 4 && THUG_LOOKS.every((l) => l.weapon !== undefined), 'the men carry different weapons');
+for (const n of [1, 2, 3]) {
+  A().set({ active: null, result: null, lastTrip: 0 }); useTravelStore.setState({ trips: 50 + n * 3 }); A().set({ wins: 0 });
+  const seq = [0, (n - 1) / 3 + 0.01, 0.5]; let k = 0; maybeRoadblock(() => {}, () => seq[k++] ?? 0);
+  const b = A().active!; ok(b.crew === n && b.looks.length === n && new Set(b.looks).size === n, `a roadblock with ${n} man${n > 1 ? 'en' : ''}... gets ${n} different looks`.replace('man...', 'men...').replace('1 men', '1 man'));
+  if (n === 3) { const m = E().money; const h = S().stats.health; S().reset(); E().reset(m); void h; const before = S().stats.health; chooseRoad('fight', () => 0.999); ok(before - S().stats.health >= 15 + 2 * ROAD.crewHealthStep - 0.001, 'losing to three men hurts more than losing to one'); }
+  finishRoadblock();
+}
 console.log(fails ? `\n${fails} FAILED` : '\nAll Agbero checks passed');
 process.exit(fails ? 1 : 0);

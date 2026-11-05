@@ -12,7 +12,9 @@ import { toast, useUiStore } from '@/stores/uiStore';
 import { isJailed } from './crime';
 import { dailyHit } from './daily';
 import { addRoadWin } from './agbero';
+import { applyChain, chainAllows } from './circuits';
 import { useAgberoStore } from '@/stores/agberoStore';
+import { useTestDriveStore } from '@/stores/testDriveStore';
 
 /**
  * Street moments. While you play, somebody sometimes stops you: a market woman with agbo, an Agbero wanting "ticket", your landlord
@@ -39,7 +41,7 @@ export function eligibleEvents(now = Date.now()): StreetEvent[] {
   const life = useLifeStore.getState().lifeType;
   return STREET_EVENTS.filter((e) => {
     const placeOk = e.where === 'home' ? home : e.where === 'venue' ? !home : !home && e.where.includes(kind as never);
-    if (!placeOk || !inHours(hour, e.hours) || (e.lifeType && e.lifeType !== life)) return false;
+    if (!placeOk || !inHours(hour, e.hours) || (e.lifeType && e.lifeType !== life) || !chainAllows(e.chain)) return false;
     return now - (D().lastSeen[e.id] ?? 0) >= e.cooldownMin * 60000;
   });
 }
@@ -57,7 +59,7 @@ export function pickEvent(list: StreetEvent[], r = Math.random()): StreetEvent |
 export function screenBusy(): boolean {
   const ui = useUiStore.getState();
   return !!(useStatsStore.getState().activity || usePhoneStore.getState().open || ui.mode !== 'home' || ui.sceneLoading || ui.actionMenuUid || ui.clubMenuOpen || ui.receiptId
-    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || D().sheetOpen || !!D().pending || !!useAgberoStore.getState().active || isJailed());
+    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || D().sheetOpen || !!D().pending || !!useAgberoStore.getState().active || !!useTestDriveStore.getState().vehicleId || isJailed());
 }
 
 const scheduleNext = (now = Date.now()) => D().set({ nextEventAt: now + rand(EVENT_PACING.minGap, EVENT_PACING.maxGap) * 1000 });
@@ -125,6 +127,7 @@ export function answerEvent(choiceId: string, now = Date.now()): AnswerResult {
   const bad = c.risk ? !won : false;
   toast(text, bad ? 'bad' : 'good'); (bad ? sfx.error : sfx.coin)();
   if (ev.id === 'agbero_levy' && c.id === 'argue' && won) addRoadWin();
+  applyChain(ev, c, won);
   dailyHit('street'); if (c.tag) dailyHit(`street:${c.tag}`);
   D().set({ answered: D().answered + 1 });
   finish(now);

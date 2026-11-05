@@ -1,0 +1,16 @@
+/* The Agbero crew (Thug.tsx). Pure CSS so it stays cheap on weak phones. */
+.th-weapon { transform-box: fill-box; transform-origin: 50% 100%; }
+.th-rage { animation: th-rage 0.11s linear infinite; }
+@keyframes th-rage { 0%,100% { transform: translate(0,0); } 25% { transform: translate(0.9px,-0.7px); } 75% { transform: translate(-0.9px,0.6px); } }
+.th-idle .th-weapon { animation: th-hold 1.3s ease-in-out infinite alternate; }
+@keyframes th-hold { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+.th-attack .th-weapon { animation: th-swing 0.42s ease-in infinite; }
+@keyframes th-swing { 0% { transform: rotate(-30deg); } 55% { transform: rotate(55deg); } 100% { transform: rotate(-30deg); } }
+.th-lower .th-weapon { transform: rotate(70deg); transition: transform 0.5s ease-out; }
+.th-cheer .th-weapon { animation: th-cheer 0.35s ease-in-out infinite alternate; }
+@keyframes th-cheer { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+.th-breathe { transform-box: fill-box; transform-origin: 50% 100%; animation: th-breathe 0.7s ease-in-out infinite alternate; }
+@keyframes th-breathe { from { transform: scaleY(1); } to { transform: scaleY(1.025); } }
+.th-vein { animation: th-vein 0.5s ease-in-out infinite alternate; }
+@keyframes th-vein { from { opacity: 0.55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .th-rage, .th-idle .th-weapon, .th-attack .th-weapon, .th-cheer .th-weapon, .th-breathe, .th-vein { animation: none; } }

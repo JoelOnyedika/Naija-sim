@@ -3,18 +3,30 @@ import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type R
 import { createPortal } from 'react-dom';
 import { useTravelStore } from '@/stores/travelStore';
 import type { TripPlan } from './plan';
+import { loadScene3D } from './preload';
 
-const Scene3D = lazy(() => import('./Scene3D'));
+const Scene3D = lazy(loadScene3D);
 
 const SKY_TOP = { clear: '#9CCBEF', rain: '#58636E', dusk: '#E58A5C' } as const;
 const skyTop = (w: TripPlan['weather']) => SKY_TOP[w];
 const Sky = ({ plan }: { plan: TripPlan }) => <div className="absolute inset-0" style={{ background: skyTop(plan.weather) }} />;
 
+/** Shown while the 3D street is loading and drawing its first frames, so the player never sees a plain coloured screen. */
+function Loader({ plan }: { plan: TripPlan }) {
+  return (
+    <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center bg-[#0B1220]" aria-live="polite">
+      <motion.div className="text-[54px]" animate={{ x: [-18, 18, -18], rotate: [-2, 2, -2] }} transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}>{plan.ride === 'trek' ? '🚶🏾' : plan.ride === 'okada' ? '🏍️' : plan.ride === 'danfo' ? '🚌' : plan.ride === 'keke' ? '🛺' : '🚗'}</motion.div>
+      <div className="mt-3 font-display text-[17px] font-bold">Starting the engine…</div>
+      <div className="mt-1 text-[12px] text-white/55">Getting the street ready for {plan.destination.name}</div>
+    </div>
+  );
+}
+
 /** If WebGL fails for any reason the trip still runs its course (caption, progress, arrival) over a plain sky instead of breaking. */
-class Fallback extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+class Fallback extends Component<{ children: ReactNode; fallback: ReactNode; onFail?: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(e: Error) { console.warn('[travel] 3D scene failed, showing a plain sky', e); }
+  componentDidCatch(e: Error) { console.warn('[travel] 3D scene failed, showing a plain sky', e); this.props.onFail?.(); }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
@@ -23,19 +35,25 @@ class Fallback extends Component<{ children: ReactNode; fallback: ReactNode }, {
  * stepping out. Tap Skip to jump to the end. `onDone` runs once, when the scene finishes or is skipped.
  */
 export function TravelScene({ plan, onDone, startArrived = false }: { plan: TripPlan; onDone: () => void; /** TEST-ONLY: start already at the destination (used by screenshots and tests). */ startArrived?: boolean }) {
-  const [arrived, setArrived] = useState(startArrived), [line, setLine] = useState(0);
+  const [arrived, setArrived] = useState(startArrived), [line, setLine] = useState(0), [ready, setReady] = useState(startArrived);
+  const failed = useRef(false);
   const done = useRef(false);
   const total = plan.seconds, arriveAt = Math.max(3, total - 2.6);
   const finish = () => { if (done.current) return; done.current = true; useTravelStore.getState().record(`${plan.ride}:${plan.weather}:${plan.event}`); onDone(); };
+  // The trip clock starts only once the street has drawn its first frames. If it has not within 8 seconds (very slow device, WebGL
+  // trouble) the trip starts anyway over the plain sky, so the player is never stuck.
+  useEffect(() => { if (ready) return; const t = setTimeout(() => { failed.current = true; setReady(true); }, 8000); return () => clearTimeout(t); }, [ready]);
   useEffect(() => {
+    if (!ready) return;
     const t1 = setTimeout(() => setLine(1), arriveAt * 1000 * 0.33), t1b = setTimeout(() => setLine(2), arriveAt * 1000 * 0.66), t2 = setTimeout(() => setArrived(true), arriveAt * 1000), t3 = setTimeout(finish, total * 1000);
     return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); clearTimeout(t3); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
   const pct = useMemo(() => ({ duration: total }), [total]);
   return createPortal(
     <motion.div className="fixed inset-0 z-[200] flex flex-col bg-night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-label={`Travelling to ${plan.destination.name}`}>
       <div className="relative flex min-h-0 flex-1 items-end overflow-hidden" style={{ background: skyTop(plan.weather) }}>
-        <Fallback fallback={<Sky plan={plan} />}><Suspense fallback={<Sky plan={plan} />}><Scene3D plan={plan} arrived={arrived} arriveAt={arriveAt} /></Suspense></Fallback>
+        <Fallback fallback={<Sky plan={plan} />} onFail={() => setReady(true)}><Suspense fallback={null}><Scene3D plan={plan} arrived={arrived} arriveAt={arriveAt} onReady={() => setReady(true)} /></Suspense></Fallback>
+        {!ready && <Loader plan={plan} />}
         <AnimatePresence mode="wait">
           <motion.div key={arrived ? 'arr' : line} initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+1rem)] flex justify-center px-4">
             <div className="rounded-2xl bg-white px-4 py-2 text-center text-[15px] font-extrabold text-night shadow-glass">{arrived ? `You don reach ${plan.destination.name}!` : plan.lines[line] ?? plan.lines[0]}</div>
@@ -44,8 +62,8 @@ export function TravelScene({ plan, onDone, startArrived = false }: { plan: Trip
         <button onClick={finish} className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+4.2rem)] rounded-full bg-black/40 px-3 py-1.5 text-[12px] font-bold text-white backdrop-blur active:bg-black/60">Skip</button>
       </div>
       <div className="pb-safe bg-night px-5 pb-5 pt-3 text-center">
-        <p className="font-display text-lg font-bold">{arrived ? 'Arriving…' : `Heading to ${plan.destination.name}…`}</p>
-        <div className="mx-auto mt-2 h-1.5 w-44 overflow-hidden rounded-full bg-white/15"><motion.div className="h-full rounded-full bg-sky-400" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ ...pct, ease: 'linear' }} /></div>
+        <p className="font-display text-lg font-bold">{!ready ? 'Getting ready…' : arrived ? 'Arriving…' : `Heading to ${plan.destination.name}…`}</p>
+        <div className="mx-auto mt-2 h-1.5 w-44 overflow-hidden rounded-full bg-white/15"><motion.div key={String(ready)} className="h-full rounded-full bg-sky-400" initial={{ width: '0%' }} animate={{ width: ready ? '100%' : '0%' }} transition={{ ...pct, ease: 'linear' }} /></div>
       </div>
     </motion.div>,
     document.body,

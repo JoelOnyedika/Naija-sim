@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type RoadOutcome = { choice: 'pay' | 'run' | 'fight' | 'talk'; success: boolean; text: string; /** signed naira */ money: number; effects: Record<string, number> };
-export interface RoadBlock { opponentId: string; demand: number; finale: boolean }
+export interface RoadBlock { opponentId: string; demand: number; finale: boolean; /** how many men block the road (1 to 3) */ crew: number; /** which look each man has (index into THUG_LOOKS); the first is the leader */ looks: number[] }
 
 interface AgberoState {
   /** Story progress (persisted): fights and talks won, bribes paid, escapes, losses, and how the story ended. */

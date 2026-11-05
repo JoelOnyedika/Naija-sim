@@ -1,3 +1,4 @@
+import { useTestDriveStore } from '@/stores/testDriveStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -139,6 +140,7 @@ export function VehicleSheet() {
           <div className="mt-3 flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2"><span className="text-[12px] text-white/60">Price</span><span className="font-display text-lg font-extrabold text-danfo">{formatNaira(vehiclePrice(v.id))}</span></div>
           {owned.includes(v.id) ? <div className="mt-3 space-y-2"><div className="rounded-xl bg-emerald-500/15 py-3 text-center text-sm font-bold text-emerald-300">You own this car</div><button onClick={() => { const r = sellVehicle(v.id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); close(); } else { sfx.error(); toast(r.message, 'bad'); } }} className="h-11 w-full rounded-xl bg-white/10 text-[14px] font-bold">Sell for {formatNaira(salePrice(v.id))} (70%)</button></div>
             : <button onClick={buy} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold">Buy for {formatNaira(vehiclePrice(v.id))}</button>}
+          <button onClick={() => { close(); useTestDriveStore.getState().open(v.id); }} className="mt-2 h-11 w-full rounded-xl bg-white/10 text-[14px] font-bold">🏁 Test drive</button>
         </>
       )}
     </Sheet>

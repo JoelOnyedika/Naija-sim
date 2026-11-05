@@ -58,6 +58,7 @@ let override: Partial<TripPlan> = {};
 export const setTripOverride = (o: Partial<TripPlan>) => { override = o; };
 
 export function planTrip(input: TripInput): TripPlan {
+  void import('./preload').then((m) => m.preloadTravel()); // make sure the 3D chunk is on its way before the scene mounts
   const own = !!input.vehicleId, ride: Ride = own ? 'own' : (input.modeId as Ride);
   const device = deviceScore();
   const w = Math.random();
@@ -65,7 +66,7 @@ export function planTrip(input: TripInput): TripPlan {
   const e = Math.random();
   let event: Event = 'none';
   if (ride === 'trek') event = e < 0.5 ? 'crowd' : 'none';
-  else event = e < 0.42 ? 'jam' : e < 0.55 ? 'crowd' : 'none';
+  else event = e < 0.07 ? 'jam' : e < 0.2 ? 'crowd' : 'none'; // a go-slow is now rare (it was 42% of trips and felt like a crawl)
   const v = input.vehicleId ? getVehicle(input.vehicleId) : undefined;
   const vehicle = v ? { body: v.type, color: v.color, name: v.name, model: v.model } : undefined;
   // start downloading the player's car model now, so it is ready by the time the scene draws it
