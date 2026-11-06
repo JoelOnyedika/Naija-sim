@@ -7,6 +7,11 @@ import { BoxGeometry, CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from
 import { getVehicle } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import type { PropertyLayout, Zone } from '@/types/world';
+import { AircraftModel } from '@/three/models/aircraft';
+import { getAircraft } from '@/data/aircraft';
+import { aircraftPads, padsAt } from '@/game/aircraft';
+import { useAircraftStore } from '@/stores/aircraftStore';
+import { usePropertyStore } from '@/stores/propertyStore';
 import { carSlots, carportBounds, houseBounds, parkingSignPos } from '@/world/layoutGeometry';
 import { PlayerCar } from '../models/CarModel';
 import { floorTexture, skylineTexture } from '../textures';
@@ -144,6 +149,28 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
   );
 }
 
+/** Helicopters and planes parked on the lawn in front of a big house, each on a round concrete pad with a painted H. */
+function Aircraft({ layout }: { layout: PropertyLayout }) {
+  const owned = useAircraftStore((s) => s.owned), activeId = usePropertyStore((s) => s.activeId);
+  const pads = padsAt(activeId), list = owned.slice(0, pads), spots = useMemo(() => aircraftPads(layout, Math.max(1, Math.min(3, pads))), [layout, pads]);
+  if (!pads || !list.length) return null;
+  return (
+    <group>
+      {list.map((id, i) => {
+        const def = getAircraft(id), s = spots[i] ?? spots[0]; if (!def) return null;
+        const SC = 0.72, r = (def.kind === 'jet' ? 5 : def.kind === 'plane' ? 4.8 : 4.2) * SC;
+        return (
+          <group key={id} position={[s.x, 0, s.z]} rotation={[0, s.yaw, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} receiveShadow><circleGeometry args={[r, 40]} /><meshStandardMaterial color="#8E9196" roughness={1} /></mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.016, 0]}><ringGeometry args={[r - 0.35, r - 0.2, 40]} /><meshBasicMaterial color="#F5C518" /></mesh>
+            <group scale={SC}><AircraftModel def={def} /></group>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 /** Renders a whole property from its layout data. Works for any state's layouts. */
 export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
   const { plot } = layout;
@@ -160,6 +187,7 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       <Fence layout={layout} />
       {layout.decor.map((dec, i) => <DecorItem key={i} d={dec} />)}
       <Vehicles layout={layout} />
+      {!venue && <Aircraft layout={layout} />}
       <ParkingSign layout={layout} />
       {!venue && <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}
       {!venue && <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}

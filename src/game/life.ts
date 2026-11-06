@@ -39,6 +39,8 @@ import { useDailyStore } from '@/stores/dailyStore';
 import { resetEventSession } from './streetEvents';
 import { resetBillEffects } from './billEffects';
 import { useAgberoStore } from '@/stores/agberoStore';
+import { useAircraftStore } from '@/stores/aircraftStore';
+import { useBodyguardStore } from '@/stores/bodyguardStore';
 import { useCircuitStore } from '@/stores/circuitStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
@@ -82,6 +84,8 @@ export function startNewLife(type: LifeTypeId) {
   resetBillEffects();
   useAgberoStore.getState().reset();
   useCircuitStore.getState().reset();
+  useBodyguardStore.getState().reset();
+  useAircraftStore.getState().reset();
   useClockStore.getState().reset();
   useSchedulerStore.getState().reset();
   useBankStore.getState().reset();

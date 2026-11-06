@@ -1,3 +1,4 @@
+import { useBodyguardStore } from '@/stores/bodyguardStore';
 import { formatNaira } from '@/core/format';
 import { DAY_MINUTES, BILLS, INCOME_TAX, SAVINGS, WEEK_MINUTES, billAmount, bondReturn, getBond, taxOn, CREDIBILITY, type BillDef } from '@/data/economy';
 import { getVehicle } from '@/data/vehicles';
@@ -104,6 +105,7 @@ export function billables(): Billable[] {
   const cars = useVehicleStore.getState().owned.map(getVehicle).filter((v): v is NonNullable<typeof v> => !!v);
   for (const def of BILLS) {
     if (def.appliesTo === 'home' && home) out.push({ def, assetId: home.id, assetLabel: home.name, amount: billAmount(def, home.price) });
+    if (def.appliesTo === 'staff' && def.id === 'bodyguard' && useBodyguardStore.getState().hired) out.push({ def, assetId: 'bodyguard', assetLabel: 'Bodyguard', amount: def.min });
     if (def.appliesTo === 'vehicle') for (const v of cars) out.push({ def, assetId: v.id, assetLabel: v.name, amount: billAmount(def, v.price) });
   }
   return out;

@@ -1,7 +1,7 @@
 export type AppId =
   | 'jobs' | 'messages' | 'contacts' | 'guide' | 'food' | 'bank' | 'boutique' | 'forbes' | 'houses' | 'cars' | 'invite'
   | 'help' | 'invest' | 'betting' | 'family' | 'staff' | 'hustle' | 'motors' | 'companies' | 'shops' | 'police' | 'settings'
-  | 'court' | 'games' | 'ride' | 'grocery';
+  | 'court' | 'games' | 'ride' | 'grocery' | 'aircraft';
 
 export interface AppDef { id: AppId; label: string; glyph: string; from: string; to: string; dock?: boolean; /** Opens over the whole screen instead of inside the phone frame (see PhoneOverlay). */ fullscreen?: boolean }
 
@@ -21,6 +21,7 @@ export const APPS: AppDef[] = [
   { id: 'hustle', label: 'Hustle', glyph: '⚡', from: '#FACC15', to: '#CA8A04' },
   { id: 'shops', label: 'Shops', glyph: '🛍️', from: '#FB7185', to: '#BE123C' },
   { id: 'companies', label: 'Companies', glyph: '🏢', from: '#60A5FA', to: '#1D4ED8' },
+  { id: 'aircraft', label: 'Aviation', glyph: '🚁', from: '#38BDF8', to: '#1E3A8A' },
   { id: 'motors', label: 'Motors Corp', glyph: '🏎️', from: '#F87171', to: '#7F1D1D' },
   { id: 'family', label: 'Family', glyph: '👨🏾‍👩🏾‍👧🏾', from: '#FDBA74', to: '#C2410C' },
   { id: 'staff', label: 'Staff', glyph: '🧹', from: '#5EEAD4', to: '#0F766E' },

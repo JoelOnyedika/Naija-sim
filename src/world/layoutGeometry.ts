@@ -169,3 +169,26 @@ export function mainRoomCount(layout: PropertyLayout): number {
 /** Total furnishable floor area in square metres. */
 export const furnishableArea = (layout: PropertyLayout) =>
   Math.round(layout.zones.filter((z) => z.furnishable).reduce((s, z) => s + (z.x1 - z.x0) * (z.z1 - z.z0), 0));
+
+/**
+ * The main door of a house: one small door in a corner of an outer wall, with the spot beside it where a bodyguard stands.
+ * It goes on the tall back wall (z = 0 side) or the tall left wall (x = 0 side), the two walls that are drawn, in a stretch long
+ * enough and clear of windows. Pure and deterministic, so the same house always has the same door. `along` is the door centre
+ * along its wall (x on a back wall, z on a left wall). `guard` is where the bodyguard stands, inside, facing into the room.
+ */
+export interface Entrance { wall: 'back' | 'left'; c: number; along: number; x: number; z: number; guard: { x: number; z: number; yaw: number } }
+export const DOOR_W = 0.95;
+export function entranceOf(layout: PropertyLayout): Entrance | null {
+  const tall = wallPieces(layout).filter((p) => p.tall && p.b - p.a >= 1.7);
+  const order = [...tall.filter((p) => p.o === 'h'), ...tall.filter((p) => p.o === 'v')];
+  for (const p of order) {
+    const wins = windowsOnPiece(layout, p), clear = (m: number) => wins.every((w) => Math.abs(w.along - m) > w.width / 2 + DOOR_W / 2 + 0.1);
+    const m1 = p.a + 0.85, m2 = p.b - 0.85;
+    const m = [m1, m2].find(clear) ?? (clear((p.a + p.b) / 2) ? (p.a + p.b) / 2 : undefined);
+    if (m === undefined) continue;
+    const dir = m <= (p.a + p.b) / 2 ? 1 : -1; // stand on the side with more wall
+    if (p.o === 'h') return { wall: 'back', c: p.c, along: m, x: m, z: p.c, guard: { x: m + dir * 0.95, z: p.c + 0.55, yaw: 0 } };
+    return { wall: 'left', c: p.c, along: m, x: p.c, z: m, guard: { x: p.c + 0.55, z: m + dir * 0.95, yaw: Math.PI / 2 } };
+  }
+  return null;
+}

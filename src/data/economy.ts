@@ -28,11 +28,12 @@ export const BONDS: BondDef[] = [
 export const getBond = (id: string) => BONDS.find((b) => b.id === id);
 export const bondReturn = (principal: number, def: BondDef) => Math.floor((principal * def.returnBps) / 10_000);
 
-export interface BillDef { id: string; label: string; glyph: string; appliesTo: 'home' | 'vehicle'; rateBps: number; min: number; max: number; note: string }
+export interface BillDef { id: string; label: string; glyph: string; appliesTo: 'home' | 'vehicle' | 'staff'; rateBps: number; min: number; max: number; note: string }
 /** Recurring bills, charged once per game week. Amount = clamp(asset price x rate, min, max). */
 export const BILLS: BillDef[] = [
   { id: 'electricity', label: 'Electricity (prepaid token)', glyph: '💡', appliesTo: 'home', rateBps: 5, min: 1_500, max: 150_000, note: 'Charged for the home you live in. Left unpaid, NEPA cuts your light until you pay.' },
   { id: 'data', label: 'Mobile data bundle', glyph: '📶', appliesTo: 'home', rateBps: 0, min: 1_000, max: 1_000, note: 'A flat bundle for your phone. Left unpaid, your data runs out and your mood drops.' },
+  { id: 'bodyguard', label: 'Bodyguard wages', glyph: '🕶️', appliesTo: 'staff', rateBps: 0, min: 35_000, max: 35_000, note: 'Your bodyguard\'s weekly wage. Left unpaid, he stands down and stops protecting you.' },
   { id: 'vehicle-maintenance', label: 'Vehicle maintenance', glyph: '🔧', appliesTo: 'vehicle', rateBps: 10, min: 4_000, max: 1_000_000, note: 'Charged for each car you own.' },
 ];
 export const getBill = (id: string) => BILLS.find((b) => b.id === id);

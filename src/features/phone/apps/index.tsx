@@ -3,6 +3,7 @@ import { useState, type ComponentType } from 'react';
 import { getApp, type AppId } from '@/data/apps';
 import { BottomSlot } from '../bottomSlot';
 import { usePhoneType } from '../usePhoneType';
+import { AviationApp } from './Aviation';
 import { BankApp } from './Bank';
 import { BettingApp } from './Betting';
 import { BoutiqueApp } from './Boutique';
@@ -32,7 +33,7 @@ import { StaffApp } from './Staff';
 const APP_COMPONENTS: Record<AppId, ComponentType> = {
   jobs: JobsApp, messages: MessagesApp, contacts: ContactsApp, guide: GuideApp, food: FoodApp, bank: BankApp, boutique: BoutiqueApp,
   forbes: ForbesApp, houses: HousesApp, cars: CarsApp, invite: InviteApp, help: HelpApp, invest: InvestApp, betting: BettingApp,
-  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ride: RideApp, grocery: GroceryApp,
+  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ride: RideApp, aircraft: AviationApp, grocery: GroceryApp,
 };
 
 /**

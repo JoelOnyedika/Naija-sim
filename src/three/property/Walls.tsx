@@ -4,14 +4,27 @@ import { getFurniture } from '@/data/items';
 import { moveDraft } from '@/game/buy';
 import { useEditorStore } from '@/stores/editorStore';
 import type { PropertyLayout } from '@/types/world';
-import { WALL_T, wallPieces, windowsOnPiece, type WallPiece } from '@/world/layoutGeometry';
+import { DOOR_W, WALL_T, entranceOf, wallPieces, windowsOnPiece, type WallPiece } from '@/world/layoutGeometry';
 import { B } from '../models/primitives';
 import { wallTexture, wallpaperTexture } from '../textures';
 import { isFinishable, useHomeFinishes } from './useHomeFinishes';
 import { FadeGroup } from './FadeGroup';
 import { WindowUnit } from './Windows';
 
-interface Opening { c: number; w: number; sill: number; h: number; window?: ReturnType<typeof windowsOnPiece>[number]; door?: boolean }
+interface Opening { c: number; w: number; sill: number; h: number; window?: ReturnType<typeof windowsOnPiece>[number]; door?: boolean; /** the house's main door: drawn with a closed wooden door */ entrance?: boolean }
+/** The house's front door: a closed wooden door in its frame, with a handle and a small mat on the inside. */
+function MainDoor({ dh, T }: { dh: number; T: number }) {
+  return (
+    <group>
+      <B size={[0.88, dh - 0.04, 0.05]} pos={[0, (dh - 0.04) / 2, 0]} color="#6B4226" rough={0.7} radius={0.01} shadow={false} />
+      {[-0.2, 0.2].map((x) => <B key={x} size={[0.3, 0.8, 0.012]} pos={[x, 0.55, T / 2 - 0.01]} color="#5A3620" rough={0.8} radius={0.005} shadow={false} />)}
+      {[-0.2, 0.2].map((x) => <B key={`u${x}`} size={[0.3, 0.8, 0.012]} pos={[x, 1.55, T / 2 - 0.01]} color="#5A3620" rough={0.8} radius={0.005} shadow={false} />)}
+      <mesh position={[0.34, 1.0, T / 2 + 0.03]}><sphereGeometry args={[0.04, 10, 8]} /><meshStandardMaterial color="#D4A72C" metalness={0.7} roughness={0.3} /></mesh>
+      <B size={[0.9, 0.012, 0.5]} pos={[0, 0.008, T / 2 + 0.3]} color="#8B2E2E" rough={1} radius={0.002} shadow={false} />
+    </group>
+  );
+}
+
 interface Rect { cx: number; cy: number; w: number; h: number }
 
 /** Solid rectangles of a wall between u0..u1 once the openings are cut out. */
@@ -50,9 +63,11 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
   }, [wallFin, piece.a, piece.b, piece.height]);
   const panelSides = [piece.hi && isFinishable(piece.hi) ? 1 : 0, piece.lo && isFinishable(piece.lo) ? -1 : 0].filter(Boolean) as number[];
 
+  const ent = useMemo(() => entranceOf(layout), [layout]);
   const openings: Opening[] = [
     ...windowsOnPiece(layout, piece).map((w) => ({ c: flip * w.along, w: w.width, sill: w.sill, h: w.height, window: w })),
     ...piece.doors.map((d) => ({ c: flip * d, w: 0.95, sill: 0, h: piece.tall ? 2.1 : piece.height + 1, door: true })),
+    ...(ent && piece.tall && (ent.wall === 'back' ? piece.o === 'h' : piece.o === 'v') && Math.abs(piece.c - ent.c) < 1e-3 && ent.along - DOOR_W / 2 >= piece.a - 1e-3 && ent.along + DOOR_W / 2 <= piece.b + 1e-3 ? [{ c: flip * ent.along, w: DOOR_W, sill: 0, h: 2.1, door: true, entrance: true }] : []),
   ];
   const rs = rects(u0, u1, piece.height, openings);
 
@@ -103,6 +118,7 @@ function Piece({ piece, layout }: { piece: WallPiece; layout: PropertyLayout }) 
           <group key={`d${i}`} position={[o.c, 0, 0]}>
             {[-0.5, 0.5].map((s) => <B key={s} size={[0.06, dh, T + 0.04]} pos={[s * 0.95, dh / 2, 0]} color={layout.palette.trim} rough={0.6} radius={0.008} shadow={false} />)}
             {piece.tall && <B size={[1.07, 0.06, T + 0.04]} pos={[0, dh + 0.03, 0]} color={layout.palette.trim} rough={0.6} radius={0.008} shadow={false} />}
+            {o.entrance && <MainDoor dh={dh} T={T} />}
           </group>
         );
       })}

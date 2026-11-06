@@ -6,6 +6,7 @@ import { useSkillStore } from '@/stores/skillStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useTravelStore } from '@/stores/travelStore';
 import { toast } from '@/stores/uiStore';
+import { guardStopsAgbero } from './bodyguard';
 import { isJailed } from './crime';
 import { dailyHit } from './daily';
 
@@ -54,6 +55,7 @@ export function maybeRoadblock(next: () => void, rnd: () => number = Math.random
   if (trips < ROAD.minTrips || trips - a.lastTrip < 2) return false;
   const finale = finaleReady();
   if (!finale && rnd() >= ROAD.chance) return false;
+  if (guardStopsAgbero()) { A().set({ lastTrip: trips }); return false; } // a bodyguard stops it before it starts
   const opp = finale ? OPPONENTS[2] : OPPONENTS[stageOf(a.wins)];
   const crew = finale ? 3 : crewFromRoll(rnd()); // the finale shows the boss with two bodyguards; it has no dice
   const first = Math.floor(rnd() * 1000), looks = Array.from({ length: crew }, (_, i) => (first + i * 3 + (i > 0 ? 1 : 0)) % 8); // distinct looks, same seed rolls the same crew
