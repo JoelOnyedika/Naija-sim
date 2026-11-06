@@ -7,6 +7,7 @@ import type { FurnitureDef, UseDef } from './items';
  */
 import { stand, seat, U, type Kit, type Spec } from './venueKitCore';
 import { KIT2 } from './venueKit2';
+import { rebalanceKit } from './venueBalance';
 
 const KIT1: Kit[] = [
   // ---- shared
@@ -200,7 +201,7 @@ const KIT1: Kit[] = [
   { id: 'v_pool_table', name: 'Pool table', glyph: '🎱', w: 2.4, d: 1.4, h: 0.9, spec: stand, uses: [U('play_pool', '🎱', 'Play pool', 14, { happiness: 12, social: 4 }, { cost: 500 })] },
 ];
 
-export const KIT: Kit[] = [...KIT1, ...KIT2];
+export const KIT: Kit[] = rebalanceKit([...KIT1, ...KIT2]);
 
 const venueDef = (k: Kit): FurnitureDef => ({
   id: k.id, name: k.name, description: 'Part of a public venue.', price: 1, category: 'fun', rarity: 'common', glyph: k.glyph, model: k.id,

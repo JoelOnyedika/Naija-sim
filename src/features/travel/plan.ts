@@ -1,5 +1,6 @@
 import { useCharacterStore } from '@/stores/characterStore';
 import { useQualityStore } from '@/stores/qualityStore';
+import { specFor } from '@/game/testDrive';
 import { getVehicle, type VehicleBody } from '@/data/vehicles';
 import type { Appearance } from '@/types/game';
 import type { LandmarkDefinition } from '@/types/world';
@@ -20,6 +21,8 @@ export interface TripPlan {
   seconds: number;
   /** A short Nigerian caption for each beat of the ride. */
   lines: string[];
+  /** 0 (slow) .. 1 (very fast): how quick the ride is. Your own car's pace comes from its price and top speed; fast ones overtake. */
+  pace?: number;
   /** Low-end devices get fewer people, drops and cars. */
   light: boolean;
   key: string;
@@ -77,6 +80,6 @@ export function planTrip(input: TripInput): TripPlan {
   return {
     ride, vehicle, weather, event,
     destination: { id: input.landmark.id, name: input.landmark.name, icon: input.landmark.icon, category: input.landmark.category }, appearance: useCharacterStore.getState().appearance,
-    seconds, lines, light: device < 0.6, key: `${Date.now()}`, ...override,
+    seconds, lines, light: device < 0.6, key: `${Date.now()}`, pace: v ? Math.max(0, Math.min(1, (specFor(v).topKmh - 200) / 210)) : ride === 'okada' ? 0.8 : 0.3, ...override,
   };
 }

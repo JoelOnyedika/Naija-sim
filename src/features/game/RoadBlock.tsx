@@ -1,34 +1,42 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
 import { BOSS_LOOK, FINALE, ROAD_CHOICES, STAGES, getOpponent, lookFor, type Opponent, type RoadChoice } from '@/data/agbero';
 import { chooseRoad, fighterNow, finishRoadblock, oddsFor, resolveFinale, stageOf } from '@/game/agbero';
 import { useAgberoStore } from '@/stores/agberoStore';
+import { useCharacterStore } from '@/stores/characterStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { OutcomeRow, outcomes } from './OutcomeChips';
+import { Hero } from './HeroArt';
 import { Thug, type ThugMood } from './Thug';
-
-/** A simple cartoon person drawn in SVG so it can be animated cheaply and look the same on every phone. */
-export function Person({ skin, shirt, cap, flip = false, boss = false }: { skin: string; shirt: string; cap?: string; flip?: boolean; boss?: boolean }) {
-  return (
-    <svg viewBox="0 0 64 100" width="64" height="100" style={{ transform: flip ? 'scaleX(-1)' : undefined }} aria-hidden>
-      <ellipse cx="32" cy="97" rx="18" ry="3.5" fill="rgba(0,0,0,0.3)" />
-      <rect x="21" y="62" width="9" height="32" rx="4" fill="#1F2937" /><rect x="34" y="62" width="9" height="32" rx="4" fill="#1F2937" />
-      <rect x="16" y="30" width="32" height="38" rx="12" fill={shirt} />
-      {boss && <path d="M32 30 L26 48 L32 68 L38 48 Z" fill="#E5E7EB" opacity="0.7" />}
-      <rect x="6" y="34" width="10" height="28" rx="5" fill={skin} /><rect x="48" y="34" width="10" height="28" rx="5" fill={skin} />
-      <circle cx="32" cy="20" r="14" fill={skin} />
-      {cap && <><path d="M17 17 Q32 -2 47 17 Z" fill={cap} /><rect x="30" y="14" width="22" height="5" rx="2.5" fill={cap} /></>}
-      <circle cx="27" cy="22" r="1.8" fill="#111" /><circle cx="37" cy="22" r="1.8" fill="#111" />
-      <path d="M27 29 Q32 32 37 29" stroke="#111" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 const Dust = ({ x }: { x: string }) => (
   <>{[0, 1, 2, 3].map((i) => <motion.i key={i} className="absolute bottom-3 block rounded-full bg-amber-100/70" style={{ left: x, width: 14 + i * 5, height: 14 + i * 5 }} initial={{ opacity: 0.8, x: 0, y: 0, scale: 0.4 }} animate={{ opacity: 0, x: -30 - i * 14, y: -10 - i * 6, scale: 1.6 }} transition={{ duration: 0.9, delay: i * 0.12, repeat: 1 }} />)}</>
 );
+
+/** Effects drawn over either version of the scene: dust, the punch burst, coins, speech bubbles and the ticket shout. */
+function Fx({ choice, success, playing, finale, crew, dust = false }: { choice: RoadChoice | null; success: boolean; playing: boolean; finale: boolean; crew: number; dust?: boolean }) {
+  return (
+    <>
+      {dust && playing && choice === 'run' && <Dust x="30%" />}
+      {playing && choice === 'fight' && (
+        <>
+          <motion.div className="absolute left-[46%] top-[34%] -translate-x-1/2 text-[56px] leading-none" animate={{ scale: [0.4, 1.3, 0.9, 1.4, 1], rotate: [-10, 10, -10, 10, 0], opacity: [0, 1, 1, 1, 0] }} transition={{ duration: 1.6 }}>💥</motion.div>
+          <motion.div className="absolute bottom-3 left-[44%] h-20 w-28 -translate-x-1/2 rounded-full bg-amber-100/60 blur-md" animate={{ scale: [0.5, 1.4, 1.1, 1.5], opacity: [0, 0.8, 0.6, 0] }} transition={{ duration: 1.6 }} />
+        </>
+      )}
+      {playing && choice === 'pay' && [0, 1, 2, 3, 4].map((i) => <motion.span key={i} className="absolute bottom-20 left-[20%] text-[22px]" initial={{ opacity: 0, x: 0, y: 0 }} animate={{ opacity: [0, 1, 1, 0], x: [0, 110 + i * 14], y: [0, -30 - (i % 2) * 14, 0] }} transition={{ duration: 1.2, delay: i * 0.15 }}>🪙</motion.span>)}
+      {playing && choice === 'talk' && (
+        <>
+          <motion.div className="absolute left-[8%] top-3 rounded-2xl bg-white px-2.5 py-1 text-[12px] font-bold text-slate-800" initial={{ opacity: 0, y: 6 }} animate={{ opacity: [0, 1, 1, 0], y: 0 }} transition={{ duration: 0.9 }}>Oga, listen small…</motion.div>
+          <motion.div className="absolute right-[8%] top-3 rounded-2xl bg-white px-2.5 py-1 text-[12px] font-bold text-slate-800" initial={{ opacity: 0, y: 6 }} animate={{ opacity: [0, 1, 1], y: 0 }} transition={{ duration: 0.9, delay: 0.9 }}>{success ? '👍🏾 Correct!' : '😒 Pay!'}</motion.div>
+        </>
+      )}
+      {!choice && !finale && <motion.div className="absolute right-[6%] top-3 rounded-2xl rounded-br-sm bg-white px-2.5 py-1 text-[12px] font-extrabold text-slate-800" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.3 }}>{crew > 1 ? 'TICKET! OGA PAY!' : 'TICKET!'} 🗣️</motion.div>}
+    </>
+  );
+}
 
 /** Where each man stands (percent from the left) and how big he is, by crew size. The first is the leader, standing nearest the middle. */
 const SLOTS: Record<number, { left: number; bottom: number; size: number }[]> = {
@@ -38,7 +46,7 @@ const SLOTS: Record<number, { left: number; bottom: number; size: number }[]> = 
 };
 
 /** The little street scene. What happens in it follows the choice and whether it worked. The crew (1 to 3 men) is drawn ugly and angry. */
-function Stage({ opp, choice, success, playing, finale = false, looks, crew }: { opp: Opponent; choice: RoadChoice | null; success: boolean; playing: boolean; finale?: boolean; looks: number[]; crew: number }) {
+function FlatStage({ opp, choice, success, playing, finale = false, looks, crew }: { opp: Opponent; choice: RoadChoice | null; success: boolean; playing: boolean; finale?: boolean; looks: number[]; crew: number }) {
   const idle = !choice; // after the animation the final pose stays (knocked down, run away) instead of resetting
   const slots = SLOTS[Math.max(1, Math.min(3, crew))];
   const men = slots.map((slot, i) => ({ slot, look: finale && i === 0 ? BOSS_LOOK : lookFor(looks[i] ?? i) }));
@@ -65,29 +73,42 @@ function Stage({ opp, choice, success, playing, finale = false, looks, crew }: {
       <div className="absolute bottom-[78px] left-[30%] h-8 w-24 rounded-md bg-[#E5A400]/80"><i className="absolute inset-x-0 top-3 block h-1 bg-black/60" /></div>
       <div className="absolute inset-x-0 bottom-[34px] h-1 overflow-hidden"><motion.div className="flex w-[200%] gap-6" animate={{ x: ['0%', '-50%'] }} transition={{ duration: choice === 'run' && playing ? 0.6 : 3, repeat: Infinity, ease: 'linear' }}>{Array.from({ length: 30 }).map((_, i) => <i key={i} className="block h-1 w-8 shrink-0 rounded bg-white/70" />)}</motion.div></div>
       <motion.div className="absolute bottom-3 left-[6%] z-50" animate={p} transition={{ duration: choice === 'run' ? 1.2 : 1.6, ease: 'easeInOut' }}>
-        <motion.div animate={idle ? { y: [0, -2, 0] } : choice === 'run' ? { y: [0, -10, 0, -10, 0] } : fell && !success ? { rotate: [0, 0, -80], y: [0, 0, 20] } : {}} transition={{ duration: choice === 'run' ? 0.5 : 1.6, repeat: choice === 'run' && playing ? Infinity : 0, delay: fell ? 0.2 : 0 }}><Person skin="#8B5A3C" shirt="#0B8F4D" /></motion.div>
+        <motion.div animate={idle ? { y: [0, -2, 0] } : choice === 'run' ? { y: [0, -10, 0, -10, 0] } : fell && !success ? { rotate: [0, 0, -80], y: [0, 0, 20] } : {}} transition={{ duration: choice === 'run' ? 0.5 : 1.6, repeat: choice === 'run' && playing ? Infinity : 0, delay: fell ? 0.2 : 0 }}><Hero look={useCharacterStore.getState().appearance} size={1.1} /></motion.div>
       </motion.div>
       {[...men.keys()].sort((a, b) => men[b].slot.bottom - men[a].slot.bottom).map((i) => (
         <motion.div key={i} className="absolute" style={{ left: `${men[i].slot.left}%`, bottom: men[i].slot.bottom, zIndex: 40 - men[i].slot.bottom }} animate={move(i)} transition={{ duration: 1.6, ease: 'easeInOut' }}>
           <Thug look={men[i].look} mood={mood(i)} size={men[i].slot.size} />
         </motion.div>
       ))}
-      {playing && choice === 'run' && <Dust x="30%" />}
-      {playing && choice === 'fight' && (
-        <>
-          <motion.div className="absolute left-[46%] top-[34%] -translate-x-1/2 text-[56px] leading-none" animate={{ scale: [0.4, 1.3, 0.9, 1.4, 1], rotate: [-10, 10, -10, 10, 0], opacity: [0, 1, 1, 1, 0] }} transition={{ duration: 1.6 }}>💥</motion.div>
-          <motion.div className="absolute bottom-3 left-[44%] h-20 w-28 -translate-x-1/2 rounded-full bg-amber-100/60 blur-md" animate={{ scale: [0.5, 1.4, 1.1, 1.5], opacity: [0, 0.8, 0.6, 0] }} transition={{ duration: 1.6 }} />
-        </>
-      )}
-      {playing && choice === 'pay' && [0, 1, 2, 3, 4].map((i) => <motion.span key={i} className="absolute bottom-20 left-[20%] text-[22px]" initial={{ opacity: 0, x: 0, y: 0 }} animate={{ opacity: [0, 1, 1, 0], x: [0, 110 + i * 14], y: [0, -30 - (i % 2) * 14, 0] }} transition={{ duration: 1.2, delay: i * 0.15 }}>🪙</motion.span>)}
-      {playing && choice === 'talk' && (
-        <>
-          <motion.div className="absolute left-[8%] top-3 rounded-2xl bg-white px-2.5 py-1 text-[12px] font-bold text-slate-800" initial={{ opacity: 0, y: 6 }} animate={{ opacity: [0, 1, 1, 0], y: 0 }} transition={{ duration: 0.9 }}>Oga, listen small…</motion.div>
-          <motion.div className="absolute right-[8%] top-3 rounded-2xl bg-white px-2.5 py-1 text-[12px] font-bold text-slate-800" initial={{ opacity: 0, y: 6 }} animate={{ opacity: [0, 1, 1], y: 0 }} transition={{ duration: 0.9, delay: 0.9 }}>{success ? '👍🏾 Correct!' : '😒 Pay!'}</motion.div>
-        </>
-      )}
-      {!choice && !finale && <motion.div className="absolute right-[6%] top-3 rounded-2xl rounded-br-sm bg-white px-2.5 py-1 text-[12px] font-extrabold text-slate-800" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.3 }}>{crew > 1 ? 'TICKET! OGA PAY!' : 'TICKET!'} 🗣️</motion.div>}
+      <Fx choice={choice} success={success} playing={playing} finale={finale} crew={crew} dust />
     </div>
+  );
+}
+
+const Stage3D = lazy(() => import('./roadblock3d/StreetStage3D'));
+let webgl: boolean | null = null;
+const hasWebGL = (): boolean => { if (webgl === null) { try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webgl = false; } } return webgl; };
+class Guard3D extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(e: Error) { console.warn('[roadblock] 3D stage failed, using the flat scene', e); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+/** The street scene: flat 2D people standing in a real 3D street when WebGL works, and the all-2D scene when it does not (or while it loads). */
+function Stage(props: { opp: Opponent; choice: RoadChoice | null; success: boolean; playing: boolean; finale?: boolean; looks: number[]; crew: number }) {
+  const flat = <FlatStage {...props} />;
+  if (!hasWebGL()) return flat;
+  const { opp, choice, success, playing, finale = false, looks, crew } = props;
+  return (
+    <Guard3D fallback={flat}>
+      <div className="relative h-[220px] w-full overflow-hidden rounded-2xl bg-[#C9617E]" role="img" aria-label={`Street scene with ${opp.name}${crew > 1 ? ` and ${crew - 1} more` : ''}`}>
+        <Suspense fallback={<div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,#3F4A9A,#C9617E 55%,#FFB066)' }} />}>
+          <Stage3D crew={crew} looks={looks} choice={choice} success={success} finale={finale} />
+        </Suspense>
+        <Fx choice={choice} success={success} playing={playing} finale={finale} crew={crew} />
+      </div>
+    </Guard3D>
   );
 }
 

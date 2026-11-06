@@ -39,8 +39,8 @@ const DOOR_X = 9.3, DEST_Z = -1;
  */
 const CRUISE: Record<string, number> = { own: 38, cab: 30, danfo: 25, okada: 27, keke: 17, trek: 3.4 };
 export interface Profile { speed: (t: number) => number; dist: (t: number) => number; total: number; cruise: number }
-export function makeProfile(ride: string, jam: boolean, T: number): Profile {
-  const walk = ride === 'trek', cruise = (CRUISE[ride] ?? 25) * (jam ? 0.3 : 1);
+export function makeProfile(ride: string, jam: boolean, T: number, pace = 0.5): Profile {
+  const walk = ride === 'trek', base = ride === 'own' ? 24 + pace * 30 : (CRUISE[ride] ?? 25), cruise = base * (jam ? 0.3 : 1); // your own car is as fast as it is expensive
   const launch = walk ? 0.5 : Math.min(2.4, T * 0.25), brake = walk ? 1.2 : Math.min(3.4, T * 0.34);
   const speed = (t: number): number => {
     if (t <= 0) return 0; if (t >= T) return 0;
@@ -97,7 +97,7 @@ function furnitureGeo(): { solid: BufferGeometry; lamps: BufferGeometry } {
     g.push(tint(new CylinderGeometry(0.08, 0.12, 7.6, 7).translate(x, 3.8, z), '#4B4540'));
     for (const a of arms) { g.push(tint(new CylinderGeometry(0.05, 0.05, 2.2, 6).rotateZ(Math.PI / 2).translate(x + a * 1.1, 7.5, z), '#4B4540')); l.push(tint(new BoxGeometry(0.7, 0.12, 0.3).translate(x + a * 2.1, 7.42, z), '#FFF3B0')); }
   };
-  for (let z = 4; z < LOOP; z += 15) { lamp(4.9, z, [-1]); lamp(-6.9, z + 7, [1]); lamp(-1.0, z + 3, [-1, 1]); } // kerbside, far pavement, and the middle of the road
+  for (let z = 4; z < LOOP; z += 15) { lamp(7.8, z, [-1]); lamp(-6.9, z + 7, [1]); lamp(-1.0, z + 3, [-1, 1]); } // kerbside, far pavement, and the middle of the road
   for (let z = 1.5; z < LOOP; z += 3) g.push(tint(new SphereGeometry(0.42, 7, 5).scale(1, 0.8, 1.2).translate(-1.0, 0.45, z), z % 6 ? '#2F8A55' : '#3FA66B')); // hedge along the median
   for (let z = 9; z < LOOP; z += 15) { // palms in the median
     const h = 6.5 + r() * 1.5; g.push(tint(new CylinderGeometry(0.14, 0.22, h, 7).translate(-1.0, h / 2, z), '#8A6B4A'));
@@ -199,17 +199,19 @@ function Blob({ w = 1, l = 2.4 }: { w?: number; l?: number }) {
   return <mesh position={[0, 0.04, 0]} scale={[w, 1, l]} geometry={blobGeo}><meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} /></mesh>;
 }
 /** Dense but not crammed: cars are instanced (four draw calls per body type); danfos, kekes and okadas are a few separate meshes. */
-function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: number }; walk: boolean }) {
+function Traffic({ plan, speed, walk, overtake, carsOut }: { plan: TripPlan; speed: { current: number }; walk: boolean; overtake: boolean; carsOut: { current: CarD[] } }) {
   const jam = plan.event === 'jam', nominal = 13;
   const cars = useMemo<CarD[]>(() => {
     const r = rng(plan.key.length * 31 + 5), out: CarD[] = [];
     // [lane x, direction, speed factor, follows the ride's own speed?]. In a go-slow everyone in our two lanes crawls with you.
-    const lanes: [number, 1 | -1, number, boolean][] = [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.15, jam], [-3.1, -1, 0, false], [-5.3, -1, 0, false]];
+    // A fast ride overtakes: slow cars sit in its own lane and the next lane is kept empty as the passing lane.
+    const lanes: [number, 1 | -1, number, boolean][] = overtake ? [[3.3, 1, 0.42, false], [-3.1, -1, 0, false], [-5.3, -1, 0, false]] : [[3.3, 1, 1, true], [1.1, 1, jam ? 0.9 : 1.15, jam], [-3.1, -1, 0, false], [-5.3, -1, 0, false]];
     const gap = jam ? 6 : plan.event === 'crowd' ? 14 : 17, gapOn = jam ? 10 : plan.event === 'crowd' ? 12 : 13; // lively but flowing: cars to overtake and oncoming traffic. Only a go-slow is packed
     for (const [x, dir, f, follow] of lanes) {
       const step = dir === 1 ? gap : gapOn; let z = RANGE[0] + r() * 3;
       while (z < RANGE[1] - 3) {
-        const clear = !walk && (x === 3.3 || x === 1.1) && z > -9 && z < 22; // keep your ride and the chase camera behind it in clear view
+        const clear = !walk && (x === 3.3 || x === 1.1) && z > -9 && z < 22;
+        if (overtake && x === 3.3 && z > -22 && z < 22) { z += step * (0.85 + r() * 0.4); continue; } // the first slow car is well ahead // keep your ride and the chase camera behind it in clear view
         if (!clear && (!plan.light || r() < 0.7)) {
           const k = r(), kind: Kind = k < 0.28 ? 'sedan' : k < 0.4 ? 'hatch' : k < 0.58 ? 'suv' : k < 0.66 ? 'pickup' : k < 0.78 ? 'danfo' : k < 0.86 ? 'okada' : 'keke';
           out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 12 + r() * 5, kind, color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)], slogan: Math.floor(r() * 8), look: Math.floor(r() * 12) });
@@ -218,7 +220,8 @@ function Traffic({ plan, speed, walk }: { plan: TripPlan; speed: { current: numb
       }
     }
     return out;
-  }, [plan.key, plan.event, plan.light, jam, walk]);
+  }, [plan.key, plan.event, plan.light, jam, walk, overtake]);
+  carsOut.current = cars;
   const fleet = useMemo(() => Object.fromEntries(CAR_KINDS.map((k) => [k, cars.map((c, i) => ({ c, i })).filter((x) => x.c.kind === k)])), [cars]);
   const specials = useMemo(() => cars.map((c, i) => ({ c, i })).filter((x) => !(CAR_KINDS as string[]).includes(x.c.kind)), [cars]);
   const parts = useRef<Record<string, (InstancedMesh | null)[]>>({}), blobs = useRef<InstancedMesh>(null), sp = useRef<Record<number, Group | null>>({});
@@ -287,6 +290,7 @@ function World({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: 
   const sky = SKY[plan.weather], scroll = useRef(0), speed = useRef(0), t0 = useRef<number | null>(null), destRef = useRef({ z: -100, half: 7.5 }), openRef = useRef(0), clip = useMemo(() => new Plane(new Vector3(-1, 0, 0), DOOR_X + 0.3 + 0.02), []);
   const strips = [useRef<Group>(null), useRef<Group>(null), useRef<Group>(null)], dest = useRef<Group>(null), walker = useRef<Group>(null);
   const dummyS = useMemo(() => new Object3D(), []);
+  const overtake = plan.ride !== 'trek' && (plan.ride === 'okada' || (plan.ride === 'own' && (plan.pace ?? 0) >= 0.45)), carsOut = useRef<CarD[]>([]), swayX = useRef(3.3);
   const prevSpeed = useRef(0), pitch = useRef(0), frames = useRef(0), streaks = useRef<InstancedMesh>(null), rushRef = useRef(0);
   const rideRef = useRef<Group>(null), rain3 = useRef<Group>(null);
   const motion = useRef<Motion>({ moving: true, lying: false, sitting: false });
@@ -303,7 +307,7 @@ function World({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: 
   const lanes = useMemo(() => (walk ? [5.2, 5.9, 7.1, 7.7, -7.4, -8.1, -9.0] : [5.3, 6.0, 7.2, -7.4, -8.2, -9.0]), [walk]);
   const T = Math.max(3, arriveAt);
   // The street slows from cruising speed to a stop over T seconds, covering distance D; the destination sits D ahead, so it arrives beside you.
-  const prof = useMemo(() => makeProfile(plan.ride, jam, T), [plan.ride, jam, T]), D = prof.total, style = useMemo(() => styleFor(plan.destination), [plan.destination]), front = style.d / 2, walkThrough = style.kind === 'gate';
+  const prof = useMemo(() => makeProfile(plan.ride, jam, T, plan.pace), [plan.ride, jam, T, plan.pace]), D = prof.total, style = useMemo(() => styleFor(plan.destination), [plan.destination]), front = style.d / 2, walkThrough = style.kind === 'gate';
   const base = useMemo(() => new Vector3(walk ? 6.35 : 3.3, 0, 0), [walk]);
   const lastFov = useRef(0), planes = useMemo(() => [clip], [clip]), glr = useThree((st) => st.gl);
   useEffect(() => { glr.localClippingEnabled = true; }, [glr]);
@@ -340,13 +344,18 @@ function World({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: 
     const ch = walk ? { d: 4.0, h: 2.1, dx: 0.4 } : plan.ride === 'danfo' ? { d: 10.8, h: 3.8, dx: 1.6 } : plan.ride === 'okada' ? { d: 6.4, h: 2.7, dx: 0.4 } : plan.ride === 'keke' ? { d: 7.4, h: 3.0, dx: 0.5 } : { d: 9.0, h: 3.4, dx: 0.6 };
     const k = MathUtils.smoothstep(ta / 2.6, 0, 1), end: Cam = walk ? { p: [2.4, 2.8, destZ + 9], l: [7.2, 1.4, destZ - 0.3], fov: 62 } : { p: [0.8, 3.5, destZ + 12.5], l: [6.6, 1.5, destZ - 0.4], fov: 64 };
     const fast = walk ? 0 : Math.min(1, rush); rushRef.current = fast;
-    const cam: Cam = { p: [MathUtils.lerp(base.x + ch.dx, end.p[0], k), MathUtils.lerp(ch.h - fast * 0.35, end.p[1], k), MathUtils.lerp(base.z + ch.d + fast * 1.6, end.p[2], k)], l: [MathUtils.lerp(base.x + 0.1, end.l[0], k), MathUtils.lerp(1.3, end.l[1], k), MathUtils.lerp(base.z - 7, end.l[2], k)], fov: MathUtils.lerp(56 + fast * 15, end.fov, k) }; // the view widens and the camera pulls back with speed
+    const cam: Cam = { p: [MathUtils.lerp(base.x + ch.dx + ((rideRef.current?.position.x ?? base.x) - base.x) * 0.55, end.p[0], k), MathUtils.lerp(ch.h - fast * 0.35, end.p[1], k), MathUtils.lerp(base.z + ch.d + fast * 1.6, end.p[2], k)], l: [MathUtils.lerp(base.x + 0.1, end.l[0], k), MathUtils.lerp(1.3, end.l[1], k), MathUtils.lerp(base.z - 7, end.l[2], k)], fov: MathUtils.lerp(56 + fast * 15, end.fov, k) }; // the view widens and the camera pulls back with speed
     const sh = Math.sin(clock.elapsedTime * 1.3) * 0.12; // a slow drift, so it feels like a camera on a moving rig
     const rough = fast * (1 - k) * 0.035; // a little road buzz at speed
     camera.position.set(cam.p[0] + sh + Math.sin(clock.elapsedTime * 47) * rough, cam.p[1] + Math.cos(clock.elapsedTime * 1.1) * 0.05 + Math.sin(clock.elapsedTime * 61) * rough, cam.p[2]);
-    if (rideRef.current && !walk) { // the ride weaves a little between lanes at speed and its nose lifts and dips with the throttle and the brake
-      const sw = Math.sin(clock.elapsedTime * 0.9) * 0.32 * fast;
-      rideRef.current.position.x = 3.3 + sw; rideRef.current.rotation.y = -Math.cos(clock.elapsedTime * 0.9) * 0.09 * fast; rideRef.current.rotation.x = pitch.current;
+    if (rideRef.current && !walk) { // the ride weaves a little at speed; a fast ride swings into the passing lane to overtake slow cars in its own lane
+      let sw = Math.sin(clock.elapsedTime * 0.9) * 0.32 * fast, yaw = -Math.cos(clock.elapsedTime * 0.9) * 0.09 * fast, lean = 0;
+      if (overtake) {
+        const near = !arrived && speed.current > 6 && carsOut.current.some((c) => c.x === 3.3 && c.z > -30 && c.z < 10), tgt = near ? 1.2 : 3.3, was = swayX.current;
+        swayX.current += (tgt - swayX.current) * Math.min(1, dt * 3.2);
+        const vx = dt > 0 ? (swayX.current - was) / dt : 0; sw = swayX.current - 3.3; yaw = MathUtils.clamp(-vx * 0.16, -0.32, 0.32); lean = MathUtils.clamp(vx * (plan.ride === 'okada' ? 0.2 : 0.03), -0.5, 0.5);
+      }
+      rideRef.current.position.x = 3.3 + sw; rideRef.current.rotation.y = yaw; rideRef.current.rotation.x = pitch.current; rideRef.current.rotation.z = lean;
     }
     if (streaks.current) { // speed lines: thin streaks rush past the camera, longer the faster you go
       const m = streaks.current; m.visible = fast > 0.3 && !arrived;
@@ -375,7 +384,7 @@ function World({ plan, arrived, arriveAt, onReady }: { plan: TripPlan; arrived: 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-0.9, 0.01, 0]}><planeGeometry args={[11, 400]} /><meshStandardMaterial color={rain ? '#25292E' : '#3B3F44'} roughness={rain ? 0.3 : 0.9} /></mesh>
       {[-6.55, 4.7].map((x) => <Box key={x} size={[0.25, 0.14, 400]} pos={[x, 0.06, 0]} color="#D8D3C8" />)}
       {strips.map((s, k) => <group key={k} ref={s}><Strip weather={plan.weather} dest={destRef} /></group>)}
-      <Traffic plan={plan} speed={speed} walk={walk} />
+      <Traffic plan={plan} speed={speed} walk={walk} overtake={overtake} carsOut={carsOut} />
       <Crowd count={crowdCount} rain={rain} speed={speed} lanes={lanes} range={RANGE} />
       {!walk && <instancedMesh ref={streaks} args={[undefined, undefined, 44]} frustumCulled={false} visible={false}><boxGeometry args={[1, 1, 1]} /><meshBasicMaterial color="#FFFFFF" transparent opacity={0.3} depthWrite={false} fog={false} /></instancedMesh>}
       {!walk && (
