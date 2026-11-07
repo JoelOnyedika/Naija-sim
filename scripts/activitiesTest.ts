@@ -4,7 +4,7 @@ import { ACTIVITY_SETS, blockedReason, needsMenu, usesOf } from '../src/data/act
 import { FURNITURE, getFurniture } from '../src/data/items';
 import { getActiveHome } from '../src/game/active';
 import { beginPlace, confirmDraft } from '../src/game/buy';
-import { chooseActivity, interactWith, startUse } from '../src/game/interactions';
+import { chooseActivity, interactWith, startUse, walkTo } from '../src/game/interactions';
 import { describeItem } from '../src/game/itemInfo';
 import { startNewLife } from '../src/game/life';
 import { advance } from '../src/game/loop';
@@ -109,6 +109,14 @@ ok(describeItem(getFurniture('disco_light')!).activities[0].requires.some((r) =>
 
 console.log('AFK regression');
 ok(JSON.stringify([...AFK_ALLOWED].sort()) === JSON.stringify(['eat', 'pushups', 'relax', 'tv']), 'AFK is still exactly eat, push-ups, TV, relaxed idle');
+
+console.log('Floor taps during a task');
+startNewLife('lapo'); useStatsStore.getState().reset(); useActorStore.getState().reset();
+useStatsStore.getState().start({ kind: 'use', label: 'Sleeping', seconds: 60, effects: {}, pose: 'sleep' });
+const seqBefore = useActorStore.getState().seq; walkTo(2, 2);
+ok(!!useStatsStore.getState().activity && useActorStore.getState().seq === seqBefore, 'tapping the floor while sleeping does not stop it and gives no walk order');
+useStatsStore.getState().stop(); walkTo(2, 2);
+ok(useActorStore.getState().order?.kind === 'walk', 'with nothing running, tapping the floor still walks there');
 
 if (fails) { console.log(`\n${fails} check(s) failed`); process.exit(1); }
 console.log('\nAll activity checks passed');

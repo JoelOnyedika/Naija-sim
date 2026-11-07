@@ -108,10 +108,13 @@ export function runNextQueued() {
   }
 }
 
-/** Player tapped the floor: stop whatever is running (cleanly) and walk there. */
+/**
+ * Player tapped the floor. While an activity is running (sleeping, cooking, working out...) the tap is ignored: it must not cut
+ * the task short by accident. The X on the activity chip (Wake up / Cancel) is the way to stop one. Otherwise: walk there.
+ */
 export function walkTo(x: number, z: number) {
+  if (useStatsStore.getState().activity) return;
   useQueueStore.getState().clear();
-  if (useStatsStore.getState().activity) useStatsStore.getState().stop();
   useActorStore.getState().walkTo(x, z);
 }
 

@@ -1,3 +1,9 @@
+## v27: venue static removed, floor taps no longer cancel tasks
+- **Venue sound.** The synthesised atmospheres (murmur, wind, waves, hums) were removed: they sounded like static noise and no good recorded loops were available. `audio/ambience.ts` now only sets how loud the background afrobeat loop is per venue (full in clubs and concerts, off in church, jail and cinema). The speaker button still controls the music. To bring atmospheres back, play real recorded loops from `setAmbience`.
+- **Tapping the floor during a task** (sleeping, cooking, working out...) is now ignored instead of cutting it short. The X on the activity chip (Wake up / Cancel) still stops one. With nothing running, a floor tap walks as before. Tapping other furniture while busy still lines it up as the next task. `game/interactions.ts` `walkTo`.
+- **Tests**: `test:activities` gained 2 checks; all 33 groups pass.
+- **Not checked by ear or in a live game**: I can't listen to the game, so I did not hear that the static is gone (it is simply no longer generated). The floor-tap fix is covered by the test, not by tapping in a browser.
+
 ## v26: realistic aircraft with a paint shop, camera slide, Polanco window fix, cleaner tasks, calm backdrop
 - **Aircraft redrawn.** Bodies are lofted from cross-sections, wings, tails and rotor blades have real airfoil sections (taper, sweep, dihedral), plus glossy paint, painted windows and door seams, skids on cross tubes, wheel fairings, nav lights (red left, green right). Four distinct shapes: Robinson R44, Airbus H125 (3 blades, bigger), Cessna-style high-wing plane, Phenom-style jet with rear engines and a T-tail. `three/models/aircraft.tsx`, `aircraftParts.ts`.
 - **Player name on the body**, both sides, never mirrored, fitted to the space available. It starts as the character's name.
