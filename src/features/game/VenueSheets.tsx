@@ -15,7 +15,7 @@ import { useInteriorStore } from '@/stores/interiorStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 
-export function Sheet({ open, label, onClose, children, z = 75, solid = false }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number; /** An opaque panel, for long sheets that must not show the game through them. */ solid?: boolean }) {
+export function Sheet({ open, label, onClose, children, z = 90, solid = false }: { open: boolean; label: string; onClose: () => void; children: ReactNode; z?: number; /** An opaque panel, for long sheets that must not show the game through them. */ solid?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -84,7 +84,7 @@ export function ReceiptSheet() {
     } catch { toast('Could not save the picture here.', 'bad'); } finally { busy.current = false; }
   };
   return (
-    <Sheet open={!!r} label="Receipt" onClose={close} z={80}>
+    <Sheet open={!!r} label="Receipt" onClose={close} z={92}>
       {r && (
         <>
           <div className="mx-auto mt-2 rounded-2xl bg-[#FBF7EE] p-4 text-[#1B1B22] shadow-xl" aria-label="Receipt">
@@ -116,7 +116,7 @@ export function ClubBanner() {
   return (
     <AnimatePresence>
       {a && (
-        <motion.div key={a.id} role="status" initial={{ y: -80, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -60, opacity: 0 }} className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top,0px)+5.5rem)] z-[85] mx-auto max-w-md rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-fuchsia-700 via-purple-700 to-indigo-700 px-4 py-3 text-center shadow-2xl">
+        <motion.div key={a.id} role="status" initial={{ y: -80, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -60, opacity: 0 }} className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top,0px)+5.5rem)] z-[95] mx-auto max-w-md rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-fuchsia-700 via-purple-700 to-indigo-700 px-4 py-3 text-center shadow-2xl">
           <div className="text-[18px] font-extrabold leading-tight text-amber-200">{announcementText(a, club)}</div>
         </motion.div>
       )}

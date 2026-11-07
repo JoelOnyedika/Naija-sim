@@ -1,6 +1,8 @@
 import './mockStorage';
 import { registerContent } from '../src/content';
-import { AIRCRAFT, AIRCRAFT_PADS } from '../src/data/aircraft';
+import { AIRCRAFT, AIRCRAFT_PADS, NAME_MAX, defaultLivery, sanitizeLivery } from '../src/data/aircraft';
+import { liveryOf, repaintAircraft, startingLivery } from '../src/game/aircraft';
+import { useCharacterStore } from '../src/stores/characterStore';
 import { APPS } from '../src/data/apps';
 import { aircraftPads, aircraftSalePrice, buyAircraft, hangarHouse, padsAt, sellAircraft, whyNotAircraft } from '../src/game/aircraft';
 import { startNewLife } from '../src/game/life';
@@ -46,6 +48,16 @@ for (const p of [duplex, luxury]) { const L = getLayout(getProperty(p.id)!.layou
   ok(pads.length === padsAt(p.id) && pads.every((q) => q.z > b.z1 + 3 && q.x > b.x0 - 2 && q.x < b.x1 + 2), `${p.name}: ${pads.length} pads on the lawn in front of the house`);
   const far = Math.max(...[L.plot.x0, L.plot.x1].flatMap((x) => [L.plot.z0, L.plot.z1].map((z) => Math.hypot(x - b.cx, z - b.cz)))) + 3;
   ok(pads.every((q) => Math.hypot(q.x - b.cx, q.z - b.cz) + 4.5 <= far + 1.4), `${p.name}: every pad is on the grass disc`); }
+
+console.log('Paint shop');
+useCharacterStore.getState().setName('Joel');
+ok(defaultLivery(AIRCRAFT[0], 'Joel').name === 'Joel' && startingLivery('r44')!.name === 'Joel', 'a new aircraft starts with the player name on it');
+ok(sanitizeLivery({ body: 'red', name: 'A'.repeat(40), style: 'zigzag' as never }, AIRCRAFT[1], 'Joel').body === AIRCRAFT[1].color && sanitizeLivery({ name: 'A'.repeat(40) }, AIRCRAFT[1], 'J').name.length === NAME_MAX, 'bad colours, styles and long names are cleaned');
+startNewLife('lapo'); E().reset(50_000_000_000); P().reset(); P().own(duplex.id); P().setActive(duplex.id);
+ok(buyAircraft('skyhawk', { name: 'Chief', body: '#112233', stripe: '#abcdef', style: 'swoosh' }).ok && liveryOf('skyhawk')!.name === 'Chief' && liveryOf('skyhawk')!.body === '#112233' && liveryOf('skyhawk')!.style === 'swoosh', 'the chosen paint is kept');
+ok(repaintAircraft('skyhawk', { name: 'Boss', text: '#FFFFFF' }).ok && liveryOf('skyhawk')!.name === 'Boss', 'it can be repainted');
+ok(!repaintAircraft('r44', { name: 'x' }).ok, 'you cannot repaint what you do not own');
+sellAircraft('skyhawk'); ok(A().liveries['skyhawk'] === undefined, 'selling removes the paint');
 
 if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
 console.log('\nAll aircraft checks passed');

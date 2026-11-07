@@ -9,12 +9,13 @@ import { useVehicleStore } from '@/stores/vehicleStore';
 import type { PropertyLayout, Zone } from '@/types/world';
 import { AircraftModel } from '@/three/models/aircraft';
 import { getAircraft } from '@/data/aircraft';
-import { aircraftPads, padsAt } from '@/game/aircraft';
+import { aircraftPads, liveryOf, padsAt } from '@/game/aircraft';
 import { useAircraftStore } from '@/stores/aircraftStore';
 import { usePropertyStore } from '@/stores/propertyStore';
 import { carSlots, carportBounds, houseBounds, parkingSignPos } from '@/world/layoutGeometry';
 import { PlayerCar } from '../models/CarModel';
-import { floorTexture, skylineTexture } from '../textures';
+import { floorTexture } from '../textures';
+import { islandShadow } from './backdrop';
 import { Water } from '../world/Water';
 import { DecorItem } from './Decor';
 import { Fence } from './Fence';
@@ -63,6 +64,7 @@ function GroundDisc({ layout }: { layout: PropertyLayout }) {
   const grass = useMemo(() => { const t = floorTexture('grass').clone(); t.repeat.set(radius / 3, radius / 3); t.needsUpdate = true; return t; }, [radius]);
   return (
     <group position={[hb.cx, 0, hb.cz]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.62, 0]}><circleGeometry args={[(radius + 0.9) * 1.32, 48]} /><meshBasicMaterial map={islandShadow()} transparent depthWrite={false} toneMapped={false} /></mesh>
       <mesh position={[0, -0.3, 0]} receiveShadow><cylinderGeometry args={[radius + 0.9, radius + 0.9, 0.5, 96]} /><meshStandardMaterial color="#8C8268" roughness={1} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow><circleGeometry args={[radius + 0.9, 96]} /><meshStandardMaterial color="#B9CC9C" roughness={1} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow><circleGeometry args={[radius, 96]} /><meshStandardMaterial map={grass} color="#E4F0D2" roughness={1} /></mesh>
@@ -151,7 +153,8 @@ function Vehicles({ layout }: { layout: PropertyLayout }) {
 
 /** Helicopters and planes parked on the lawn in front of a big house, each on a round concrete pad with a painted H. */
 function Aircraft({ layout }: { layout: PropertyLayout }) {
-  const owned = useAircraftStore((s) => s.owned), activeId = usePropertyStore((s) => s.activeId);
+  const owned = useAircraftStore((s) => s.owned), liveries = useAircraftStore((s) => s.liveries), activeId = usePropertyStore((s) => s.activeId);
+  void liveries; // repainting an aircraft re-renders the lawn
   const pads = padsAt(activeId), list = owned.slice(0, pads), spots = useMemo(() => aircraftPads(layout, Math.max(1, Math.min(3, pads))), [layout, pads]);
   if (!pads || !list.length) return null;
   return (
@@ -163,7 +166,7 @@ function Aircraft({ layout }: { layout: PropertyLayout }) {
           <group key={id} position={[s.x, 0, s.z]} rotation={[0, s.yaw, 0]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} receiveShadow><circleGeometry args={[r, 40]} /><meshStandardMaterial color="#8E9196" roughness={1} /></mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.016, 0]}><ringGeometry args={[r - 0.35, r - 0.2, 40]} /><meshBasicMaterial color="#F5C518" /></mesh>
-            <group scale={SC}><AircraftModel def={def} /></group>
+            <group scale={SC}><AircraftModel def={def} livery={liveryOf(id) ?? undefined} /></group>
           </group>
         );
       })}
@@ -173,9 +176,6 @@ function Aircraft({ layout }: { layout: PropertyLayout }) {
 
 /** Renders a whole property from its layout data. Works for any state's layouts. */
 export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
-  const { plot } = layout;
-  const sky = useMemo(() => skylineTexture(), []);
-  const cx = (plot.x0 + plot.x1) / 2, cz = (plot.z0 + plot.z1) / 2;
   const venue = layout.id.startsWith('interior.'); // public venues sit in a real 3D street, not on the home's lawn
   return (
     <group>
@@ -189,8 +189,6 @@ export function PropertyEnvironment({ layout }: { layout: PropertyLayout }) {
       <Vehicles layout={layout} />
       {!venue && <Aircraft layout={layout} />}
       <ParkingSign layout={layout} />
-      {!venue && <mesh position={[cx, 6, plot.z0 - 14]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}
-      {!venue && <mesh position={[plot.x0 - 14, 6, cz]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[110, 34]} /><meshBasicMaterial map={sky} toneMapped={false} /></mesh>}
     </group>
   );
 }

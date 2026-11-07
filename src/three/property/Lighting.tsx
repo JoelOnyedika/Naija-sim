@@ -4,6 +4,7 @@ import { clockParts, useClockStore } from '@/stores/clockStore';
 import { QUALITY_TIERS, useQualityStore } from '@/stores/qualityStore';
 import type { PropertyLayout } from '@/types/world';
 import { usePower } from '@/game/powerHooks';
+import { homeBackdrop } from './backdrop';
 
 const MAX_ROOM_LIGHTS = 5;
 
@@ -28,12 +29,13 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
     return ls;
   }, [layout]);
   const night = 1 - day;
+  const venue = layout.id.startsWith('interior.'); // public venues keep the plain colour; homes get the smooth sky
   // NEPA: room lights scale with the power level (never zero). The sun, hemisphere and ambient light are untouched, so a
   // blackout is dim, not black, and the home stays navigable.
   const { level } = usePower();
   return (
     <>
-      <color attach="background" args={[bg.getStyle()]} />
+      {venue ? <color attach="background" args={[bg.getStyle()]} /> : <primitive object={homeBackdrop(day, dusk)} attach="background" />}
       <hemisphereLight args={[night > 0.4 ? '#FFD9A8' : '#FFF4DC', '#9A8D78', 0.22 + day * 0.73]} />
       <ambientLight intensity={0.1 + day * 0.15} />
       <directionalLight

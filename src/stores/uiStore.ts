@@ -62,7 +62,7 @@ interface UiState {
 
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
-  mode: 'home', taskPanelOpen: true, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
+  mode: 'home', taskPanelOpen: false, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
   detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), carReveal: null, setCarReveal: (carReveal) => set({ carReveal }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),

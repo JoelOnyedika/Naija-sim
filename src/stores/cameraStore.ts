@@ -27,15 +27,20 @@ interface CameraState {
   zoom: number;
   /** Camera elevation, radians from straight up, always within POLAR_MIN..POLAR_MAX. */
   polar: number;
+  /** Where the view is slid to, in world metres from the house centre (x, z). [0, 0] = centred on the house. */
+  pan: [number, number];
   rotateStep: () => void;
   swipe: (dAz: number) => void;
   setZoom: (z: number) => void;
+  /** Slide the view by a world-space step, kept within `limit` metres of the house centre. */
+  panBy: (dx: number, dz: number, limit: number) => void;
+  recenter: () => void;
   tiltBy: (dPolar: number) => void;
   reset: () => void;
 }
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const useCameraStore = create<CameraState>((set, get) => ({
-  steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, focus: null,
+  steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null,
   focusOn: (id, point) => {
     const f = get().focus, now = Date.now();
     if (f && f.id === id && now - f.at < PLACE_FOCUS.dedupeMs) return;
@@ -46,8 +51,10 @@ export const useCameraStore = create<CameraState>((set, get) => ({
   rotateStep: () => set((s) => ({ steps: s.steps + 1, offset: 0 })),
   swipe: (dAz) => set((s) => ({ offset: clamp(s.offset + dAz, -STEP, STEP) })),
   setZoom: (z) => set({ zoom: clamp(z, ZOOM_MIN, ZOOM_MAX) }),
+  panBy: (dx, dz, limit) => set((s) => { let x = s.pan[0] + dx, z = s.pan[1] + dz; const m = Math.hypot(x, z); if (m > limit) { x *= limit / m; z *= limit / m; } return { pan: [x, z] }; }),
+  recenter: () => set({ pan: [0, 0] }),
   tiltBy: (d) => set((s) => ({ polar: clamp(s.polar + d, POLAR_MIN, POLAR_MAX) })),
-  reset: () => set({ steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, focus: null }),
+  reset: () => set({ steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null }),
 }));
 /** The azimuth the camera is heading for. */
 export const targetAzimuth = (s: { steps: number; offset: number }) => DEFAULT_AZ + s.steps * STEP + s.offset;

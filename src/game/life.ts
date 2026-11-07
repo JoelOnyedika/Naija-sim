@@ -107,7 +107,7 @@ export function startNewLife(type: LifeTypeId) {
   const phone = usePhoneStore.getState();
   phone.say('mama', 'them', pickCopy(copy.welcome));
   phone.push({ title: 'Mama', body: 'Have you eaten? Do not skip meals.', icon: '👩🏾', appId: 'messages' });
-  useUiStore.setState({ mode: 'home', buySpent: 0, taskPanelOpen: typeof window === 'undefined' || window.innerWidth >= 640, statsExpanded: false });
+  useUiStore.setState({ mode: 'home', buySpent: 0, taskPanelOpen: false, statsExpanded: false });
   useLifeStore.getState().begin({ type, money, propertyId });
 }
 

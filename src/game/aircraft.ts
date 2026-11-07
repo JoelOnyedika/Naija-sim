@@ -1,4 +1,5 @@
-import { AIRCRAFT_PADS, SELL_RATE, getAircraft } from '@/data/aircraft';
+import { AIRCRAFT_PADS, SELL_RATE, defaultLivery, getAircraft, sanitizeLivery, type Livery } from '@/data/aircraft';
+import { useCharacterStore } from '@/stores/characterStore';
 import { useAircraftStore } from '@/stores/aircraftStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { usePropertyStore } from '@/stores/propertyStore';
@@ -28,12 +29,25 @@ export function whyNotAircraft(id: string): string | null {
   if (A().owned.length >= h.pads) return `Your house has ${h.pads} landing pad${h.pads === 1 ? '' : 's'} and they are full. Sell one first.`;
   return null;
 }
-export function buyAircraft(id: string): AirResult {
+/** The paint an aircraft has now: what the player chose, or the factory colours with their name on it. */
+export function liveryOf(id: string): Livery | null {
+  const def = getAircraft(id); if (!def) return null;
+  return sanitizeLivery(A().liveries[id], def, useCharacterStore.getState().name);
+}
+/** The paint a new purchase starts from in the paint shop. */
+export function startingLivery(id: string): Livery | null { const def = getAircraft(id); return def ? defaultLivery(def, useCharacterStore.getState().name) : null; }
+/** Repaint an aircraft the player owns. */
+export function repaintAircraft(id: string, livery: Partial<Livery>): AirResult {
+  const def = getAircraft(id); if (!def || !A().owned.includes(id)) return { ok: false, message: 'You do not own that.' };
+  A().setLivery(id, sanitizeLivery(livery, def, useCharacterStore.getState().name));
+  return { ok: true, message: `The ${def.name} has a new paint job.` };
+}
+export function buyAircraft(id: string, livery?: Partial<Livery>): AirResult {
   const why = whyNotAircraft(id); if (why) return { ok: false, message: why };
   const a = getAircraft(id)!;
   const paid = useEconomyStore.getState().post({ direction: 'expense', amount: a.price, label: a.name, kind: 'purchase', meta: { opKey: `aircraft:${id}:${A().owned.length}:${Date.now()}`, ref: { type: 'aircraft', id } } });
   if (!paid.ok) return { ok: false, message: 'You do not have enough money for that.' };
-  A().add(id, a.price);
+  A().add(id, a.price, sanitizeLivery(livery, a, useCharacterStore.getState().name));
   return { ok: true, message: `${a.name} is yours. It is parked on your lawn.` };
 }
 export const aircraftSalePrice = (id: string): number => Math.round((A().paid[id] ?? getAircraft(id)?.price ?? 0) * SELL_RATE);

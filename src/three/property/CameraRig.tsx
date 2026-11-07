@@ -14,13 +14,15 @@ const TILT_RAD_PER_PX = 0.003; // vertical drag: finger down = look more from ab
  * Fixed-elevation three-quarter camera around the house centre. Same default direction and elevation for every home; only the
  * distance adapts (to the house plus its carport, and to the viewport). Horizontal swipe/drag rotates within +-90 degrees of
  * the button-selected orientation; a vertical drag (or the mouse wheel) tilts the camera between POLAR_MIN and POLAR_MAX
- * (cameraStore) around a fixed look-at point: the view never slides. Orientation and tilt live in cameraStore; this component only follows them.
+ * (cameraStore) around a fixed look-at point: the view never slides. Orientation, tilt, zoom and slide (pan) live in cameraStore; this component only follows them.
  */
 export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; ready?: boolean }) {
   const { camera, size, gl } = useThree();
   const cur = useRef(DEFAULT_AZ);
   const curPolar = useRef(DEFAULT_POLAR);
   const lastFocus = useRef<import('@/stores/cameraStore').CameraFocus | null>(null);
+  const curPan = useRef<[number, number]>([0, 0]);
+  const panLimit = useRef(10);
   const blend = useRef(0); // 0 = normal view, 1 = fully focused on the placed item
   const inVenue = useInteriorStore((st) => !!st.current);
   const aspect = size.width / Math.max(size.height, 1);
@@ -33,40 +35,64 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     return { tx: h.cx, ty: layout.wallHeight * 0.3, tz: h.cz, fit: (Math.max(span, venueSpan) * 1.15 + 3.2) * (aspect < 1 ? 1 + (1 - aspect) * 2.1 : 1) };
   }, [layout, aspect, inVenue]);
 
+  panLimit.current = fit * 0.75; // how far the view may slide from the house: about three quarters of the framing distance
+
   // New home: back to the default orientation, instantly.
   useEffect(() => {
     useCameraStore.getState().reset();
     cur.current = DEFAULT_AZ;
     curPolar.current = DEFAULT_POLAR;
+    curPan.current = [0, 0];
     useEditorStore.getState().setCameraPolar(DEFAULT_POLAR);
   }, [layout.id]);
 
-  // Horizontal drag rotates, vertical drag tilts (one pointer); pinch / ctrl+wheel zoom.
+  // One finger / left mouse button: horizontal drag rotates, vertical drag tilts.
+  // Two fingers: pinch zooms and dragging both slides the view (like moving a zoomed map).
+  // Mouse: right button, middle button or Shift + left button slides the view; the wheel zooms (Shift + wheel tilts).
   useEffect(() => {
     const el = gl.domElement;
     el.style.touchAction = 'none';
-    const pts = new Map<number, { x: number; y: number }>();
+    type Pt = { x: number; y: number; pan: boolean };
+    const pts = new Map<number, Pt>();
     let pinch = 0;
-    const down = (e: PointerEvent) => { useCameraStore.getState().clearFocus(); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) pinch = dist(); };
     const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+    const mid = () => { const [a, b] = [...pts.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+    /** Slide the view so the scene follows the finger / cursor by (dx, dy) screen pixels. */
+    const slide = (dx: number, dy: number) => {
+      const c = camera as import('three').PerspectiveCamera, st = useCameraStore.getState();
+      const dist3 = fit * st.zoom, unit = (2 * dist3 * Math.tan((c.fov * Math.PI) / 360)) / Math.max(size.height, 1); // metres per pixel at the look-at point
+      const a = cur.current, rx = Math.cos(a), rz = -Math.sin(a), fx = -Math.sin(a), fz = -Math.cos(a), fore = unit / Math.max(0.35, Math.cos(curPolar.current)); // the ground is foreshortened going up the screen
+      st.panBy(-dx * unit * rx + dy * fore * fx, -dx * unit * rz + dy * fore * fz, panLimit.current);
+    };
+    const down = (e: PointerEvent) => {
+      useCameraStore.getState().clearFocus();
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY, pan: e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.shiftKey) });
+      if (pts.size === 2) pinch = dist();
+    };
     const move = (e: PointerEvent) => {
       const p = pts.get(e.pointerId); if (!p) return;
+      const before = pts.size === 2 ? mid() : null;
       const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (!ready || useEditorStore.getState().dragging) return;
-      if (pts.size === 1) { useCameraStore.getState().swipe(-dx * SWIPE_RAD_PER_PX); useCameraStore.getState().tiltBy(-dy * TILT_RAD_PER_PX); }
-      else if (pts.size === 2) { const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * Math.pow(pinch / d, 1.35)); pinch = d; }
+      if (pts.size === 1) {
+        if (p.pan) slide(dx, dy);
+        else { useCameraStore.getState().swipe(-dx * SWIPE_RAD_PER_PX); useCameraStore.getState().tiltBy(-dy * TILT_RAD_PER_PX); }
+      } else if (pts.size === 2) {
+        const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * Math.pow(pinch / d, 1.35)); pinch = d;
+        const after = mid(); if (before) slide(after.x - before.x, after.y - before.y);
+      }
     };
     const up = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
-    // mouse wheel zooms (shift + wheel tilts the camera); a trackpad pinch arrives as ctrl + wheel and zooms too; two-finger pinch on touch
     const wheel = (e: WheelEvent) => {
       if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); const c = useCameraStore.getState();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; // line-based wheels report lines, not pixels
       if (e.shiftKey) c.tiltBy(dy * 0.0008); else c.setZoom(c.zoom * Math.exp(dy * (e.ctrlKey ? 0.01 : 0.0016)));
     };
+    const menu = (e: Event) => e.preventDefault(); // right button is for sliding, not for the browser menu
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
-    el.addEventListener('wheel', wheel, { passive: false });
-    return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); };
-  }, [gl, ready]);
+    el.addEventListener('wheel', wheel, { passive: false }); el.addEventListener('contextmenu', menu);
+    return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); el.removeEventListener('contextmenu', menu); };
+  }, [gl, ready, camera, size.height, fit]);
 
   useFrame((_, dt) => {
     const st = useCameraStore.getState(), goal = targetAzimuth(st);
@@ -85,7 +111,10 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     if (Math.abs(want - blend.current) < 1e-3) blend.current = want;
     const bl = blend.current, fp = (fo ?? lastFocus.current)?.point;
     if (fo) lastFocus.current = fo;
-    const lx = fp ? tx + (fp[0] - tx) * bl : tx, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = fp ? tz + (fp[2] - tz) * bl : tz;
+    // slide: eased like the turn and tilt, and fades out while the camera is looking at a freshly placed item
+    curPan.current[0] += (st.pan[0] - curPan.current[0]) * (1 - Math.exp(-Math.min(dt, 0.1) * 14)); curPan.current[1] += (st.pan[1] - curPan.current[1]) * (1 - Math.exp(-Math.min(dt, 0.1) * 14));
+    const px = curPan.current[0] * (1 - bl), pz = curPan.current[1] * (1 - bl);
+    const lx = (fp ? tx + (fp[0] - tx) * bl : tx) + px, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = (fp ? tz + (fp[2] - tz) * bl : tz) + pz;
     const r = fit * st.zoom * (1 - (1 - PLACE_FOCUS.zoomFactor) * bl), sp = Math.sin(pol), a = cur.current;
     camera.position.set(lx + r * sp * Math.sin(a), ly + r * Math.cos(pol), lz + r * sp * Math.cos(a));
     camera.lookAt(lx, ly, lz);

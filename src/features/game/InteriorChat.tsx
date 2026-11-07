@@ -17,6 +17,7 @@ import { attemptPickpocket, sentenceMinutesFor, successChance } from '@/game/cri
 import { useJailStore } from '@/stores/jailStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useInteriorStore } from '@/stores/interiorStore';
+import { useTestDriveStore } from '@/stores/testDriveStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { TaskCard } from '@/ui/TaskCard';
 import { BuyCarCards, SellCarCards } from './CarCards';
@@ -112,7 +113,9 @@ export function InteriorChat() {
       else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Picture saved', 'good'); }
     } catch { /* the person closed the share sheet */ }
   };
-  if (!shown || !here || !def) return null;
+  const sheetUp = useUiStore((x) => !!x.showroomVehicle || x.clubMenuOpen || !!x.receiptId || !!x.carReveal), driving = useTestDriveStore((x) => !!x.vehicleId);
+  const windowOpen = sheetUp || driving;
+  if (!shown || !here || !def || windowOpen) return null; // one window at a time: the chat waits until the sheet or test drive is closed
   return (
     <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--dock-gap,4.9rem))] z-[76] flex justify-center px-2 ${dockHidden ? 'pr-16' : ''}`}>
       <div ref={box} role="region" aria-label="Venue panel" className="panel pointer-events-auto flex max-h-[62vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-3xl p-2.5">
