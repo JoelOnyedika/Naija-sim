@@ -23,7 +23,7 @@ function worn(a: Appearance, it: BoutiqueItem): boolean {
     case 'shoes': return a.shoes === it.style && a.shoeColor === it.color;
     case 'hair': return a.hairStyle === it.style;
     case 'extra': return a.accessory === it.style;
-    case 'bag': return false;
+    case 'bag': return a.bag === it.style && a.bagColor === it.color;
   }
 }
 

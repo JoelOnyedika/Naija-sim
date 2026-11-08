@@ -8,7 +8,7 @@ import { guarded } from './guard';
 /**
  * Boutique purchase. One wardrobe: `characterStore.ownedClothes` is the single list of what you own, used by the Boutique and by
  * the wardrobe in your house. Buying checks the balance, charges once through the ledger, then adds the item. Items you own
- * (or that are free) are never charged again. Bags are collectable but cannot be worn on the character yet.
+ * (or that are free) are never charged again. Bags are worn like everything else (the character carries them).
  */
 export type Result = { ok: true; bought: boolean; worn: boolean } | { ok: false; error: string };
 export const isOwned = (it: BoutiqueItem) => it.price === 0 || useCharacterStore.getState().ownedClothes.includes(it.id);

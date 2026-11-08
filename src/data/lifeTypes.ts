@@ -21,7 +21,7 @@ export interface LifeTypeDef {
 export const LIFE_TYPES: Record<LifeTypeId, LifeTypeDef> = {
   lapo: {
     id: 'lapo', name: 'Lapo Baby', tagline: 'Start small. Hustle hard.', rarityLabel: 'Common',
-    moneyRange: [2500000000, 6000000000], phone: 'android', phoneName: 'Tecno-style Android',
+    moneyRange: [25000, 60000], phone: 'android', phoneName: 'Tecno-style Android',
     startingFurniture: ['foam_mattress', 'bucket', 'fan'], startingInventory: { chair: 1, indomie: 2 }, startingVehicles: [],
     conditions: ['Low starting cash', 'Basic compound room', 'Budget Android phone', 'Basic furniture'],
     color: '#9BB3A8',

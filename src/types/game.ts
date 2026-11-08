@@ -21,14 +21,15 @@ export interface PlacedItem {
   fixed?: boolean;
 }
 
-export type HairStyle = 'bald' | 'lowcut' | 'fade' | 'afro' | 'braids' | 'dreads' | 'bun' | 'cornrows' | 'twists';
+export type HairStyle = 'bald' | 'lowcut' | 'fade' | 'afro' | 'braids' | 'dreads' | 'bun' | 'cornrows' | 'twists' | 'ponytail' | 'bob' | 'long' | 'puffs';
 export type BodyType = 'masc' | 'femme';
 export type BeardStyle = 'none' | 'stubble' | 'moustache' | 'goatee' | 'full';
 export type TopStyle = 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey';
 /** `dress` is a one-piece: it replaces the top as well. */
 export type BottomStyle = 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress';
 export type ShoeStyle = 'sneakers' | 'boots' | 'sandals' | 'barefoot';
-export type Accessory = 'none' | 'glasses' | 'cap' | 'chain' | 'earrings';
+export type Accessory = 'none' | 'glasses' | 'cap' | 'chain' | 'earrings' | 'gele' | 'headphones';
+export type BagStyle = 'none' | 'tote' | 'backpack' | 'crossbody' | 'clutch' | 'handbag';
 export interface Appearance {
   skin: string;
   hairStyle: HairStyle;
@@ -44,4 +45,7 @@ export interface Appearance {
   body?: BodyType;
   eye?: string;
   beard?: BeardStyle;
+  /** The bag being carried (bought in the Boutique). Optional, so older saves and NPCs have none. */
+  bag?: BagStyle;
+  bagColor?: string;
 }

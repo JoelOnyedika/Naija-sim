@@ -113,7 +113,7 @@ export function InteriorChat() {
       else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Picture saved', 'good'); }
     } catch { /* the person closed the share sheet */ }
   };
-  const sheetUp = useUiStore((x) => !!x.showroomVehicle || x.clubMenuOpen || !!x.receiptId || !!x.carReveal), driving = useTestDriveStore((x) => !!x.vehicleId);
+  const sheetUp = useUiStore((x) => !!x.showroomVehicle || x.clubMenuOpen || x.clubTicketOpen || !!x.haggle || !!x.receiptId || !!x.carReveal), driving = useTestDriveStore((x) => !!x.vehicleId);
   const windowOpen = sheetUp || driving;
   if (!shown || !here || !def || windowOpen) return null; // one window at a time: the chat waits until the sheet or test drive is closed
   return (

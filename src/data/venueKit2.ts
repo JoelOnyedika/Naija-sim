@@ -22,7 +22,8 @@ const fun = (id: string, glyph: string, label: string, sec: number, fx: Fx, extr
 /** A gamble. `stake` is what you pay to try (0 = free), `p` the chance to win, `prize` cash on a win. */
 const bet = (id: string, glyph: string, label: string, stake: number, p: number, prize: number, win: Fx, lose: Fx, winMsg: string, loseMsg: string, sec = 10, extra: Extra = {}): UseDef =>
   U(id, glyph, label, sec, { energy: -2 }, { ...(stake ? { cost: stake } : {}), ...extra, risk: { winChance: p, winMoney: prize, winEffects: win, loseEffects: lose, winMessage: winMsg, loseMessage: loseMsg } });
-const haggle = (id: string, who: string, prize = 800): UseDef => bet(id, '💬', `Haggle with ${who}`, 0, 0.5, prize, { happiness: 4, charisma: 1 }, { happiness: -2 }, `${who} agreed to a better price.`, `${who}: "Na so the price be."`, 8, { skill: { id: 'communication', xp: 2 } });
+/** Real haggling (game/haggle.ts): the seller starts at ten times the old prize figure, and you bargain for the goods. */
+const haggle = (id: string, who: string, prize = 800): UseDef => U(id, '💬', `Haggle with ${who}`, 5, {}, { haggle: { who, item: 'the goods', ask: prize * 10 } });
 
 const L = (v: NonNullable<Kit['look']>['v'], c1: string, c2: string, c3: string, sign?: string) => ({ v, c1, c2, c3, sign });
 const P = (id: string, name: string, glyph: string, w: number, d: number, h: number, look: Kit['look'], uses: UseDef[], solid = true, sp = stand): Kit => ({ id, name, glyph, w, d, h, solid, spec: sp, look, uses });

@@ -34,6 +34,10 @@ interface UiState {
   /** The bottom menu (Home, Buy, Map, Phone) is folded away behind a small menu button. */
   dockHidden: boolean; setDockHidden: (v: boolean) => void;
   clubMenuOpen: boolean; setClubMenu: (v: boolean) => void;
+  /** The haggling sheet: who, what, and the first asking price. Null = closed. */
+  haggle: { who: string; item: string; glyph: string; ask: number } | null; setHaggle: (h: { who: string; item: string; glyph: string; ask: number } | null) => void;
+  /** The club bill (ticket) is open. */
+  clubTicketOpen: boolean; setClubTicket: (v: boolean) => void;
   receiptId: string | null; setReceipt: (id: string | null) => void;
   showroomVehicle: string | null; setShowroomVehicle: (id: string | null) => void;
   /** The car whose purchase celebration is playing (a film plays over the game until it ends or is skipped). */
@@ -63,7 +67,7 @@ interface UiState {
 let nextId = 1;
 export const useUiStore = create<UiState>((set, get) => ({
   mode: 'home', taskPanelOpen: false, statsExpanded: false, profileOpen: false, setProfileOpen: (profileOpen) => set({ profileOpen }), infoItemId: null, setInfoItem: (infoItemId) => set({ infoItemId }), catalogOpen: true, catalogTab: 'sleep', sceneLoading: false, buySpent: 0, budgetStart: 0,
-  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), carReveal: null, setCarReveal: (carReveal) => set({ carReveal }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
+  detailPropertyId: null, housesAreaFilter: null, foodPickerUid: null, actionMenuUid: null, dockHidden: false, setDockHidden: (dockHidden) => set({ dockHidden }), chatOpen: false, setChatOpen: (chatOpen) => set({ chatOpen }), clubMenuOpen: false, setClubMenu: (clubMenuOpen) => set({ clubMenuOpen }), haggle: null, setHaggle: (haggle) => set({ haggle }), clubTicketOpen: false, setClubTicket: (clubTicketOpen) => set({ clubTicketOpen }), receiptId: null, setReceipt: (receiptId) => set({ receiptId }), showroomVehicle: null, setShowroomVehicle: (showroomVehicle) => set({ showroomVehicle }), carReveal: null, setCarReveal: (carReveal) => set({ carReveal }), setActionMenu: (actionMenuUid) => set({ actionMenuUid }),
   online: Math.round((CONFIG.online.min + CONFIG.online.max) / 2), toasts: [], banner: null,
   setMode: (mode) => set({ mode }),
   toggleTasks: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),

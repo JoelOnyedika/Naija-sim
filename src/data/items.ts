@@ -35,6 +35,8 @@ export interface UseDef {
   payout?: number;
   /** Pet care activity: updates the pet's bond / hunger when it finishes (game/petCare.ts). */
   petAction?: 'pet' | 'feed' | 'play';
+  /** Opens the haggling sheet instead of running as a timed activity (game/haggle.ts). `ask` is the seller's first price. */
+  haggle?: { who: string; item: string; ask: number };
   /** A gamble: when the activity ends it is won or lost. `winEffects`/`loseEffects` are applied then (and a lost one earns no XP or pay). Random outcomes must be decided by a server in a real game. */
   risk?: { winChance: number; winEffects: Effects; loseEffects: Effects; winMessage: string; loseMessage: string; /** Cash paid on a win (approved by the reward authority). */ winMoney?: number };
 }

@@ -4,11 +4,11 @@ import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
-import { CLUB, CLUB_OPTIONS } from '@/data/club';
+import { CLUB, CLUB_GROUPS, CLUB_OPTIONS, MAX_QTY, type ClubGroup } from '@/data/club';
 import { CarImage } from './CarCards';
 import { getVehicle } from '@/data/vehicles';
-import { buyClub, clubPrice, announcementText } from '@/game/club';
-import { renderReceiptPng } from '@/game/receiptImage';
+import { buyClub, clubPrice, announcementText, tonightsBill } from '@/game/club';
+import { renderBillPng, renderReceiptPng } from '@/game/receiptImage';
 import { buyVehicle, salePrice, sellVehicle, vehiclePrice } from '@/game/vehicles';
 import { useClubStore } from '@/stores/clubStore';
 import { useInteriorStore } from '@/stores/interiorStore';
@@ -35,36 +35,99 @@ export function Sheet({ open, label, onClose, children, z = 90, solid = false }:
   );
 }
 
-/** The club menu: pick what to order, see the total, pay. Nothing is recorded until the money is really taken. */
+/** The club menu: pick what to order (crates, bundles and trays have a quantity), see the total, pay. Stays open so you can keep balling. */
 export function ClubMenu() {
   const open = useUiStore((s) => s.clubMenuOpen);
   const close = () => useUiStore.getState().setClubMenu(false);
-  const [sel, setSel] = useState<string[]>([]);
-  const receipts = useClubStore((s) => s.receipts);
-  const total = sel.reduce((a, id) => a + clubPrice(CLUB_OPTIONS.find((o) => o.id === id)!), 0);
+  const [qty, setQty] = useState<Record<string, number>>({}), [group, setGroup] = useState<ClubGroup>('bottles');
+  const receipts = useClubStore((s) => s.receipts), since = useClubStore((s) => s.since), club = useInteriorStore((s) => s.current?.name ?? 'Club');
+  const picked = CLUB_OPTIONS.filter((o) => (qty[o.id] ?? 0) > 0);
+  const total = picked.reduce((a, o) => a + clubPrice(o) * qty[o.id], 0), bill = tonightsBill(receipts, club, since).total;
+  const set = (id: string, n: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(MAX_QTY, n)) }));
   const pay = () => {
-    const r = buyClub(sel);
+    const r = buyClub(picked.map((o) => ({ id: o.id, qty: qty[o.id] })));
     if (!r.ok) { sfx.error(); toast(r.message, 'bad'); return; }
-    sfx.purchase(); setSel([]); close(); useUiStore.getState().setReceipt(r.receipt.id);
+    sfx.purchase(); setQty({}); toast(`Charged ${formatNaira(r.receipt.total)}. It is on your bill.`, 'good');
   };
   return (
     <Sheet open={open} label="Club menu" onClose={close}>
-      <div className="pr-10 font-display text-lg font-extrabold">{useInteriorStore.getState().current?.name ?? 'Club'} menu</div>
-      <div className="text-[12px] text-white/60">In-game naira only. Big spenders get announced (at most once a minute).</div>
-      <div className="mt-3 space-y-2">
-        {CLUB_OPTIONS.map((o) => {
-          const on = sel.includes(o.id);
+      <div className="pr-10 font-display text-lg font-extrabold">{club} menu</div>
+      <button onClick={() => { close(); useUiStore.getState().setClubTicket(true); }} className="mt-1 flex w-full items-center justify-between rounded-xl bg-white/[0.07] px-3 py-2 text-left active:bg-white/10" aria-label="Open my bill">
+        <span className="text-[12px] text-white/60">Burned tonight · tap for your bill</span><span className="font-display text-[15px] font-extrabold text-danfo">{formatNaira(bill)}</span>
+      </button>
+      <div className="no-scrollbar -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Menu sections">
+        {CLUB_GROUPS.map((g) => {
+          const n = CLUB_OPTIONS.filter((o) => o.group === g.id && (qty[o.id] ?? 0) > 0).length;
+          return <button key={g.id} role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${group === g.id ? 'border-accent bg-accent/25' : 'border-white/10 bg-white/[0.06] text-white/75'}`}>{g.label}{n > 0 ? ` · ${n}` : ''}</button>;
+        })}
+      </div>
+      <div className="mt-2 space-y-2">
+        {CLUB_OPTIONS.filter((o) => o.group === group).map((o) => {
+          const n = qty[o.id] ?? 0, on = n > 0;
           return (
-            <button key={o.id} role="checkbox" aria-checked={on} onClick={() => setSel((s) => (on ? s.filter((x) => x !== o.id) : [...s, o.id]))} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${on ? 'border-accent bg-accent/20' : 'border-white/10 bg-white/[0.06]'}`}>
-              <span className="text-2xl">{o.glyph}</span>
-              <span className="min-w-0 flex-1"><span className="block text-[14px] font-bold">{o.name}</span><span className="block text-[12px] text-white/60">{o.blurb}</span></span>
-              <span className="text-[14px] font-extrabold text-danfo">{formatNaira(clubPrice(o))}</span>
-            </button>
+            <div key={o.id} className={`flex w-full items-center gap-3 rounded-xl border p-3 ${on ? 'border-accent bg-accent/20' : 'border-white/10 bg-white/[0.06]'}`}>
+              <button className="flex min-w-0 flex-1 items-center gap-3 text-left" role={o.multi ? undefined : 'checkbox'} aria-checked={o.multi ? undefined : on} onClick={() => (o.multi ? set(o.id, n + 1) : set(o.id, n ? 0 : 1))} aria-label={o.multi ? `Add ${o.name}` : o.name}>
+                <span className="text-2xl">{o.glyph}</span>
+                <span className="min-w-0 flex-1"><span className="block text-[14px] font-bold leading-tight">{o.name}</span><span className="block text-[12px] leading-snug text-white/60">{o.blurb}</span><span className="mt-0.5 block text-[13px] font-extrabold text-danfo">{formatNaira(clubPrice(o))}</span></span>
+              </button>
+              {o.multi && on && (
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <button onClick={() => set(o.id, n - 1)} aria-label={`One less ${o.name}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-bold active:bg-white/25">−</button>
+                  <span className="w-7 text-center text-[15px] font-extrabold tabular-nums">{n}</span>
+                  <button onClick={() => set(o.id, n + 1)} aria-label={`One more ${o.name}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-bold active:bg-white/25">+</button>
+                </span>
+              )}
+            </div>
           );
         })}
       </div>
-      <button disabled={!sel.length} onClick={pay} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold disabled:opacity-40">{sel.length ? `Pay ${formatNaira(total)}` : 'Pick something'}</button>
-      {receipts.length > 0 && <button onClick={() => { close(); useUiStore.getState().setReceipt(receipts[0].id); }} className="mt-2 h-10 w-full rounded-xl bg-white/10 text-[13px] font-semibold">My receipts ({receipts.length})</button>}
+      <button disabled={!picked.length} onClick={pay} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold disabled:opacity-40">{picked.length ? `Pay ${formatNaira(total)}` : 'Pick something'}</button>
+      <p className="mt-2 text-center text-[11px] text-white/45">In-game naira only. It comes straight out of your cash. Big spenders get announced.</p>
+    </Sheet>
+  );
+}
+
+/** The bill: a paper ticket of everything you have burned tonight, newest at the bottom, with a running total. Can be saved as a picture. */
+export function ClubTicket() {
+  const open = useUiStore((s) => s.clubTicketOpen), close = () => useUiStore.getState().setClubTicket(false);
+  const receipts = useClubStore((s) => s.receipts), since = useClubStore((s) => s.since), club = useInteriorStore((s) => s.current?.name ?? 'Club');
+  const { rows, total } = tonightsBill(receipts, club, since), player = receipts[0]?.player ?? 'Player';
+  const busy = useRef(false);
+  const save = async () => {
+    if (busy.current) return; busy.current = true;
+    try {
+      const blob = await renderBillPng({ club, player, since, rows, total }); const file = new File([blob], `bill-${Date.now()}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: `${club} bill` });
+      else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Bill saved as a picture', 'good'); }
+    } catch { toast('Could not save the picture here.', 'bad'); } finally { busy.current = false; }
+  };
+  const paper = '#FBF7EE', zig = (dir: 'top' | 'bottom') => ({ height: 14, background: `linear-gradient(${dir === 'top' ? '135deg' : '315deg'}, ${paper} 25%, transparent 25%) -7px 0/14px 14px, linear-gradient(${dir === 'top' ? '225deg' : '45deg'}, ${paper} 25%, transparent 25%) -7px 0/14px 14px` });
+  return (
+    <Sheet open={open} label="Bill" onClose={close} solid>
+      <div className="mx-auto w-full max-w-[22rem] pt-6" aria-label="Club bill">
+        <div style={zig('top')} />
+        <div className="px-4 pb-3 pt-1 text-[#1B1B22]" style={{ background: paper }}>
+          <div className="text-center"><div className="font-display text-xl font-extrabold tracking-widest">{club.toUpperCase()}</div><div className="text-[11px] tracking-[0.35em] text-[#8A6D2B]">THE BILL</div></div>
+          <div className="mt-3 rounded-xl bg-[#F1E8FA] py-2 text-center"><div className="text-[10px] font-extrabold tracking-[0.25em] text-[#7A1FA2]">BURNED TONIGHT</div><div className="font-display text-[28px] font-extrabold leading-tight" data-testid="bill-total">{formatNaira(total)}</div></div>
+          <div className="relative my-3 border-t-2 border-dashed border-[#BBA877]"><span className="absolute -left-7 -top-3 h-5 w-5 rounded-full bg-[#0F141C]" /><span className="absolute -right-7 -top-3 h-5 w-5 rounded-full bg-[#0F141C]" /></div>
+          <div className="max-h-[34vh] min-h-[4rem] space-y-1.5 overflow-y-auto pr-1" role="list" aria-label="Bill lines">
+            {rows.length === 0 && <p className="py-3 text-center text-[13px] text-[#8A8A92]">Nothing ordered yet. Tap the bar.</p>}
+            {rows.map((r, i) => (
+              <div key={i} role="listitem" className="flex items-baseline justify-between gap-2 text-[13px]">
+                <span className="min-w-0"><span className="mr-1.5 text-[10.5px] text-[#8A8A92]">{new Date(r.at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })}</span><b className="font-semibold">{r.qty > 1 ? `${r.qty}× ` : ''}{r.name}</b></span>
+                <span className="shrink-0 text-right"><b>{formatNaira(r.price)}</b><span className="block text-[10px] text-[#8A8A92]">so far {formatNaira(r.running)}</span></span>
+              </div>
+            ))}
+          </div>
+          <div className="my-3 border-t-2 border-[#1B1B22]" />
+          <div className="flex items-center justify-between"><span className="text-[13px] font-bold">TOTAL</span><span className="font-display text-xl font-extrabold">{formatNaira(total)}</span></div>
+          <div className="mt-2 text-center"><span className="rounded-full bg-emerald-100 px-3 py-1 text-[10.5px] font-extrabold tracking-widest text-emerald-700">PAID FROM CASH · ALL DEDUCTED</span></div>
+          <div className="mx-auto mt-3 h-10 w-4/5" style={{ background: 'repeating-linear-gradient(90deg,#1B1B22 0 2px,transparent 2px 5px,#1B1B22 5px 6px,transparent 6px 10px,#1B1B22 10px 13px,transparent 13px 15px)' }} aria-hidden />
+        </div>
+        <div style={zig('bottom')} />
+      </div>
+      <button onClick={() => void save()} className="mt-3 h-11 w-full rounded-xl bg-accent text-sm font-extrabold">Save or share picture</button>
+      <button onClick={() => { close(); useUiStore.getState().setClubMenu(true); }} className="mt-2 h-10 w-full rounded-xl bg-white/10 text-[13px] font-semibold">Back to the menu</button>
     </Sheet>
   );
 }

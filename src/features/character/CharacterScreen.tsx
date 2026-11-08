@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Check, Dices } from 'lucide-react';
 import { useState } from 'react';
 import { sfx } from '@/audio/sfx';
-import { ACCESSORIES, BEARD_STYLES, BODY_TYPES, BOTTOM_STYLES, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HAIR_STYLES, SHOE_STYLES, SKIN_TONES, TOP_STYLES } from '@/data/clothing';
+import { ACCESSORIES, BAG_COLORS, BAG_STYLES, BEARD_STYLES, BODY_TYPES, BOTTOM_STYLES, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HAIR_STYLES, SHOE_STYLES, SKIN_TONES, TOP_STYLES } from '@/data/clothing';
 import { useAuthStore } from '@/stores/authStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useFlowStore } from '@/stores/flowStore';
@@ -84,7 +84,7 @@ export function CharacterScreen() {
           {tab === 'top' && (<><Chips items={TOP_STYLES} value={a.top} onPick={(v) => set({ top: v, ...(a.bottom === 'dress' ? { bottom: 'jeans' } : {}) })} /><Swatches label="Colour" colors={CLOTH_COLORS} value={a.topColor} onPick={(c) => set({ topColor: c })} /></>)}
           {tab === 'bottom' && (<><Chips items={BOTTOM_STYLES} value={a.bottom} onPick={(v) => set({ bottom: v })} />{a.bottom === 'dress' && <p className="text-xs text-white/50">A dress is one piece, so it replaces your top.</p>}<Swatches label={a.bottom === 'dress' ? 'Dress colour (uses top colour)' : 'Colour'} colors={CLOTH_COLORS} value={a.bottom === 'dress' ? a.topColor : a.bottomColor} onPick={(c) => set(a.bottom === 'dress' ? { topColor: c } : { bottomColor: c })} /></>)}
           {tab === 'shoes' && (<><Chips items={SHOE_STYLES} value={a.shoes} onPick={(v) => set({ shoes: v })} /><Swatches label="Colour" colors={CLOTH_COLORS} value={a.shoeColor} onPick={(c) => set({ shoeColor: c })} /></>)}
-          {tab === 'extras' && <Chips items={ACCESSORIES} value={a.accessory} onPick={(v) => set({ accessory: v })} />}
+          {tab === 'extras' && (<><Chips items={ACCESSORIES} value={a.accessory} onPick={(v) => set({ accessory: v })} /><p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Bag</p><Chips items={BAG_STYLES} value={a.bag ?? 'none'} onPick={(v) => set({ bag: v })} />{(a.bag ?? 'none') !== 'none' && <Swatches label="Bag colour" colors={BAG_COLORS} value={a.bagColor ?? BAG_COLORS[0]} onPick={(c) => set({ bagColor: c })} />}</>)}
         </div>
         <button onClick={() => { if (!nameOk) { setTouched(true); sfx.error(); return; } setName(name.trim()); finish(); sfx.reward(); go('roulette'); }} className="mt-1 h-12 w-full rounded-lg bg-accent text-[15px] font-bold text-white shadow-accent">Confirm and continue</button>
       </motion.aside>

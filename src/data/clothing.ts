@@ -1,4 +1,4 @@
-import type { Accessory, Appearance, BeardStyle, BodyType, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
+import type { Accessory, Appearance, BagStyle, BeardStyle, BodyType, BottomStyle, HairStyle, ShoeStyle, TopStyle } from '@/types/game';
 
 export const SKIN_TONES = ['#F1C9A5', '#D9A273', '#B77B4E', '#8A5A3C', '#6B4128', '#4A2C1B'];
 export const HAIR_COLORS = ['#0E0B0A', '#2B1B14', '#6B3F23', '#B9892F', '#C23B3B', '#5A3E9C', '#E9E4DA'];
@@ -13,6 +13,7 @@ export const BEARD_STYLES: { id: BeardStyle; label: string }[] = [
 export const HAIR_STYLES: { id: HairStyle; label: string }[] = [
   { id: 'bald', label: 'Bald' }, { id: 'lowcut', label: 'Low cut' }, { id: 'fade', label: 'Fade' }, { id: 'afro', label: 'Afro' },
   { id: 'braids', label: 'Braids' }, { id: 'dreads', label: 'Locs' }, { id: 'bun', label: 'Bun' }, { id: 'cornrows', label: 'Cornrows' }, { id: 'twists', label: 'Twists' },
+  { id: 'ponytail', label: 'Ponytail' }, { id: 'bob', label: 'Bob' }, { id: 'long', label: 'Long' }, { id: 'puffs', label: 'Puffs' },
 ];
 export const TOP_STYLES: { id: TopStyle; label: string }[] = [
   { id: 'tee', label: 'T-shirt' }, { id: 'shirt', label: 'Shirt' }, { id: 'hoodie', label: 'Hoodie' }, { id: 'jacket', label: 'Jacket' }, { id: 'kaftan', label: 'Kaftan' }, { id: 'jersey', label: 'Jersey' },
@@ -25,8 +26,10 @@ export const SHOE_STYLES: { id: ShoeStyle; label: string }[] = [
   { id: 'sneakers', label: 'Sneakers' }, { id: 'boots', label: 'Boots' }, { id: 'sandals', label: 'Sandals' }, { id: 'barefoot', label: 'Barefoot' },
 ];
 export const ACCESSORIES: { id: Accessory; label: string }[] = [
-  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' },
+  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' }, { id: 'gele', label: 'Gele' }, { id: 'headphones', label: 'Headphones' },
 ];
+export const BAG_STYLES: { id: BagStyle; label: string }[] = [{ id: 'none', label: 'No bag' }, { id: 'tote', label: 'Tote' }, { id: 'backpack', label: 'Backpack' }, { id: 'crossbody', label: 'Crossbody' }, { id: 'clutch', label: 'Clutch' }, { id: 'handbag', label: 'Handbag' }];
+export const BAG_COLORS = ['#8A4B2A', '#1B1F24', '#C23B3B', '#E5A400', '#C9A66B', '#2B4C7E', '#0B8F4D', '#F4F1EA'];
 
 export type BoutiqueSlot = 'top' | 'bottom' | 'shoes' | 'hair' | 'extra' | 'bag';
 export interface BoutiqueItem { id: string; name: string; slot: BoutiqueSlot; style: string; color?: string; price: number; glyph: string }
@@ -53,6 +56,12 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-hair-bun', name: 'Bun', slot: 'hair', style: 'bun', price: 4000, glyph: '💇' },
   { id: 'b-hair-cornrows', name: 'Cornrows', slot: 'hair', style: 'cornrows', price: 10000, glyph: '💇' },
   { id: 'b-hair-twists', name: 'Twists', slot: 'hair', style: 'twists', price: 9000, glyph: '💇' },
+  { id: 'b-hair-ponytail', name: 'High ponytail', slot: 'hair', style: 'ponytail', price: 9000, glyph: '💇' },
+  { id: 'b-hair-bob', name: 'Sleek bob', slot: 'hair', style: 'bob', price: 11000, glyph: '💇' },
+  { id: 'b-hair-long', name: 'Long hair', slot: 'hair', style: 'long', price: 16000, glyph: '💇' },
+  { id: 'b-hair-puffs', name: 'Twin puffs', slot: 'hair', style: 'puffs', price: 7000, glyph: '💇' },
+  { id: 'b-x-gele', name: 'Gele headwrap', slot: 'extra', style: 'gele', price: 30000, glyph: '👑' },
+  { id: 'b-x-headphones', name: 'Headphones', slot: 'extra', style: 'headphones', price: 26000, glyph: '🎧' },
   { id: 'b-x-earrings', name: 'Gold earrings', slot: 'extra', style: 'earrings', price: 14000, glyph: '✨' },
   { id: 'b-x-glasses', name: 'Round glasses', slot: 'extra', style: 'glasses', price: 10000, glyph: '👓' },
   { id: 'b-x-cap', name: 'Cap', slot: 'extra', style: 'cap', price: 8000, glyph: '🧢' },
@@ -72,6 +81,6 @@ export function applyItem(a: Appearance, it: BoutiqueItem): Appearance {
     case 'shoes': return { ...a, shoes: it.style as ShoeStyle, shoeColor: it.color ?? a.shoeColor };
     case 'hair': return { ...a, hairStyle: it.style as HairStyle };
     case 'extra': return { ...a, accessory: it.style as Accessory };
-    case 'bag': return a; // bags are owned and kept in the wardrobe, but the character model cannot show them yet
+    case 'bag': return { ...a, bag: it.style as BagStyle, bagColor: it.color ?? a.bagColor };
   }
 }

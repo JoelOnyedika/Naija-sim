@@ -72,7 +72,15 @@ function canBegin(u: UseDef, uid?: string, queued = false): boolean {
 /** Which activity the player picked for each object (read on arrival). */
 const chosen = new Map<string, string>();
 
+/** A haggle is not a timed activity: it opens the haggling sheet right away, with nobody walking anywhere. */
+function openHaggle(u: UseDef): boolean {
+  if (!u.haggle) return false;
+  sfx.click(); const w = u.haggle.who, item = /shoe/.test(w) ? 'a pair of shoes' : /phone/.test(w) ? 'a phone' : /fish/.test(w) ? 'fresh fish' : /souvenir/.test(w) ? 'a souvenir' : /attendant/.test(w) ? 'a gift' : /stall owner/.test(w) ? 'a club jersey' : u.haggle.item;
+  useUiStore.getState().setHaggle({ who: w, item, glyph: u.glyph ?? '💬', ask: u.haggle.ask }); return true;
+}
+
 function beginUse(item: PlacedItem, u: UseDef) {
+  if (openHaggle(u)) return;
   if (!canBegin(u, item.uid)) return;
   if (u.id) chosen.set(item.uid, u.id); else chosen.delete(item.uid);
   useActorStore.getState().useItem(item.uid);
@@ -85,11 +93,13 @@ export function chooseActivity(item: PlacedItem, activityId: string) {
   const u = usesOf(def).find((x) => x.id === activityId);
   useUiStore.getState().setActionMenu(null);
   if (!u) return;
+  if (openHaggle(u)) return;
   if (isBusy()) enqueueUse(item, u); else beginUse(item, u);
 }
 
 /** Tapped while busy: line it up to run when the current activity ends. */
 export function enqueueUse(item: PlacedItem, u: UseDef) {
+  if (openHaggle(u)) return;
   if (!canBegin(u, item.uid, true)) return;
   if (!useQueueStore.getState().push({ uid: item.uid, activityId: u.id, label: u.label.replace(/ \(₦\d+\)/, ''), glyph: u.glyph })) { sfx.error(); toast(`You can only line up ${QUEUE_LIMIT} things.`, 'bad'); return; }
   sfx.click(); toast(`Next: ${u.label.replace(/ \(₦\d+\)/, '')}`);

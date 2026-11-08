@@ -25,5 +25,5 @@ export function occasionsOf(it: BoutiqueItem): Occasion[] {
   if (it.slot === 'shoes') return /sneak|train|run/.test(it.style) ? ['Gym', 'Everyday'] : /heel|loafer|oxford|formal/.test(it.style) ? ['Work', 'Party', 'Date Night'] : /slide|slipper|sandal/.test(it.style) ? ['Home', 'Everyday'] : ['Everyday'];
   return BY_SLOT[it.slot];
 }
-/** Whether the character model can show this item. Bags are collectable but not drawn yet. */
-export const canPreview = (it: BoutiqueItem) => it.slot !== 'bag';
+/** Whether the character model can show this item. Everything can be shown now, bags included. */
+export const canPreview = (_it: BoutiqueItem) => true;

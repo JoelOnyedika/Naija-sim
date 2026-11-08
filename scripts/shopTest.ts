@@ -109,7 +109,8 @@ const r2 = buyAndWear(cheap.id);
 ok(r2.ok && !(r2 as any).bought && eco().money === w0 - cheap.price && eco().transactions.length === n1 + 1, 'wearing an item you own again never charges');
 eco().credit(500_000, 'top up'); clearGuard();
 const lookBefore = JSON.stringify(useCharacterStore.getState().appearance), rb = buyAndWear(bag.id);
-ok(rb.ok && (rb as any).bought && !(rb as any).worn && !canPreview(bag) && JSON.stringify(useCharacterStore.getState().appearance) === lookBefore, 'a bag is bought and kept in the wardrobe; the character is unchanged (no preview yet)');
+const lookAfter = useCharacterStore.getState().appearance;
+ok(rb.ok && (rb as any).bought && (rb as any).worn && canPreview(bag) && lookAfter.bag === bag.style && lookAfter.bagColor === bag.color && JSON.stringify({ ...lookAfter, bag: undefined, bagColor: undefined }) === JSON.stringify({ ...JSON.parse(lookBefore), bag: undefined, bagColor: undefined }), 'a bag is bought and worn: the character carries it and nothing else about the look changes');
 ok(eco().transactions[0].ref?.type === 'boutique' && eco().transactions[0].amount === -bag.price, 'purchases are recorded in the ledger');
 
 console.log(fails ? `\n${fails} shop check(s) FAILED` : '\nAll shop checks passed');
