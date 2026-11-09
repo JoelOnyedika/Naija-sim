@@ -19,9 +19,10 @@ import { ActionMenu } from './ActionMenu';
 import { Hud } from './Hud';
 import { InteriorShell } from './InteriorShell';
 import { InteriorChat } from './InteriorChat';
-import { ClubBanner, ClubMenu, ClubTicket, ReceiptSheet, VehicleSheet } from './VenueSheets';
+import { ClubBanner, ClubTicket, ReceiptSheet, VehicleSheet } from './VenueSheets';
 import { ClubLive } from './ClubLive';
 import { HaggleSheet } from './HaggleSheet';
+import { BettingSlip } from './BettingSlip';
 import { CarReveal } from '../carReveal/CarReveal';
 import { NpcSheet } from './NpcSheet';
 import { LoadingOverlay } from './LoadingOverlay';
@@ -67,9 +68,9 @@ export function GameScreen() {
       <InteriorChat />
       <NpcSheet />
       <ClubLive />
-      <ClubMenu />
       <ClubTicket />
       <HaggleSheet />
+      <BettingSlip />
       <ReceiptSheet />
       <ClubBanner />
       <VehicleSheet />

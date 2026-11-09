@@ -1,15 +1,15 @@
 import { useTestDriveStore } from '@/stores/testDriveStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
-import { CLUB, CLUB_GROUPS, CLUB_OPTIONS, MAX_QTY, type ClubGroup } from '@/data/club';
+import { CLUB } from '@/data/club';
 import { CarImage } from './CarCards';
 import { getVehicle } from '@/data/vehicles';
-import { buyClub, clubPrice, announcementText, tonightsBill } from '@/game/club';
+import { announcementText, tonightsBill } from '@/game/club';
 import { renderBillPng, renderReceiptPng } from '@/game/receiptImage';
-import { buyVehicle, salePrice, sellVehicle, vehiclePrice } from '@/game/vehicles';
+import { buyVehicle, salePrice, sellVehicle, tradeInValue, tradeInVehicle, tradeNet, vehiclePrice } from '@/game/vehicles';
 import { useClubStore } from '@/stores/clubStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
@@ -32,58 +32,6 @@ export function Sheet({ open, label, onClose, children, z = 90, solid = false }:
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-/** The club menu: pick what to order (crates, bundles and trays have a quantity), see the total, pay. Stays open so you can keep balling. */
-export function ClubMenu() {
-  const open = useUiStore((s) => s.clubMenuOpen);
-  const close = () => useUiStore.getState().setClubMenu(false);
-  const [qty, setQty] = useState<Record<string, number>>({}), [group, setGroup] = useState<ClubGroup>('bottles');
-  const receipts = useClubStore((s) => s.receipts), since = useClubStore((s) => s.since), club = useInteriorStore((s) => s.current?.name ?? 'Club');
-  const picked = CLUB_OPTIONS.filter((o) => (qty[o.id] ?? 0) > 0);
-  const total = picked.reduce((a, o) => a + clubPrice(o) * qty[o.id], 0), bill = tonightsBill(receipts, club, since).total;
-  const set = (id: string, n: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(MAX_QTY, n)) }));
-  const pay = () => {
-    const r = buyClub(picked.map((o) => ({ id: o.id, qty: qty[o.id] })));
-    if (!r.ok) { sfx.error(); toast(r.message, 'bad'); return; }
-    sfx.purchase(); setQty({}); toast(`Charged ${formatNaira(r.receipt.total)}. It is on your bill.`, 'good');
-  };
-  return (
-    <Sheet open={open} label="Club menu" onClose={close}>
-      <div className="pr-10 font-display text-lg font-extrabold">{club} menu</div>
-      <button onClick={() => { close(); useUiStore.getState().setClubTicket(true); }} className="mt-1 flex w-full items-center justify-between rounded-xl bg-white/[0.07] px-3 py-2 text-left active:bg-white/10" aria-label="Open my bill">
-        <span className="text-[12px] text-white/60">Burned tonight · tap for your bill</span><span className="font-display text-[15px] font-extrabold text-danfo">{formatNaira(bill)}</span>
-      </button>
-      <div className="no-scrollbar -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Menu sections">
-        {CLUB_GROUPS.map((g) => {
-          const n = CLUB_OPTIONS.filter((o) => o.group === g.id && (qty[o.id] ?? 0) > 0).length;
-          return <button key={g.id} role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${group === g.id ? 'border-accent bg-accent/25' : 'border-white/10 bg-white/[0.06] text-white/75'}`}>{g.label}{n > 0 ? ` · ${n}` : ''}</button>;
-        })}
-      </div>
-      <div className="mt-2 space-y-2">
-        {CLUB_OPTIONS.filter((o) => o.group === group).map((o) => {
-          const n = qty[o.id] ?? 0, on = n > 0;
-          return (
-            <div key={o.id} className={`flex w-full items-center gap-3 rounded-xl border p-3 ${on ? 'border-accent bg-accent/20' : 'border-white/10 bg-white/[0.06]'}`}>
-              <button className="flex min-w-0 flex-1 items-center gap-3 text-left" role={o.multi ? undefined : 'checkbox'} aria-checked={o.multi ? undefined : on} onClick={() => (o.multi ? set(o.id, n + 1) : set(o.id, n ? 0 : 1))} aria-label={o.multi ? `Add ${o.name}` : o.name}>
-                <span className="text-2xl">{o.glyph}</span>
-                <span className="min-w-0 flex-1"><span className="block text-[14px] font-bold leading-tight">{o.name}</span><span className="block text-[12px] leading-snug text-white/60">{o.blurb}</span><span className="mt-0.5 block text-[13px] font-extrabold text-danfo">{formatNaira(clubPrice(o))}</span></span>
-              </button>
-              {o.multi && on && (
-                <span className="flex shrink-0 items-center gap-1.5">
-                  <button onClick={() => set(o.id, n - 1)} aria-label={`One less ${o.name}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-bold active:bg-white/25">−</button>
-                  <span className="w-7 text-center text-[15px] font-extrabold tabular-nums">{n}</span>
-                  <button onClick={() => set(o.id, n + 1)} aria-label={`One more ${o.name}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-bold active:bg-white/25">+</button>
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <button disabled={!picked.length} onClick={pay} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold disabled:opacity-40">{picked.length ? `Pay ${formatNaira(total)}` : 'Pick something'}</button>
-      <p className="mt-2 text-center text-[11px] text-white/45">In-game naira only. It comes straight out of your cash. Big spenders get announced.</p>
-    </Sheet>
   );
 }
 
@@ -127,7 +75,7 @@ export function ClubTicket() {
         <div style={zig('bottom')} />
       </div>
       <button onClick={() => void save()} className="mt-3 h-11 w-full rounded-xl bg-accent text-sm font-extrabold">Save or share picture</button>
-      <button onClick={() => { close(); useUiStore.getState().setClubMenu(true); }} className="mt-2 h-10 w-full rounded-xl bg-white/10 text-[13px] font-semibold">Back to the menu</button>
+      <button onClick={() => { close(); const ui = useUiStore.getState(); ui.setVenueTab('tasks'); ui.setChatOpen(true); }} className="mt-2 h-10 w-full rounded-xl bg-white/10 text-[13px] font-semibold">Back to balling</button>
     </Sheet>
   );
 }
@@ -203,6 +151,19 @@ export function VehicleSheet() {
           <div className="mt-3 flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2"><span className="text-[12px] text-white/60">Price</span><span className="font-display text-lg font-extrabold text-danfo">{formatNaira(vehiclePrice(v.id))}</span></div>
           {owned.includes(v.id) ? <div className="mt-3 space-y-2"><div className="rounded-xl bg-emerald-500/15 py-3 text-center text-sm font-bold text-emerald-300">You own this car</div><button onClick={() => { const r = sellVehicle(v.id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); close(); } else { sfx.error(); toast(r.message, 'bad'); } }} className="h-11 w-full rounded-xl bg-white/10 text-[14px] font-bold">Sell for {formatNaira(salePrice(v.id))} (70%)</button></div>
             : <button onClick={buy} className="mt-3 h-12 w-full rounded-xl bg-accent text-[15px] font-extrabold">Buy for {formatNaira(vehiclePrice(v.id))}</button>}
+          {!owned.includes(v.id) && owned.length > 0 && (
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.05] p-2.5" role="group" aria-label="Trade in one of your cars">
+              <div className="px-1 text-[12px] font-bold">Trade in a car <span className="font-medium text-white/50">· we pay 78% of what you paid, more than selling</span></div>
+              <div className="mt-1.5 space-y-1.5">
+                {owned.map((oid) => { const ov = getVehicle(oid); if (!ov) return null; const net = tradeNet(v.id, oid); return (
+                  <button key={oid} onClick={() => { const r = tradeInVehicle(v.id, oid); if (r.ok) { sfx.purchase(); close(); useUiStore.getState().setCarReveal(v.id); toast(r.message, 'good'); } else { sfx.error(); toast(r.message, 'bad'); } }} className="flex w-full items-center justify-between gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-left active:bg-white/15">
+                    <span className="min-w-0"><span className="block truncate text-[13px] font-bold">Trade in your {ov.name}</span><span className="block text-[11.5px] text-white/60">Worth {formatNaira(tradeInValue(oid))} to us</span></span>
+                    <span className="shrink-0 text-right"><span className="block text-[10.5px] text-white/50">{net >= 0 ? 'You pay' : 'You get'}</span><span className="block font-display text-[15px] font-extrabold text-danfo">{formatNaira(Math.abs(net))}</span></span>
+                  </button>
+                ); })}
+              </div>
+            </div>
+          )}
           <button onClick={() => { close(); useTestDriveStore.getState().open(v.id); }} className="mt-2 h-11 w-full rounded-xl bg-white/10 text-[14px] font-bold">🏁 Test drive</button>
         </>
       )}

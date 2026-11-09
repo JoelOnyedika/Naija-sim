@@ -63,7 +63,8 @@ export function buyClub(order: ClubOrder[], now = Date.now()): ClubResult {
     club.pushFeed({ id: `${receiptId}:${o.id}`, who: player, text: o.say ? o.say(player, qty, line.price) : `${player} ordered ${o.name}`, amount: line.price, at: now, mine: true, big });
     if (o.id === 'hype' || o.id === 'praise') club.pushFeed({ id: `${receiptId}:${o.id}:chant`, who: 'Hype man', text: `🎤 "${player}! ${PRAISE_NAMES[(n + i) % PRAISE_NAMES.length]}! ${PRAISE_NAMES[(n + i + 3) % PRAISE_NAMES.length]}!"`, amount: 0, at: now, mine: false, big: false });
   });
-  if (picked.some(({ o }) => o.rain) || total >= CLUB.megaThreshold) club.setBurst(picked.some(({ o }) => o.rain) ? 'rain' : 'confetti');
+  // every order pops something on screen: money rain for spraying, confetti for anything a moderate spender would notice
+  if (picked.some(({ o }) => o.rain)) club.setBurst('rain'); else if (total >= CLUB.megaThreshold || total >= CLUB.announceThreshold) club.setBurst('confetti');
 
   // announce only real, charged purchases, and not more than once per cooldown
   const shout = opts.some((o) => o.shout);

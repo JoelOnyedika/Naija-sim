@@ -43,7 +43,7 @@ interface Style {
   seg: number;         // radial segments
   femWaist: number;    // how strongly the femme body is shaped
 }
-const POLY: Style = { name: 'Low-Poly Faceted', head: 0.112, legs: 0.84, torso: 0.52, shoulder: 0.21, limb: 1.05, arm: 1.0, hand: 1.0, foot: 1.0, eye: 1.0, face: 'simple', shade: 'flat', rough: 0.5, seg: 10, femWaist: 1.15 };
+const POLY: Style = { name: 'Low-Poly Faceted', head: 0.112, legs: 0.84, torso: 0.52, shoulder: 0.21, limb: 1.05, arm: 1.0, hand: 1.0, foot: 1.0, eye: 1.0, face: 'simple', shade: 'flat', rough: 0.82, seg: 10, femWaist: 1.5 };
 
 // ------------------------------------------------------------------ helpers
 type Pt = [number, number];
@@ -65,7 +65,7 @@ function makeMat(_st: Style, color: string, rough = 0.8, opts: { double?: boolea
   const key = `${color}|${rough}|${!!opts.double}|${opts.metal ?? 0}`;
   let m = matCache.get(key);
   if (!m) { // a light clearcoat gives the facets the glossy highlights that make low poly look finished
-    m = new MeshPhysicalMaterial({ color, roughness: rough, metalness: opts.metal ?? 0, flatShading: true, clearcoat: opts.metal ? 0 : 0.35, clearcoatRoughness: 0.35 }); if (opts.double) m.side = DoubleSide; matCache.set(key, m as unknown as MeshStandardMaterial); }
+    m = new MeshPhysicalMaterial({ color, roughness: rough, metalness: opts.metal ?? 0, flatShading: true, clearcoat: 0 }); if (opts.double) m.side = DoubleSide; matCache.set(key, m as unknown as MeshStandardMaterial); }
   return m;
 }
 const shade = (hex: string, amt: number) => { const c = new Color(hex); const t = amt < 0 ? 0 : 1, a = Math.abs(amt); c.r += (t - c.r) * a; c.g += (t - c.g) * a; c.b += (t - c.b) * a; return '#' + c.getHexString(); };
@@ -129,20 +129,32 @@ function shoeGeo(kind: 'sneaker' | 'boot', width: number, fs: number): { upper: 
 }
 
 // ------------------------------------------------------------------ head
-function headGeo(R: number, seg: number, jaw = 1): BufferGeometry {
-  const g = new SphereGeometry(R, seg, Math.max(7, Math.round(seg * 0.75)));
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-    y *= 1.14;
-    if (z < 0) z *= 1.05;                                              // back of the skull
-    if (y > 0.25 * R && z > 0) z *= 1 - 0.07 * ((y - 0.25 * R) / R) ** 2 * 3; // sloping forehead
-    if (y < 0) { const t = Math.min(1, -y / (1.2 * R)); const k = 1 - 0.3 * jaw * t * t; x *= k; z *= 1 - 0.1 * t * t; if (z > 0 && t > 0.5) z += 0.16 * R * (t - 0.5); } // jaw and chin
-    if (y < 0.1 * R && y > -0.4 * R && z > 0) x *= 1 + 0.05 * Math.sin(((y + 0.4 * R) / (0.5 * R)) * Math.PI); // cheekbones
-    if (z > 0.2 * R) z *= 0.97;
-    p.setXYZ(i, x, y, z);
-  }
-  g.computeVertexNormals(); return g;
+/**
+ * An anatomical head, not a ball: lofted from cross-sections that follow a real skull (narrow crown, wide temples, cheekbones,
+ * a tapering jaw and a chin that sits forward). Units are head radii; y runs from the chin (-1.15) to the crown (+1.14), the
+ * face looks along +z. `jaw` is wider for a masculine face and narrower for a feminine one.
+ */
+const HEAD_RING = 16;
+function headSlices(jaw: number) {
+  const j = jaw, wide = jaw > 1;
+  return [
+    { y: 1.14, hw: 0.04, hd: 0.06, cz: -0.06 }, { y: 1.07, hw: 0.46, hd: 0.58, cz: -0.07 }, { y: 0.92, hw: 0.72, hd: 0.84, cz: -0.06 }, { y: 0.68, hw: 0.8, hd: 0.92, cz: -0.05 },
+    { y: 0.4, hw: 0.82, hd: 0.96, cz: -0.04 }, { y: 0.1, hw: 0.8, hd: 0.95, cz: 0 }, { y: -0.2, hw: 0.78 + (wide ? 0.02 : 0), hd: 0.88, cz: 0.0 },
+    { y: -0.5, hw: 0.68 * j, hd: 0.8, cz: 0.03 }, { y: -0.78, hw: 0.5 * j, hd: 0.66, cz: 0.08 }, { y: -0.98, hw: (wide ? 0.34 : 0.24) * j, hd: 0.48, cz: 0.2 },
+    { y: -1.1, hw: 0.14 * j, hd: 0.3, cz: 0.24 }, { y: -1.15, hw: 0.04, hd: 0.1, cz: 0.24 },
+  ];
+}
+/** Front of the face (z) at height y, in head radii: where the nose, glasses and the like sit. */
+const faceZ = (jaw: number, y: number) => { const sl = headSlices(jaw); for (let i = 0; i < sl.length - 1; i++) { const a = sl[i], b = sl[i + 1]; if (y <= a.y && y >= b.y) { const t = (a.y - y) / (a.y - b.y); return (a.cz + a.hd) + ((b.cz + b.hd) - (a.cz + a.hd)) * t; } } return 0.9; };
+function headGeo(R: number, _seg: number, jaw = 1): BufferGeometry {
+  const sl = headSlices(jaw), pos: number[] = [], idx: number[] = [], N = HEAD_RING, n = 2.35;
+  const sp = (v: number) => Math.sign(v) * Math.pow(Math.abs(v), 2 / n);
+  for (const st of sl) for (let j = 0; j <= N; j++) { const f = (j / N) * Math.PI * 2; pos.push(sp(Math.sin(f)) * st.hw * R, st.y * R, (st.cz + sp(Math.cos(f)) * st.hd) * R); }
+  for (let i = 0; i < sl.length - 1; i++) for (let j = 0; j < N; j++) { const a = i * (N + 1) + j, b = a + 1, c = a + N + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const nr = g.attributes.normal, p = g.attributes.position, k = 5 * (N + 1) + 4; // a point on the side of a middle slice: its normal must point away from the centre
+  if (nr.getX(k) * p.getX(k) + nr.getZ(k) * (p.getZ(k) - sl[5].cz * R) < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
+  return g;
 }
 /** A shell that follows the head surface over the triangles accepted by `keep`, pushed outward by `off`. Used for hair and beards. */
 function headShell(R: number, seg: number, keep: (x: number, y: number, z: number) => boolean, off: (x: number, y: number, z: number) => number, jaw = 1): BufferGeometry {
@@ -176,10 +188,10 @@ export function buildCharacter(spec: Spec): Rig {
   const lk = st.limb, seg = st.seg, sx = st.shoulder * (fem ? 0.9 : 1), hipX = (fem ? 0.095 : 0.085) * (st.torso > 0.5 ? 1 : 0.95) * Math.max(0.9, lk * 0.9);
   const upper = (shoulderY - hipY) * 0.52 * st.arm, fore = (shoulderY - hipY) * 0.46 * st.arm;
   const T = st.torso, h = (f: number) => hipY + T * f;
-  const waist = (fem ? 0.118 : 0.142) * lk * (fem ? 1 - 0.1 * (st.femWaist - 1) : 1), hipR = (fem ? 0.158 : 0.15) * (1 + (fem ? 0.06 * (st.femWaist - 1) : 0)) * (0.92 + lk * 0.08);
+  const waist = (fem ? 0.104 : 0.138) * lk * (fem ? 1 - 0.1 * (st.femWaist - 1) : 1), hipR = (fem ? 0.168 : 0.15) * (1 + (fem ? 0.06 * (st.femWaist - 1) : 0)) * (0.92 + lk * 0.08);
   const chest = (fem ? 0.148 : 0.172) * (0.9 + lk * 0.1), shr = sx * (fem ? 0.8 : 0.86); // rounder, narrower shoulders: the arms and deltoids carry the width
   // torso silhouette: (radius, y). Lathe is symmetric, so it is squashed in z for depth.
-  const torsoProf: Pt[] = [[0.001, h(0)], [hipR * 0.96, h(0.01)], [hipR, h(0.12)], [lerp(hipR, waist, 0.85), h(0.3)], [waist, h(0.42)], [lerp(waist, chest, 0.7), h(0.62)], [chest, h(0.78)], [lerp(chest, shr, 0.65), h(0.88)], [shr, h(0.935)], [shr * 0.9, h(0.975)], [shr * 0.6, h(1.0) + 0.006], [0.088 * lk, h(1.0) + 0.032], [0.066 * lk, h(1.0) + 0.052], [0.056 * lk, h(1.0) + 0.066]];
+  const torsoProf: Pt[] = [[0.001, h(0)], [hipR * 0.96, h(0.01)], [hipR, h(0.12)], [lerp(hipR, waist, 0.85), h(0.3)], [waist, h(0.42)], [lerp(waist, chest, 0.7), h(0.62)], ...(fem ? ([[chest * 1.07, h(0.72)]] as Pt[]) : []), [chest, h(0.78)], [lerp(chest, shr, 0.65), h(0.88)], [shr, h(0.935)], [shr * 0.9, h(0.975)], [shr * 0.6, h(1.0) + 0.006], [0.088 * lk, h(1.0) + 0.032], [0.066 * lk, h(1.0) + 0.052], [0.056 * lk, h(1.0) + 0.066]];
   const depth = fem ? 0.66 : 0.64;
 
   const root = new Group(), body = grp(root);
@@ -196,8 +208,8 @@ export function buildCharacter(spec: Spec): Rig {
   const head = grp(body, 0, headY, 0);
   const jawK = fem ? 0.85 : 1.05;
   mesh(headGeo(R, hseg, jawK), skinM, head);
-  const surf = (x: number, y: number) => { const yy = y / 1.14; const q = R * R - x * x - yy * yy; return q > 0 ? Math.sqrt(q) * 0.985 : 0; };
-  const eyeY = R * 0.1, eyeX = R * 0.38, er = R * 0.16;
+  const surf = (x: number, y: number) => R * faceZ(jawK, y / R) * (1 - Math.min(0.5, Math.abs(x) / R) * 0.28);
+  const eyeY = R * 0.1, eyeX = R * 0.36, er = R * 0.16;
   const lipM = mat(fem ? mix(shade(spec.skin, -0.3), '#B03A4A', 0.4) : shade(spec.skin, -0.28), 0.5);
   void lipM;
   const ico = (r: number) => new IcosahedronGeometry(r, 0);
@@ -209,13 +221,13 @@ export function buildCharacter(spec: Spec): Rig {
     const pos = patch.attributes.position, uv: number[] = [];
     for (let i = 0; i < pos.count; i++) { const [u, v] = faceUV(pos.getX(i) / R, pos.getY(i) / R); uv.push(u, v); }
     patch.setAttribute('uv', new Float32BufferAttribute(uv, 2));
-    const faceM = new MeshPhysicalMaterial({ map: tex, roughness: 0.5, flatShading: true, clearcoat: 0.35, clearcoatRoughness: 0.35, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const faceM = new MeshPhysicalMaterial({ map: tex, roughness: 0.8, flatShading: true, clearcoat: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     mesh(patch, faceM, head);
   }
   // ears: a flattened shell with a lobe
   for (const s of [-1, 1]) {
-    mesh(ico(R * 0.21), skinM, head, [s * R * 0.97, R * 0.0, -R * 0.06], undefined, [0.38, 1, 0.72]);
-    mesh(ico(R * 0.07), skinM, head, [s * R * 0.99, -R * 0.2, -R * 0.03], undefined, [0.5, 1, 0.8]);
+    mesh(ico(R * 0.22), skinM, head, [s * R * 0.8, R * 0.0, -R * 0.1], [0, 0, s * 0.12], [0.36, 1.1, 0.72]);
+    mesh(ico(R * 0.07), skinM, head, [s * R * 0.8, -R * 0.24, -R * 0.06], undefined, [0.5, 1, 0.8]);
   }
   // nose: bridge, tip and two nostril wings
   const nz = (y: number) => surf(0, y);
@@ -296,7 +308,7 @@ export function buildCharacter(spec: Spec): Rig {
   // ---- accessories
   if (spec.accessory === 'glasses') {
     const f = mat('#15181D', 0.3, { metal: 0.4 });
-    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.7, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY, surf(s * eyeX, eyeY) + R * 0.06]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 0.9), f, head, [s * R * 0.95, eyeY + R * 0.02, R * 0.4]); }
+    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.7, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY, surf(s * eyeX, eyeY) + R * 0.06]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 0.9), f, head, [s * R * 0.8, eyeY + R * 0.02, R * 0.4]); }
     mesh(new BoxGeometry(R * 0.2, R * 0.025, R * 0.025), f, head, [0, eyeY + R * 0.05, surf(0, eyeY) + R * 0.06]);
   }
   if (spec.accessory === 'cap') {
@@ -317,7 +329,7 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(new TorusGeometry(R * 1.18, R * 0.07, 6, 18, Math.PI), hp, head, [0, R * 0.15, 0], [0, 0, 0]);
     for (const sd of [-1, 1]) { mesh(new CylinderGeometry(R * 0.36, R * 0.36, R * 0.26, 10), hp, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); mesh(new CylinderGeometry(R * 0.28, R * 0.28, R * 0.3, 10), pad, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); }
   }
-  if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * 0.97, -R * 0.28, -R * 0.05], [0, Math.PI / 2, 0]);
+  if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * 0.82, -R * 0.3, -R * 0.06], [0, Math.PI / 2, 0]);
   if (spec.accessory === 'chain') { const g = mat('#E5B93C', 0.25, { metal: 0.85 }); mesh(new TorusGeometry(0.1, 0.005, 6, 22), g, body, [0, shoulderY - 0.03, 0.02], [Math.PI / 2.2, 0, 0], [1, 1.2, 1]); mesh(new SphereGeometry(0.016, 8, 6), g, body, [0, shoulderY - 0.13, 0.085]); }
 
   // ---- garments (shells built from the same silhouette so every style fits)
@@ -383,8 +395,9 @@ export function buildCharacter(spec: Spec): Rig {
 
   // ---- arms
   const mkArm = (s: number) => {
-    const sh = grp(body, s * sx, shoulderY - 0.05, 0); sh.rotation.z = s * 0.06;
-    const r0 = 0.05 * lk, r1 = 0.043 * lk, r2 = 0.033 * lk;
+    const r0 = 0.05 * lk;
+    const sh = grp(body, s * (shr * 0.98 + r0 * 0.42), shoulderY - 0.05, 0); sh.rotation.z = s * 0.06;
+    const r1 = 0.043 * lk, r2 = 0.033 * lk;
     mesh(new SphereGeometry(r0 * 1.08, 8, 6), skinM, sh, [-s * 0.004, 0.012, 0], undefined, [1.02, 1.2, 1]); // deltoid
     mesh(lathe(limbPts(upper, r0, r1, r1 * 0.92), 10), skinM, sh);
     const elbow = grp(sh, 0, -upper, 0); elbow.rotation.x = -0.18;

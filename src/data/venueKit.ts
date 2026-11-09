@@ -100,7 +100,7 @@ const KIT1: Kit[] = [
   { id: 'v_candle_rack', name: 'Candle stand', glyph: '🕯️', w: 1.0, d: 0.6, h: 1.3, spec: stand, uses: [U('light_candle_rack', '🕯️', 'Light a candle', 6, { happiness: 5 }, { cost: 500 })] },
   { id: 'v_choir', name: 'Choir stand', glyph: '🎶', w: 2.6, d: 1.0, h: 1.6, spec: stand, uses: [U('sing_choir', '🎶', 'Sing with the choir', 14, { happiness: 12, social: 4, energy: -3 }, { skill: { id: 'creativity', xp: 4 } })] },
   { id: 'v_flower_stand', name: 'Flower stand', glyph: '💐', w: 0.9, d: 0.9, h: 1.5 },
-  { id: 'v_fruit_stand', name: "Auntie Bisi's fruits", glyph: '🍉', w: 1.8, d: 0.9, h: 2.2, spec: stand, uses: [U('buy_fruit', '🍉', 'Buy fruit', 5, { hunger: 18, thirst: 10, happiness: 3 }, { cost: 1200 }), U('haggle_fruit', '🗣️', 'Haggle with Auntie Bisi', 8, { charisma: 1 }, { skill: { id: 'communication', xp: 2 }, risk: { winChance: 0.5, winMoney: 600, winEffects: { happiness: 4 }, loseEffects: { happiness: -2 }, winMessage: 'Auntie Bisi dropped the price.', loseMessage: 'Auntie Bisi no gree: "Last price!"' } })] },
+  { id: 'v_fruit_stand', name: "Auntie Bisi's fruits", glyph: '🍉', w: 1.8, d: 0.9, h: 2.2, spec: stand, uses: [U('buy_fruit', '🍉', 'Buy fruit', 5, { hunger: 18, thirst: 10, happiness: 3 }, { cost: 1200 }), U('haggle_fruit', '💬', 'Haggle with Auntie Bisi', 5, {}, { haggle: { who: 'Auntie Bisi', item: 'a basket of fruit', ask: 6000 } })] },
   { id: 'v_fabric_rack', name: "Alhaji Dansiru's fabrics", glyph: '🧵', w: 1.8, d: 0.8, h: 2.0, spec: stand, uses: [U('browse_fabric', '🧵', 'Browse the fabrics', 12, { happiness: 5 }, { skill: { id: 'creativity', xp: 2 } }), U('pick_ankara', '👗', 'Buy an Ankara print', 10, { happiness: 6, charisma: 1 }, { cost: 3500 }), U('haggle_dansiru', '💬', 'Negotiate with Alhaji Dansiru', 10, { charisma: 1, social: 2 }, { skill: { id: 'communication', xp: 3 }, risk: { winChance: 0.5, winMoney: 1500, winEffects: { happiness: 6, charisma: 1 }, loseEffects: { happiness: -3 }, winMessage: 'Alhaji Dansiru: "Ah, you are a serious customer. Take am."', loseMessage: 'Alhaji Dansiru: "Oga, pay the full price!"' } })] },
   { id: 'v_spec_board', name: 'Car spec board', glyph: '📋', w: 1.6, d: 0.3, h: 2.0, spec: stand, uses: [U('read_specs', '📋', 'Compare the specs', 10, { happiness: 3 }, { skill: { id: 'driving', xp: 3 } })] },
   { id: 'v_sculpture', name: 'Large sculpture', glyph: '🗿', w: 1.6, d: 1.6, h: 3.0, spec: stand, uses: [U('study_sculpture', '🗿', 'Study the sculpture', 10, { happiness: 4 }, { skill: { id: 'creativity', xp: 4 } }), U('sketch_sculpture', '✏️', 'Sketch it', 12, { energy: -3, happiness: 3 }, { skill: { id: 'creativity', xp: 6 } })] },
@@ -161,7 +161,7 @@ const KIT1: Kit[] = [
   ] },
   { id: 'v_hawker', name: "Auntie Ronke's roasted corn", glyph: '🌽', w: 1.4, d: 0.9, h: 2.2, spec: stand, uses: [
     U('roasted_corn', '🌽', 'Buy roasted corn & ube', 5, { hunger: 18, happiness: 4 }, { cost: 800 }),
-    U('haggle_ronke', '💬', 'Haggle with Auntie Ronke', 8, { charisma: 1 }, { skill: { id: 'communication', xp: 2 }, risk: { winChance: 0.5, winMoney: 400, winEffects: { happiness: 4 }, loseEffects: { happiness: -2 }, winMessage: 'Auntie Ronke added extra ube for free.', loseMessage: 'Auntie Ronke: "Fire no dey cheap, oh!"' } }),
+    U('haggle_ronke', '💬', 'Haggle with Auntie Ronke', 5, {}, { haggle: { who: 'Auntie Ronke', item: 'a bag of roasted corn and ube', ask: 4000 } }),
   ] },
   { id: 'v_putting_green', name: 'Putting green', glyph: '⛳', w: 4.0, d: 2.4, h: 0.1, solid: false, spec: stand, uses: [
     U('practise_putt', '⛳', 'Practise your putt', 12, { happiness: 6, energy: -2 }, { skill: { id: 'fitness', xp: 3 } }),
@@ -180,7 +180,7 @@ const KIT1: Kit[] = [
     U('window_gadgets', '🎧', 'Window-shop the gadgets', 10, { happiness: 4 }),
   ] },
   { id: 'v_taxi_rank', name: 'Taxi rank', glyph: '🚕', w: 2.2, d: 4.0, h: 1.6, spec: stand, uses: [
-    U('haggle_taxi', '💬', 'Haggle with a taxi man', 8, { charisma: 1 }, { skill: { id: 'communication', xp: 2 }, risk: { winChance: 0.5, winMoney: 500, winEffects: { happiness: 4 }, loseEffects: { happiness: -2 }, winMessage: 'He agreed to your price.', loseMessage: '"Oga, na final price o!"' } }),
+    U('haggle_taxi', '💬', 'Haggle with a taxi man', 5, {}, { haggle: { who: 'a taxi man', item: 'a ride across town', ask: 5000 } }),
     U('carry_bags', '🧳', "Carry passengers' bags", 18, { energy: -9 }, { payout: 3000, skill: { id: 'fitness', xp: 3 } }),
   ] },
   { id: 'v_customs_desk', name: 'Customs desk', glyph: '🛃', w: 2.8, d: 1.0, h: 2.2, spec: stand, uses: [

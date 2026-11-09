@@ -94,3 +94,12 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible { outli
 
 /* The bodyguard's emoji bubble pops in. */
 @keyframes bgpop { 0% { transform: scale(0.2) translateY(8px); opacity: 0; } 60% { transform: scale(1.25) translateY(-2px); opacity: 1; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+/* club "balling" cards: the pricier the item, the louder the border */
+@keyframes ball-pulse { 0%,100% { box-shadow: 0 0 0 1.5px #facc15, 0 0 14px rgba(250,204,21,0.45); } 50% { box-shadow: 0 0 0 2px #fde68a, 0 0 26px rgba(250,204,21,0.8); } }
+@keyframes ball-fire { 0% { background-position: 0% 50%, 0% 50%; } 100% { background-position: 0% 50%, 300% 50%; } }
+.ball-card { position: relative; border-radius: 18px; background: linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.1); }
+.ball-purple { border-color: transparent; box-shadow: 0 0 0 1.5px #a855f7, 0 0 14px rgba(168,85,247,0.45); background: linear-gradient(160deg, rgba(168,85,247,0.22), rgba(255,255,255,0.03)); }
+.ball-gold { border-color: transparent; animation: ball-pulse 2.2s ease-in-out infinite; background: linear-gradient(160deg, rgba(250,204,21,0.22), rgba(255,255,255,0.03)); }
+.ball-fire { border: 2px solid transparent; background: linear-gradient(#1b0f16, #1b0f16) padding-box, linear-gradient(100deg, #ff3d00, #ffd600, #ff1744, #ff9100, #ff3d00) border-box; background-size: 100% 100%, 300% 100%; animation: ball-fire 2.4s linear infinite; box-shadow: 0 0 24px rgba(255,90,0,0.55); }
+@media (prefers-reduced-motion: reduce) { .ball-gold, .ball-fire { animation: none; } }

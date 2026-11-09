@@ -48,7 +48,7 @@ function ClubFeed() {
 /** "Burned tonight": always in reach, opens the bill. */
 function ClubTabPill() {
   const receipts = useClubStore((s) => s.receipts), since = useClubStore((s) => s.since), club = useInteriorStore((s) => s.current?.name ?? 'Club');
-  const sheet = useUiStore((s) => s.clubMenuOpen || s.clubTicketOpen), total = tonightsBill(receipts, club, since).total;
+  const sheet = useUiStore((s) => s.clubTicketOpen), total = tonightsBill(receipts, club, since).total;
   if (sheet) return null;
   return (
     <button onClick={() => { sfx.open(); useUiStore.getState().setClubTicket(true); }} aria-label={`Open my bill, ${formatNaira(total)} burned tonight`} data-testid="club-bill-pill"

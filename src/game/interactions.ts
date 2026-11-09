@@ -43,7 +43,7 @@ export function interactWith(item: PlacedItem) {
   if (def?.opensApp) { useBoutiqueNav.getState().setOwnedOnly(true); usePhoneStore.getState().openPhone(); usePhoneStore.getState().openApp(def.opensApp); sfx.click(); return; }
   if (def?.toy) { toast('Your pets will play with this on their own.'); return; }
   if (def?.power) { tapBackupPower(def.power, def.name); return; }
-  if (def?.venueAction === 'club_bar') { if (useInteriorStore.getState().current?.kind === 'club') { sfx.click(); useUiStore.getState().setClubMenu(true); } return; }
+  if (def?.venueAction === 'club_bar') { if (useInteriorStore.getState().current?.kind === 'club') { sfx.click(); const ui = useUiStore.getState(); ui.setVenueTab('tasks'); ui.setChatOpen(true); } return; }
   if (def?.venueAction === 'showroom') { const v = slotVehicle(podiumIndexOf(item.uid)); if (v) { sfx.click(); useUiStore.getState().setShowroomVehicle(v.id); } return; }
   const uses = usesOf(def);
   if (!def || !uses.length) { toast(def?.name ?? 'Nothing to do here'); return; }
@@ -75,7 +75,7 @@ const chosen = new Map<string, string>();
 /** A haggle is not a timed activity: it opens the haggling sheet right away, with nobody walking anywhere. */
 function openHaggle(u: UseDef): boolean {
   if (!u.haggle) return false;
-  sfx.click(); const w = u.haggle.who, item = /shoe/.test(w) ? 'a pair of shoes' : /phone/.test(w) ? 'a phone' : /fish/.test(w) ? 'fresh fish' : /souvenir/.test(w) ? 'a souvenir' : /attendant/.test(w) ? 'a gift' : /stall owner/.test(w) ? 'a club jersey' : u.haggle.item;
+  sfx.click(); const w = u.haggle.who, item = u.haggle.item !== 'the goods' ? u.haggle.item : /shoe/.test(w) ? 'a pair of shoes' : /phone/.test(w) ? 'a phone' : /fish/.test(w) ? 'fresh fish' : /souvenir/.test(w) ? 'a souvenir' : /attendant/.test(w) ? 'a gift' : /stall owner/.test(w) ? 'a club jersey' : u.haggle.item;
   useUiStore.getState().setHaggle({ who: w, item, glyph: u.glyph ?? '💬', ask: u.haggle.ask }); return true;
 }
 

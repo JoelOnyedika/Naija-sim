@@ -44,3 +44,26 @@ export function sellVehicle(id: string): BuyVehicleResult {
   vs.remove(id);
   return { ok: true, message: `You sold the ${v.name} for ${formatNaira(amount)}.` };
 }
+
+/** Trading a car in at Polanco pays a little more than selling it: this share of what you paid for it (selling pays 70%). */
+export const TRADE_RATE = 0.78;
+export const tradeInValue = (id: string): number => Math.round((useVehicleStore.getState().paid[id] ?? vehiclePrice(id)) * TRADE_RATE);
+/** What the new car costs after the trade-in. Negative means the dealer pays you the difference. */
+export const tradeNet = (newId: string, oldId: string): number => vehiclePrice(newId) - tradeInValue(oldId);
+/** Swap one of your cars for another at the showroom: one payment of the difference, the old car gone, the new one yours. */
+export function tradeInVehicle(newId: string, oldId: string): BuyVehicleResult {
+  const here = useInteriorStore.getState().current;
+  if (!here || here.kind !== 'showroom') return { ok: false, message: 'Trade-ins happen at Polanco Motors. Visit the showroom.' };
+  const nv = getVehicle(newId), ov = getVehicle(oldId); if (!nv) return { ok: false, message: 'That car is not for sale.' }; if (!ov) return { ok: false, message: 'That car is not in the game any more.' };
+  const vs = useVehicleStore.getState();
+  if (newId === oldId) return { ok: false, message: 'Pick a different car to buy.' };
+  if (vs.owned.includes(newId)) return { ok: false, message: `You already own the ${nv.name}.` };
+  if (!vs.owned.includes(oldId)) return { ok: false, message: `You do not own the ${ov.name}.` };
+  const net = tradeNet(newId, oldId), key = `vehicle-trade:${newId}:${oldId}:${vs.buys[newId] ?? 0}:${vs.buys[oldId] ?? 0}`;
+  const r = net >= 0
+    ? useEconomyStore.getState().post({ direction: 'expense', amount: net, label: `${nv.name} (traded in the ${ov.name})`, kind: 'purchase', counterparty: 'Polanco Motors', meta: { opKey: key } })
+    : useEconomyStore.getState().post({ direction: 'income', amount: -net, label: `Traded the ${ov.name} for the ${nv.name}`, kind: 'income', counterparty: 'Polanco Motors', meta: { opKey: key } });
+  if (!r.ok) return { ok: false, message: r.reason === 'duplicate' ? 'That trade was already completed.' : copy.broke() };
+  vs.remove(oldId); useVehicleStore.getState().add(newId, vehiclePrice(newId));
+  return { ok: true, message: `You traded the ${ov.name} for the ${nv.name}${net > 0 ? ` and paid ${formatNaira(net)}` : net < 0 ? ` and got ${formatNaira(-net)} back` : ''}.` };
+}
