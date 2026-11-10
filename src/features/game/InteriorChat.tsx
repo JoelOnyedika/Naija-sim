@@ -1,6 +1,6 @@
 import { sfx } from '@/audio/sfx';
 import { motion } from 'framer-motion';
-import { Camera, ChevronsDown, ChevronsUp, Home, ListChecks, Send, MessageCircle } from 'lucide-react';
+import { Camera, ChevronsDown, ChevronsUp, Footprints, Home, ListChecks, Send, MessageCircle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usesOf } from '@/data/activities';
 import { INTERIORS } from '@/data/interiors';
@@ -61,6 +61,7 @@ export function InteriorChat() {
   const [scope, setScope] = useState<ChatScope>('local');
   const [text, setText] = useState('');
   const [menu, setMenu] = useState<Sender | null>(null);
+  const [spotUid, setSpotUid] = useState<string | null>(null);
   const seen = useVenueHint(here?.kind, expanded);
   const [seenN, setSeenN] = useState(0);
   const end = useRef<HTMLDivElement>(null), box = useRef<HTMLDivElement>(null);
@@ -69,7 +70,8 @@ export function InteriorChat() {
   const def = here ? INTERIORS[here.kind] : null;
   const shown = !!here && !!def?.chat && mode === 'home';
   useEffect(() => { if (expanded) end.current?.scrollIntoView({ block: 'end' }); }, [list.length, expanded, scope]);
-  useEffect(() => { if (!expanded) setMenu(null); }, [expanded]);
+  useEffect(() => { if (!expanded) { setMenu(null); setSpotUid(null); } }, [expanded]);
+  useEffect(() => { setSpotUid(null); }, [tab]);
   // entering a venue starts with the panel folded and the menu showing; leaving it puts everything back
   useEffect(() => { if (!here) { useUiStore.getState().setChatOpen(false); useUiStore.getState().setDockHidden(false); } }, [here]);
   // other bottom pieces (the stats widget) sit above the panel, so tell them how tall it is
@@ -120,6 +122,9 @@ export function InteriorChat() {
   const taskCount = (isClub ? 0 : spots.length) + (def.crowd && !isClub ? 1 : 0);
   const onChat = expanded && tab === 'chat', onTasks = expanded && tab === 'tasks';
   const spotsList = isClub ? [] : spots;
+  const spot = spotsList.find((x) => x.uid === spotUid) ?? null;
+  const uses = spot ? usesOf(getFurniture(spot.defId)) : [];
+  const spotUses = uses.map(describeUse);
   return (
     <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--dock-gap,4.9rem))] z-[76] flex justify-center px-2 ${dockHidden ? 'pr-16' : ''}`}>
       <div ref={box} role="region" aria-label="Venue panel" className="panel pointer-events-auto flex max-h-[66vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-3xl p-2.5">
@@ -192,35 +197,32 @@ export function InteriorChat() {
           <div className="mt-2">
             {isClub && <ClubBalling />}
             {isBetting && <div className="mb-2"><BettingEntry /></div>}
-            {here.kind === 'showroom' && (
+            {!isClub && (spotsList.length > 0 || def.crowd || here.kind === 'showroom') && (
               <>
-                <div className="px-1 text-[12px] font-bold">🚗 Buy a car <span className="font-medium text-white/50">· tap one for details, a test drive or a trade-in</span></div>
-                <BuyCarCards onPick={() => { setExpanded(false); }} />
-                <div className="mt-2 px-1 text-[12px] font-bold">💰 Sell a car</div>
-                <SellCarCards />
+                <div className="flex items-center justify-between px-1 text-[12px]"><span className="font-bold">What do you want to do?</span><span className="flex items-center gap-1 text-white/50"><Footprints size={13} />Tap one</span></div>
+                <div className="no-scrollbar mt-1 flex gap-1.5 overflow-x-auto pb-0.5">
+                  {here.kind === 'showroom' && [['__buycars', '\u{1F697} Buy cars'], ['__sellcars', '\u{1F4B0} Sell cars']].map(([id, label]) => (
+                    <button key={id} aria-pressed={spotUid === id} onClick={() => setSpotUid(spotUid === id ? null : id)} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === id ? 'bg-white text-night' : 'bg-white/10'}`}>{label}</button>
+                  ))}
+                  {def.crowd && <button aria-pressed={spotUid === '__crowd'} onClick={() => setSpotUid(spotUid === '__crowd' ? null : '__crowd')} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === '__crowd' ? 'bg-white text-night' : 'bg-white/10'}`}><span>👥</span>The crowd</button>}
+                  {spotsList.map((x) => <button key={x.uid} aria-pressed={spotUid === x.uid} onClick={() => setSpotUid(spotUid === x.uid ? null : x.uid)} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold ${spotUid === x.uid ? 'bg-white text-night' : 'bg-white/10'}`}><span>{x.glyph}</span>{x.name}</button>)}
+                </div>
               </>
             )}
-            {!isClub && spotsList.map((sp) => {
-              const f = getFurniture(sp.defId), us = f ? usesOf(f) : [], ds = us.map(describeUse);
-              return (
-                <div key={sp.uid} className="mt-2.5">
-                  <div className="flex items-center gap-1.5 px-1 text-[12px] font-bold"><span>{sp.glyph}</span>{sp.name}</div>
-                  <div className="mt-1 grid grid-cols-2 gap-2">
-                    {ds.map((d, i) => (
-                      <TaskCard key={i} width="100%" glyph={d.glyph} title={d.label} seconds={d.seconds} cost={d.cost} risk={us[i].risk ? { chance: us[i].risk!.winChance } : undefined} winMoney={us[i].risk?.winMoney} effects={d.effects} skill={d.skill} maxEffects={3}
-                        onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === sp.uid); if (!item) return; if (us[i].id) chooseActivity(item, us[i].id!); else interactWith(item); setExpanded(false); }} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            {def.crowd && !isClub && (
-              <div className="mt-2.5">
-                <div className="flex items-center gap-1.5 px-1 text-[12px] font-bold"><span>👥</span>The crowd</div>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  <button onClick={() => { const id = nearestNpc(); if (id) { setExpanded(false); useInteriorStore.getState().selectNpc(id); } }} className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.08] p-3 text-left active:bg-white/10"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-2xl">💬</span><div className="mt-2 text-[12px] font-bold text-emerald-300">Free</div><div className="text-[15px] font-bold leading-tight">Chat with someone nearby</div><div className="mt-1.5 flex flex-wrap gap-1"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">+Social</span></div></button>
-                  <button onClick={pickNearest} className="flex flex-col rounded-2xl border border-rose-400/20 bg-white/[0.08] p-3 text-left active:bg-white/10"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-2xl">👛</span><div className="mt-2 flex items-center gap-1.5 text-[12px] font-bold"><span className="text-emerald-300">Free</span><span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10.5px] text-rose-300">🚨 {Math.round(successChance(crim) * 100)}%</span></div><div className="text-[15px] font-bold leading-tight">Pick someone's pocket</div><div className="mt-1 text-[11px] text-white/60">Caught: jail {sentenceMinutesFor(crim)} min</div></button>
-                </div>
+            {spotUid === '__buycars' && <BuyCarCards onPick={() => { setSpotUid(null); setExpanded(false); }} />}
+            {spotUid === '__sellcars' && <SellCarCards />}
+            {spotUid === '__crowd' && (
+              <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
+                <button onClick={() => { const id = nearestNpc(); if (id) { setExpanded(false); useInteriorStore.getState().selectNpc(id); } }} className="flex w-[11.5rem] shrink-0 flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-2.5 text-left active:bg-white/10"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg">💬</span><div className="mt-1.5 text-[12px] font-bold text-emerald-300">Free</div><div className="text-[14px] font-extrabold leading-tight">Chat with someone nearby</div><div className="mt-1.5 flex flex-wrap gap-1"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">+Social</span><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">+Fun</span></div></button>
+                <button onClick={pickNearest} className="flex w-[11.5rem] shrink-0 flex-col rounded-2xl border border-rose-400/20 bg-white/[0.06] p-2.5 text-left active:bg-white/10"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg">👛</span><div className="mt-1.5 flex items-center gap-1.5 text-[12px] font-bold"><span className="text-emerald-300">Free</span><span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10.5px] text-rose-300">🚨 Risky · {Math.round(successChance(crim) * 100)}%</span></div><div className="text-[14px] font-extrabold leading-tight">Pick someone's pocket</div><div className="mt-1.5 text-[11px] text-white/60">Caught: jail for {sentenceMinutesFor(crim)} min</div></button>
+              </div>
+            )}
+            {spot && (
+              <div className="no-scrollbar mt-1.5 flex gap-2 overflow-x-auto pb-0.5">
+                {spotUses.map((d, i) => (
+                  <TaskCard key={i} width="11.75rem" glyph={d.glyph} title={d.label} seconds={d.seconds} cost={d.cost} risk={uses[i].risk ? { chance: uses[i].risk!.winChance } : undefined} winMoney={uses[i].risk?.winMoney} effects={d.effects} skill={d.skill} maxEffects={3}
+                    onSelect={() => { const item = getActiveHome()?.placed.find((p) => p.uid === spot.uid); if (!item) return; if (uses[i].id) chooseActivity(item, uses[i].id!); else interactWith(item); setSpotUid(null); setExpanded(false); }} />
+                ))}
               </div>
             )}
             {!isClub && !spotsList.length && !def.crowd && here.kind !== 'showroom' && !isBetting && <p className="rounded-xl bg-white/[0.05] px-3 py-3 text-center text-[12px] text-white/55">Nothing to do here yet.</p>}

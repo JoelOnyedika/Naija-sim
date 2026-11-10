@@ -33,3 +33,22 @@ Keep each car under roughly 10k triangles and 300 KB. They are drawn several at 
 2. Build the game with the base URL set: `VITE_ASSET_BASE=https://cdn.example.com/nigeria-life/ npm run build` (it must end with `/`). All model loading goes through `assetUrl()` in `src/core/assets.ts`, so nothing else changes.
 3. The server must allow cross-origin loading (header `Access-Control-Allow-Origin: *`, or your game's domain) and should serve `.glb` as `model/gltf-binary` with long cache headers (the file names do not change, so rename a file when you replace it).
 4. Because of that, you can also delete `public/models/` from the game build afterwards so players do not download it twice.
+
+## Street cars (v33)
+Cars you see on streets are real low-poly models too, not procedural shapes: `public/models/street/*.glb` (six files, about 280 KB together), built from your `low_poly_cars_pack.glb` (kept untouched in `assets-src/street-cars-pack/`, not shipped).
+
+| File | Looks like | Triangles | Used for |
+|---|---|---|---|
+| sedan.glb | old saloon | 926 | traffic, the taxi (yellow + TAXI roof sign), roadblock and destination scenes, parked cars |
+| hatch.glb | hatchback | 726 | traffic, parked cars |
+| wagon.glb | family wagon | 588 | traffic (the old "suv" kind) |
+| van.glb | panel van | 1,104 | traffic |
+| pickup_s.glb | small pickup | 1,074 | traffic |
+| pickup_l.glb | double-cab pickup | 770 | traffic, parked cars |
+
+- Each file has two meshes: `body` (textured, painted near-white so the game tints it any colour) and `trim` (tyres, bumpers, wheel discs, vertex colours). Front faces +z, wheels on y = 0, one 384 px WebP texture. Traffic draws them instanced: two draw calls per model.
+- Code: `src/data/streetCars.ts` (list, sizes, which traffic kind uses which model), `src/three/models/StreetCar.tsx` (one car, or an instanced fleet), `CarMesh` in `features/travel/vehicles3d.tsx` (taxi, roadblock, destinations), `Traffic` in `features/travel/Scene3D.tsx`, `ParkedCar` in `three/property/VenueSurround.tsx`.
+- If a file is missing or broken the old procedural car is drawn instead (and a warning is logged), so a scene never breaks.
+- Danfos, kekes and okadas are still procedural (the pack has no keke or okada, and the danfo carries its slogan, luggage and conductor). The panel van can replace the danfo body if you prefer.
+- Rebuild or change them: edit `tools/street-cars/cfg.json` (target length, how much each part is simplified, texture size) and run `node tools/prepare-street-cars.mjs` (install line at the top of that file). Then copy the printed sizes into `src/data/streetCars.ts`; `npm run test:streetcars` fails if they drift or a file goes over budget (1,200 triangles, 120 KB).
+- To use a different colour of a model as the base, change the `variants` list order or add a `sat` value in `cfg.json` (how much colour the base texture keeps; 0.3 now).

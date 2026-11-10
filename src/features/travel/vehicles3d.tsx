@@ -3,6 +3,8 @@ import { BoxGeometry, CanvasTexture, Color, CylinderGeometry, DoubleSide, Extrud
 import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Appearance } from '@/types/game';
 import { PosedPerson, SeatedPerson, crowdLook } from './people';
+import { StreetCar } from '@/three/models/StreetCar';
+import { STREET_CARS, TRAFFIC_MODEL, type StreetModel } from '@/data/streetCars';
 
 /**
  * Vehicles for the travel scene, built to look like vehicles rather than stacks of boxes: bodies are extruded from side profiles
@@ -74,16 +76,40 @@ export const lightMat = new MeshBasicMaterial({ vertexColors: true });
 const matCache = new Map<string, MeshStandardMaterial>();
 export const paintOf = (hex: string) => { let m = matCache.get(hex); if (!m) { m = paintMat.clone(); m.color.set(hex); matCache.set(hex, m); } return m; };
 
-/** One car as meshes (for your cab, or any single vehicle). Traffic uses the same geometries through instancing in Scene3D. */
-export function CarMesh({ kind, hex, taxi = false }: { kind: CarKind; hex: string; taxi?: boolean }) {
-  const g = useMemo(() => carGeos(kind), [kind]), sp = SPEC[kind], tex = useMemo(() => (taxi ? signTexture('TAXI') : null), [taxi]);
+/** The roof sign and door stripes of a taxi, sized from the car's own measurements. */
+function TaxiExtras({ W, L, belt, roof, cabZ }: { W: number; L: number; belt: number; roof: number; cabZ: number }) {
+  const tex = useMemo(() => signTexture('TAXI'), []);
+  return (
+    <>
+      {[-1, 1].map((sx) => <mesh key={sx} position={[sx * (W / 2 + 0.012), belt * 0.6, 0]}><boxGeometry args={[0.02, 0.14, L * 0.78]} /><meshStandardMaterial color="#101113" /></mesh>)}
+      <group position={[0, roof + 0.17, cabZ]}><mesh><boxGeometry args={[0.7, 0.2, 0.28]} /><meshStandardMaterial color="#F6F3E8" emissive="#FFE9A0" emissiveIntensity={0.8} /></mesh>{[-1, 1].map((k) => <mesh key={k} position={[0, 0, k * 0.141]} rotation={[0, k > 0 ? 0 : Math.PI, 0]}><planeGeometry args={[0.62, 0.15]} /><meshBasicMaterial map={tex} /></mesh>)}</group>
+    </>
+  );
+}
+/** Where a taxi's stripes and roof sign go on each street car (metres, from the built files). */
+const TAXI_FIT: Partial<Record<StreetModel, { W: number; belt: number; roof: number; cabZ: number }>> = { sedan: { W: 1.62, belt: 0.82, roof: 1.3, cabZ: -0.1 } };
+
+/** The old procedural car: only drawn if the street car file cannot load. */
+function ProceduralCar({ kind, hex, taxi }: { kind: CarKind; hex: string; taxi: boolean }) {
+  const g = useMemo(() => carGeos(kind), [kind]), sp = SPEC[kind];
   return (
     <group><mesh geometry={g.paint} material={paintOf(hex)} /><mesh geometry={g.glass} material={glassMat} /><mesh geometry={g.trim} material={trimMat} /><mesh geometry={g.lights} material={lightMat} />
-      {taxi && <>
-        {[-1, 1].map((sx) => <mesh key={sx} position={[sx * (sp.W / 2 + 0.012), sp.belt * 0.6, 0]}><boxGeometry args={[0.02, 0.14, sp.L * 0.78]} /><meshStandardMaterial color="#101113" /></mesh>)}
-        <group position={[0, sp.roof + 0.17, (sp.cabF + sp.cabR) / 2 + 0.05]}><mesh><boxGeometry args={[0.7, 0.2, 0.28]} /><meshStandardMaterial color="#F6F3E8" emissive="#FFE9A0" emissiveIntensity={0.8} /></mesh>{[-1, 1].map((k) => <mesh key={k} position={[0, 0, k * 0.141]} rotation={[0, k > 0 ? 0 : Math.PI, 0]}><planeGeometry args={[0.62, 0.15]} /><meshBasicMaterial map={tex} /></mesh>)}</group>
-      </>}
+      {taxi && <TaxiExtras W={sp.W} L={sp.L} belt={sp.belt} roof={sp.roof} cabZ={(sp.cabF + sp.cabR) / 2 + 0.05} />}
     </group>
+  );
+}
+
+/**
+ * One car on a street, in the owner's low-poly car models (data/streetCars.ts), painted `hex`; a taxi gets its roof sign and door stripes.
+ * 'sedan' is the old saloon, 'hatch' the hatchback, 'suv' the family wagon, 'pickup' the double-cab pickup. If the model cannot load,
+ * the old procedural car is drawn instead, so a missing file never breaks a scene.
+ */
+export function CarMesh({ kind, hex, taxi = false }: { kind: CarKind; hex: string; taxi?: boolean }) {
+  const model = TRAFFIC_MODEL[kind], fit = TAXI_FIT[model], def = STREET_CARS[model];
+  return (
+    <StreetCar model={model} color={hex} fallback={<ProceduralCar kind={kind} hex={hex} taxi={taxi} />}>
+      {taxi && <TaxiExtras W={fit?.W ?? def.width * 0.85} L={def.length} belt={fit?.belt ?? def.height * 0.55} roof={fit?.roof ?? def.height * 0.92} cabZ={fit?.cabZ ?? 0} />}
+    </StreetCar>
   );
 }
 

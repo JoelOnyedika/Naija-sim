@@ -34,11 +34,11 @@ export function ClubBalling() {
       <div className="no-scrollbar -mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="What to spend on">
         {CLUB_GROUPS.map((g) => <button key={g.id} role="tab" aria-selected={group === g.id} onClick={() => { sfx.click(); setGroup(g.id); }} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${group === g.id ? 'border-accent bg-accent/25' : 'border-white/10 bg-white/[0.06] text-white/75'}`}>{g.label}</button>)}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2.5">
+      <div className="no-scrollbar mt-2 flex gap-2.5 overflow-x-auto px-0.5 pb-2 pt-0.5">
         {CLUB_OPTIONS.filter((o) => o.group === group).map((o) => {
           const unit = clubPrice(o), n = o.multi ? q(o) : 1, tier = tierOf(unit);
           return (
-            <div key={o.id} className={`ball-card flex flex-col p-2.5 ${tier}`}>
+            <div key={o.id} className={`ball-card flex w-[10.5rem] shrink-0 flex-col p-2.5 ${tier}`}>
               <div className="flex items-start justify-between"><span className="text-3xl leading-none">{o.glyph}</span>{tier === 'ball-fire' && <span className="rounded-full bg-orange-500/30 px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wider text-orange-200">LEGEND</span>}{tier === 'ball-gold' && <span className="rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wider text-amber-200">BIG MOVE</span>}</div>
               <div className="mt-1.5 text-[13.5px] font-extrabold leading-tight">{o.name}</div>
               <div className="mt-0.5 text-[11px] leading-snug text-white/55" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{o.blurb}</div>

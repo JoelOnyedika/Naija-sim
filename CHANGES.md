@@ -1,3 +1,14 @@
+## v33: street cars from your low-poly pack
+
+- Cut your `low_poly_cars_pack.glb` (about 50 cars, 6 models, 109,000 triangles, 10.5 MB) into six game-ready cars: 588 to 1,104 triangles each, two draw calls, 282 KB for all six (`public/models/street/`). Wheels were rebuilt as 40-triangle tyres with a grey disc.
+- Replaced the procedural street cars: travel traffic (instanced; sedan, hatchback, family wagon, panel van, small pickup, double-cab pickup), the taxi with its TAXI sign, the roadblock and destination scenes, and the cars parked outside venues. Danfo, keke and okada are unchanged.
+- If a model fails to load, the old procedural car is drawn instead.
+- New: `src/data/streetCars.ts`, `src/three/models/StreetCar.tsx`, `tools/prepare-street-cars.mjs` (+ `tools/street-cars/`), `scripts/streetCarsTest.ts` (`npm run test:streetcars`, added to `test:all`), docs in `docs/ASSETS.md`.
+- Looked at in headless Chromium: taxi ride, danfo ride (traffic around it), two venue streets with parked cars. Not tried on a real phone GPU.
+
+## v32: tasks back to a row of chips with cards left to right
+- The Tasks tab no longer scrolls vertically. It is back to the earlier layout: a row of rounded chips (the crowd, each stall or object, Buy/Sell cars at the showroom), and tapping one shows its task cards in a single row left to right. The club's Ball cards are also one row per section (Bottles, Food, Spray, Hype, Big moves). Chat and Tasks remain separate buttons. Checked on screen in the Balogun market and the club; all 35 test groups pass.
+
 ## v31: venue panel with Chat and Tasks, balling cards in the club, betting slip, Polanco trade-in
 - **Bottom venue panel redesigned, in every venue.** Folded by default it shows the venue name and two buttons, **Chat** and **Tasks** (in the club the second button is **Ball**), plus the way home. Chat opens only the conversation (Local/Global, messages, the box to type, players here). Tasks opens everything you can do in that venue as a scrollable two-column list of task cards, grouped by what they belong to (art wall, stall, kiosk...), so nothing depends on finding and tapping a 3D object in the scene. Tapping the club bar in the scene now just opens the Ball tab. The old club menu sheet is gone. `InteriorChat.tsx`.
 - **Club.** The Ball tab shows only balling: a "Burned tonight" bar that opens the bill, then Bottles, Food, Spray, Hype and Big moves as stylish cards you tap to buy at once (crates and bundles have a quantity). Borders get louder with price: plain, purple glow (from ₦100k), pulsing gold "BIG MOVE" (from ₦1M), burning "LEGEND" (from ₦50M). The bouncer and other generic tasks are not shown in the club. Moderate orders (from the announce threshold) now throw confetti; spraying makes it rain; the mega banner and live feed are unchanged. `ClubBalling.tsx`.

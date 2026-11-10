@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { BoxGeometry, CanvasTexture, CylinderGeometry, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import { INTERIORS, type InteriorKind } from '@/data/interiors';
+import { StreetCar } from '@/three/models/StreetCar';
+import type { StreetModel } from '@/data/streetCars';
 import { useInteriorStore } from '@/stores/interiorStore';
 import type { PropertyLayout } from '@/types/world';
 
@@ -65,13 +67,19 @@ function Lamp({ x, z }: { x: number; z: number }) {
   );
 }
 
-function ParkedCar({ x, z, rot, color }: { x: number; z: number; rot: number; color: string }) {
+/** A parked street car (the low-poly models, data/streetCars.ts). Its length lies along x when rot = 0; the old box car is only drawn if the model cannot load. */
+function ParkedCar({ x, z, rot, color, model }: { x: number; z: number; rot: number; color: string; model: StreetModel }) {
   const body = useMemo(() => mat(color, 0.35, { metalness: 0.3 }), [color]);
-  return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
+  const simple = (
+    <group>
       <mesh geometry={BOX} material={body} position={[0, 0.3, 0]} scale={[1.9, 0.38, 0.95]} />
       <mesh geometry={BOX} material={M.glass} position={[-0.1, 0.62, 0]} scale={[1.0, 0.3, 0.85]} />
       {[[-0.6, 0.45], [0.6, 0.45], [-0.6, -0.45], [0.6, -0.45]].map(([wx, wz], i) => <mesh key={i} geometry={CYL} material={M.tyre} position={[wx, 0.17, wz]} rotation={[Math.PI / 2, 0, 0]} scale={[0.17, 0.12, 0.17]} />)}
+    </group>
+  );
+  return (
+    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
+      <group rotation={[0, Math.PI / 2, 0]}><StreetCar model={model} color={color} fallback={<group rotation={[0, -Math.PI / 2, 0]}>{simple}</group>} /></group>
     </group>
   );
 }
@@ -157,9 +165,9 @@ export function VenueSurround({ layout }: { layout: PropertyLayout }) {
       {(theme === 'street' || theme === 'park') && <Lamp x={cx + plaza - 0.6} z={cz + plaza - 0.6} />}
       {/* parked cars on the road */}
       {theme === 'street' && <>
-      <ParkedCar x={cx - 5} z={cz - plaza - 2.1} rot={0} color={CARS[0]} />
-      <ParkedCar x={cx - plaza - 2.1} z={cz + 2} rot={Math.PI / 2} color={CARS[3]} />
-      <ParkedCar x={cx + 6} z={cz + plaza + 2.1} rot={0} color={CARS[4]} />
+      <ParkedCar x={cx - 5} z={cz - plaza - 2.1} rot={0} color={CARS[0]} model="sedan" />
+      <ParkedCar x={cx - plaza - 2.1} z={cz + 2} rot={Math.PI / 2} color={CARS[3]} model="hatch" />
+      <ParkedCar x={cx + 6} z={cz + plaza + 2.1} rot={0} color={CARS[4]} model="pickup_l" />
       </>}
       {/* the venue sign, in front of the entrance and facing the camera */}
       <group position={[cx + w * 0.18, 0, frontZ]} rotation={[0, Math.PI / 4, 0]}>

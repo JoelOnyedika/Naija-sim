@@ -9,6 +9,8 @@ import { DestinationBuilding, disposeDestinations, styleFor } from './destinatio
 import { Crowd, crowdLook, disposeBakedPeople } from './people';
 import { disposeTextures, glassTexture, pavingTexture, wallTexture } from './textures';
 import { CarMesh, Danfo, Keke, Okada, carGeos, glassMat, lightMat, paintMat, trimMat, type CarKind } from './vehicles3d';
+import { StreetFleet, preloadStreetCars } from '@/three/models/StreetCar';
+import { STREET_CARS, TRAFFIC_KINDS, TRAFFIC_MODEL, type TrafficKind } from '@/data/streetCars';
 
 /**
  * A trip as a short film (8 to 10 seconds): quick cuts between different cameras (third-person chase, a dolly along the pavement,
@@ -189,8 +191,9 @@ function SkyDome({ weather }: { weather: TripPlan['weather'] }) {
 }
 
 // ------------------------------------------------------------------ traffic
-type Kind = CarKind | 'danfo' | 'okada' | 'keke';
-const CAR_KINDS: CarKind[] = ['sedan', 'hatch', 'suv', 'pickup'];
+type Kind = TrafficKind | 'danfo' | 'okada' | 'keke';
+const CAR_KINDS: TrafficKind[] = TRAFFIC_KINDS; // street cars: the low-poly GLB models (data/streetCars.ts); each kind is two instanced draw calls
+const PROCEDURAL_KIND: Record<TrafficKind, CarKind> = { sedan: 'sedan', hatch: 'hatch', suv: 'suv', pickup: 'pickup', van: 'suv', minipick: 'pickup' }; // the old simple cars, only drawn if a model file cannot load
 interface CarD { x: number; z: number; dir: 1 | -1; f: number; follow: boolean; u: number; kind: Kind; color: string; slogan: number; look: number }
 const CAR_COLORS = ['#C23B3B', '#F4F1EA', '#2B4C7E', '#2A2D32', '#2B8C5B', '#C9CED1', '#8A63D2', '#E4572E', '#7C8791', '#B8202E', '#E8D8B0'];
 const blobGeo = new CylinderGeometry(1, 1, 0.01, 16);
@@ -213,7 +216,7 @@ function Traffic({ plan, speed, walk, overtake, carsOut }: { plan: TripPlan; spe
         const clear = !walk && (x === 3.3 || x === 1.1) && z > -9 && z < 22;
         if (overtake && x === 3.3 && z > -22 && z < 22) { z += step * (0.85 + r() * 0.4); continue; } // the first slow car is well ahead // keep your ride and the chase camera behind it in clear view
         if (!clear && (!plan.light || r() < 0.7)) {
-          const k = r(), kind: Kind = k < 0.28 ? 'sedan' : k < 0.4 ? 'hatch' : k < 0.58 ? 'suv' : k < 0.66 ? 'pickup' : k < 0.78 ? 'danfo' : k < 0.86 ? 'okada' : 'keke';
+          const k = r(), kind: Kind = k < 0.24 ? 'sedan' : k < 0.34 ? 'hatch' : k < 0.48 ? 'suv' : k < 0.54 ? 'pickup' : k < 0.6 ? 'van' : k < 0.66 ? 'minipick' : k < 0.78 ? 'danfo' : k < 0.86 ? 'okada' : 'keke';
           out.push({ x, z, dir, f, follow, u: jam && dir === -1 ? 3 : 12 + r() * 5, kind, color: CAR_COLORS[Math.floor(r() * CAR_COLORS.length)], slogan: Math.floor(r() * 8), look: Math.floor(r() * 12) });
         }
         z += step * (0.85 + r() * 0.4);
@@ -226,11 +229,8 @@ function Traffic({ plan, speed, walk, overtake, carsOut }: { plan: TripPlan; spe
   const specials = useMemo(() => cars.map((c, i) => ({ c, i })).filter((x) => !(CAR_KINDS as string[]).includes(x.c.kind)), [cars]);
   const parts = useRef<Record<string, (InstancedMesh | null)[]>>({}), blobs = useRef<InstancedMesh>(null), sp = useRef<Record<number, Group | null>>({});
   const dummy = useMemo(() => new Object3D(), []);
-  useEffect(() => {
-    const c = new Color();
-    for (const k of CAR_KINDS) fleet[k].forEach((x, j) => parts.current[k]?.[0]?.setColorAt(j, c.set(x.c.color)));
-    for (const k of CAR_KINDS) if (parts.current[k]?.[0]?.instanceColor) parts.current[k][0]!.instanceColor!.needsUpdate = true;
-  }, [fleet]);
+  const paint = useMemo(() => { const c = new Color(); return (k: TrafficKind, m: InstancedMesh | null | undefined) => { if (!m) return; fleet[k].forEach((x, j) => m.setColorAt(j, c.set(x.c.color))); if (m.instanceColor) m.instanceColor.needsUpdate = true; }; }, [fleet]);
+  useEffect(() => { preloadStreetCars(); for (const k of CAR_KINDS) paint(k, parts.current[k]?.[0]); }, [paint]);
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.25), S = speed.current, span = RANGE[1] - RANGE[0];
     cars.forEach((c) => {
@@ -239,11 +239,11 @@ function Traffic({ plan, speed, walk, overtake, carsOut }: { plan: TripPlan; spe
       c.z += (S + own) * dt; if (c.z > RANGE[1]) c.z -= span; if (c.z < RANGE[0]) c.z += span;
     });
     for (const k of CAR_KINDS) {
-      const list = fleet[k], g = carGeos(k);
+      const list = fleet[k], g = STREET_CARS[TRAFFIC_MODEL[k]];
       list.forEach(({ c, i }, j) => {
         dummy.position.set(c.x, 0.02, c.z); dummy.rotation.set(0, c.dir === 1 ? Math.PI : 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
         for (let p = 0; p < 4; p++) parts.current[k]?.[p]?.setMatrixAt(j, dummy.matrix);
-        dummy.position.set(c.x, 0.04, c.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(g.width * 0.62, 1, g.length * 0.58); dummy.updateMatrix(); blobs.current?.setMatrixAt(i, dummy.matrix);
+        dummy.position.set(c.x, 0.04, c.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(g.width * 0.52, 1, g.length * 0.58); dummy.updateMatrix(); blobs.current?.setMatrixAt(i, dummy.matrix);
       });
       for (let p = 0; p < 4; p++) { const m = parts.current[k]?.[p]; if (m) m.instanceMatrix.needsUpdate = true; }
     }
@@ -252,8 +252,11 @@ function Traffic({ plan, speed, walk, overtake, carsOut }: { plan: TripPlan; spe
   });
   return (
     <>
-      {CAR_KINDS.map((k) => { const n = fleet[k].length, g = carGeos(k); if (!n) return null; const set = (p: number) => (m: InstancedMesh | null) => { (parts.current[k] ??= [])[p] = m; };
-        return <group key={k}><instancedMesh ref={set(0)} args={[g.paint, paintMat, n]} frustumCulled={false} /><instancedMesh ref={set(1)} args={[g.glass, glassMat, n]} frustumCulled={false} /><instancedMesh ref={set(2)} args={[g.trim, trimMat, n]} frustumCulled={false} /><instancedMesh ref={set(3)} args={[g.lights, lightMat, n]} frustumCulled={false} /></group>; })}
+      {CAR_KINDS.map((k) => { const n = fleet[k].length; if (!n) return null; const g = carGeos(PROCEDURAL_KIND[k]);
+        // each ref is registered per slot: the model's body is slot 0 (painted per car), its trim slot 1; the old procedural car uses slots 0 to 3
+        const slot = (p: number) => (m: InstancedMesh | null) => { (parts.current[k] ??= [])[p] = m; if (p === 0) paint(k, m); };
+        const old = <group><instancedMesh ref={slot(0)} args={[g.paint, paintMat, n]} frustumCulled={false} /><instancedMesh ref={slot(1)} args={[g.glass, glassMat, n]} frustumCulled={false} /><instancedMesh ref={slot(2)} args={[g.trim, trimMat, n]} frustumCulled={false} /><instancedMesh ref={slot(3)} args={[g.lights, lightMat, n]} frustumCulled={false} /></group>;
+        return <StreetFleet key={k} model={TRAFFIC_MODEL[k]} n={n} refBody={slot(0)} refTrim={slot(1)} fallback={old} />; })}
       {specials.map(({ c, i }) => (
         <group key={i} ref={(n) => { sp.current[i] = n; }}>
           <group rotation={[0, c.dir === 1 ? Math.PI : 0, 0]}>

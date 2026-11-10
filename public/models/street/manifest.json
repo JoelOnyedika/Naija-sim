@@ -1,0 +1,62 @@
+{
+  "hatch": {
+    "file": "hatch.glb",
+    "name": "Hatchback",
+    "triangles": 726,
+    "kb": 37,
+    "width": 2.15,
+    "height": 1.46,
+    "length": 3.9,
+    "front": "+z"
+  },
+  "sedan": {
+    "file": "sedan.glb",
+    "name": "Old saloon",
+    "triangles": 926,
+    "kb": 44,
+    "width": 1.8,
+    "height": 1.42,
+    "length": 4.5,
+    "front": "+z"
+  },
+  "van": {
+    "file": "van.glb",
+    "name": "Panel van / minibus",
+    "triangles": 1104,
+    "kb": 80,
+    "width": 2.37,
+    "height": 2.09,
+    "length": 5,
+    "front": "+z"
+  },
+  "wagon": {
+    "file": "wagon.glb",
+    "name": "Family wagon",
+    "triangles": 588,
+    "kb": 26,
+    "width": 2.12,
+    "height": 1.84,
+    "length": 4.4,
+    "front": "+z"
+  },
+  "pickup_s": {
+    "file": "pickup_s.glb",
+    "name": "Small pickup",
+    "triangles": 1074,
+    "kb": 48,
+    "width": 1.87,
+    "height": 2,
+    "length": 4.3,
+    "front": "+z"
+  },
+  "pickup_l": {
+    "file": "pickup_l.glb",
+    "name": "Double-cab pickup",
+    "triangles": 770,
+    "kb": 48,
+    "width": 2.2,
+    "height": 1.83,
+    "length": 5.3,
+    "front": "+z"
+  }
+}

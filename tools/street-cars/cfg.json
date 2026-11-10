@@ -1,0 +1,8 @@
+{
+  "hatch":    { "variants": ["hatch0","hatch1","hatch2","hatch3","hatch4","hatch5","hatch6","hatch7","hatch8"], "length": 3.9, "flip": true,  "body": 0.55, "trim": 0.3, "tyre": 0.12, "hub": 0.4 },
+  "sedan":    { "variants": ["sedan0","sedan1","sedan2","sedan3","sedan4","sedan5","sedan6","sedan7","sedan8"], "length": 4.5, "flip": false, "body": 0.5, "trim": 0.3, "tyre": 0.12, "hub": 0.4 },
+  "van":      { "variants": ["van0","van1","van2","van3","van4","van5"], "length": 5.0, "flip": true,  "body": 0.55, "trim": 0.3, "tyre": 0.12, "hub": 0.4 },
+  "wagon":    { "variants": ["wagon0","wagon1","wagon2","wagon3","wagon4"], "length": 4.4, "flip": false, "body": 0.8, "trim": 0.3, "tyre": 0.12, "hub": 0.4 },
+  "pickup_s": { "variants": ["pickups0","pickups1","pickups2","pickups3"], "length": 4.3, "flip": false, "body": 0.35, "trim": 0.3, "tyre": 0.12, "hub": 0.4 },
+  "pickup_l": { "variants": ["pickupl0","pickupl1","pickupl2","pickupl3","pickupl4","pickupl5"], "length": 5.3, "flip": false, "body": 0.7, "trim": 0.3, "tyre": 0.12, "hub": 0.4 }
+}
