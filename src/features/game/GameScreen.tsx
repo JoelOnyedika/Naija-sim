@@ -33,6 +33,7 @@ import { TaskPanel } from './TaskPanel';
 import { EventPrompt } from './EventPrompt';
 import { DailySheet } from './DailySheet';
 import { RoadBlock } from './RoadBlock';
+import { CollectorVisit } from './CollectorVisit';
 import { TestDrive } from './TestDrive';
 import { preloadTravel } from '@/features/travel/preload';
 import { useDailyPopup } from './useDailyPopup';
@@ -79,6 +80,7 @@ export function GameScreen() {
       <EventPrompt />
       <DailySheet />
       <RoadBlock />
+      <CollectorVisit />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

@@ -1,3 +1,12 @@
+## v34: loan apps and loan collectors
+
+- **Three loan apps** on the phone (Money group in the App Library): **OFAY** (green, 20% interest, 3 days, starts at ₦20k), **FALMFAY** (purple, 25%, 2 days, starts at ₦50k) and **KWIKKASH** (black and yellow, 30%, 1 day, starts at ₦10k, tough collectors). Each has its own look; all share one screen (`features/phone/apps/loans/LenderApp.tsx`) and one set of rules (`game/loans.ts`, data in `data/loans.ts`).
+- Borrow: money arrives at once. Repay in full or in parts. Repay ON TIME and your limit for that app grows (×1.6, ×1.7, ×1.35 per loan, up to ₦1M, ₦3M, ₦300K). Repay late and it does not grow. One loan at a time per app; with any overdue loan you cannot borrow anywhere.
+- Late fees: 3%, 4% or 6% of the loan for every started day late, up to a cap. Time is game time (1 game day = 24 real minutes).
+- **Collectors**: overdue for half a game day and the lender sends people. While you play, every 90 seconds (at home, in a venue, mid-activity) there is a 30% chance they find you; the same roll happens when a trip ends (the street). After a visit they leave you alone for 150 seconds. Choices: pretend you are not home (home only, 50%), run (higher odds than fighting), fight (uses your health, energy, fitness), or pay. Lose to collectors: beaten and half of what you owe is taken from your wallet. 30% of visits bring police: lose and you are jailed for 10 minutes (same cell and record as pickpocketing).
+- New: `data/loans.ts`, `stores/loanStore.ts`, `game/loans.ts`, `game/collectors.ts`, `features/game/CollectorVisit.tsx`, `scripts/loansTest.ts` (`npm run test:loans`, 51 checks, in `test:all`). A new life wipes loans and visits.
+- Looked at in headless Chromium: the three apps, an overdue KWIKKASH loan, and the collectors at the door. Not tried on a real phone.
+
 ## v33: street cars from your low-poly pack
 
 - Cut your `low_poly_cars_pack.glb` (about 50 cars, 6 models, 109,000 triangles, 10.5 MB) into six game-ready cars: 588 to 1,104 triangles each, two draw calls, 282 KB for all six (`public/models/street/`). Wheels were rebuilt as 40-triangle tyres with a grey disc.

@@ -1,7 +1,7 @@
 export type AppId =
   | 'jobs' | 'messages' | 'contacts' | 'guide' | 'food' | 'bank' | 'boutique' | 'forbes' | 'houses' | 'cars' | 'invite'
   | 'help' | 'invest' | 'betting' | 'family' | 'staff' | 'hustle' | 'motors' | 'companies' | 'shops' | 'police' | 'settings'
-  | 'court' | 'games' | 'ride' | 'grocery' | 'aircraft';
+  | 'court' | 'games' | 'ride' | 'grocery' | 'aircraft' | 'ofay' | 'falmfay' | 'kwikkash';
 
 export interface AppDef { id: AppId; label: string; glyph: string; from: string; to: string; dock?: boolean; /** Opens over the whole screen instead of inside the phone frame (see PhoneOverlay). */ fullscreen?: boolean }
 
@@ -30,6 +30,9 @@ export const APPS: AppDef[] = [
   { id: 'ride', label: 'Ride', glyph: '🛺', from: '#FACC15', to: '#B45309' },
   { id: 'grocery', label: 'Grocery', glyph: '🛒', from: '#86EFAC', to: '#15803D' },
   { id: 'games', label: 'Games', glyph: '🎲', from: '#F0ABFC', to: '#A21CAF' },
+  { id: 'ofay', label: 'OFAY', glyph: '🟢', from: '#00C26B', to: '#007A4A' },
+  { id: 'falmfay', label: 'FALMFAY', glyph: '🌴', from: '#8B5CF6', to: '#4C1D95' },
+  { id: 'kwikkash', label: 'KWIKKASH', glyph: '⚡', from: '#FACC15', to: '#92400E' },
   { id: 'invite', label: 'Invite', glyph: '🎟️', from: '#C084FC', to: '#7E22CE' },
   { id: 'guide', label: 'Guide', glyph: '📖', from: '#FDE047', to: '#A16207' },
   { id: 'help', label: 'Help', glyph: '❓', from: '#A3E635', to: '#4D7C0F' },

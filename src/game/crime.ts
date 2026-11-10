@@ -85,3 +85,11 @@ export function stepJail(now = Date.now()): 'released' | 'imprisoned' | null {
   if (here?.kind !== 'jail') { const r = enterInterior('jail', { force: true, name: 'Police cell' }); return r.ok ? 'imprisoned' : null; }
   return null;
 }
+
+/** Locks the player up for `minutes` (used by loan collectors with police). Same sentence record as a pickpocketing arrest. */
+export function arrestPlayer(minutes: number, reason: string, now = Date.now()): void {
+  const jail = useJailStore.getState();
+  useJailStore.getState().patch({ criminality: jail.criminality + CRIME.criminalityPerArrest, sentence: { startAt: now, endAt: now + minutes * 60_000, minutes, reason } });
+  useJailStore.getState().note('arrest');
+  enterInterior('jail', { force: true, name: 'Police cell' });
+}

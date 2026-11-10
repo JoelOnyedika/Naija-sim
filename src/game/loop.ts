@@ -21,6 +21,8 @@ import { backupIn, powerMode } from './power';
 import { usePowerStore } from '@/stores/powerStore';
 import { finishPetAction, stepPets } from './petCare';
 import { stepJail } from './crime';
+import { stepCollectors } from './collectors';
+import { stepLoans } from './loans';
 import { stepChatter } from './chatter';
 import { makeCode } from './referrals';
 import { getAuthority } from './authority';
@@ -99,6 +101,8 @@ export function advance(dt: number) {
   stepNoData(dt);
   stepPets(dt);
   stepJail();
+  stepLoans();
+  stepCollectors();
   stepChatter();
   if (useReferralStore.getState().referredBy) { const e = useEconomyStore.getState(); useReferralStore.getState().absorb(e.transactions, e.seq, makeCode(useAuthStore.getState().session ?? 'player')); }
 

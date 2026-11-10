@@ -28,12 +28,13 @@ import { JobsApp } from './Jobs';
 import { MessagesApp } from './messages';
 import { ShopsApp } from './Shops';
 import { StaffApp } from './Staff';
+import { FalmfayApp, KwikkashApp, OfayApp } from './loans';
 
 /** App registry. Each app is an independent module: add a file, add a line here and one in data/apps.ts. */
 const APP_COMPONENTS: Record<AppId, ComponentType> = {
   jobs: JobsApp, messages: MessagesApp, contacts: ContactsApp, guide: GuideApp, food: FoodApp, bank: BankApp, boutique: BoutiqueApp,
   forbes: ForbesApp, houses: HousesApp, cars: CarsApp, invite: InviteApp, help: HelpApp, invest: InvestApp, betting: BettingApp,
-  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ride: RideApp, aircraft: AviationApp, grocery: GroceryApp,
+  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ofay: OfayApp, falmfay: FalmfayApp, kwikkash: KwikkashApp, ride: RideApp, aircraft: AviationApp, grocery: GroceryApp,
 };
 
 /**

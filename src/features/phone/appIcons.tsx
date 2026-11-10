@@ -5,7 +5,7 @@ import type { PhoneType } from '@/types/game';
 const ICONS: Record<AppId, LucideIcon> = {
   messages: MessageCircle, bank: Landmark, food: Utensils, jobs: Briefcase, contacts: Users, houses: Home, cars: Car, boutique: Shirt, forbes: Crown, invest: TrendingUp,
   betting: Dices, hustle: Zap, shops: Store, companies: Building2, motors: Gauge, family: HeartHandshake, staff: Sparkles, police: ShieldCheck, court: Scale,
-  ride: Navigation, grocery: ShoppingCart, games: Dices, invite: Ticket, guide: BookOpen, help: CircleHelp, settings: Settings, aircraft: Plane,
+  ride: Navigation, grocery: ShoppingCart, games: Dices, invite: Ticket, guide: BookOpen, help: CircleHelp, settings: Settings, aircraft: Plane, ofay: Landmark, falmfay: Landmark, kwikkash: Zap,
 };
 export const appIcon = (id: AppId): LucideIcon => ICONS[id];
 

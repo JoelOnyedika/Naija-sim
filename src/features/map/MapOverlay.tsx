@@ -21,6 +21,7 @@ import { travelToVenue } from '@/game/interiors';
 import { planTrip, type TripPlan } from '@/features/travel/plan';
 import { TravelScene } from '@/features/travel/TravelScene';
 import { maybeRoadblock } from '@/game/agbero';
+import { maybeCollectors } from '@/game/collectors';
 import { MapTopBar } from './MapTopBar';
 import { CategorySheet } from './CategorySheet';
 import { LocationSheet, type Mode } from './LocationSheet';
@@ -104,7 +105,7 @@ export function MapOverlay() {
           <AnimatePresence>{ui.wizard && state.ads && <AdWizard key={`wiz-${ui.wizard.kind}-${ui.wizard.slotId}`} state={state} wizard={ui.wizard} />}</AnimatePresence>
 
           <AnimatePresence>
-            {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { const t = trip; setTrip(null); if (!maybeRoadblock(t.go)) t.go(); }} />}
+            {trip && <TravelScene key={trip.plan.key} plan={trip.plan} onDone={() => { const t = trip; setTrip(null); if (!maybeCollectors('street', t.go) && !maybeRoadblock(t.go)) t.go(); }} />}
           </AnimatePresence>
         </motion.div>
       )}
