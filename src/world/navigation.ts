@@ -146,7 +146,8 @@ export function findPath(g: NavGrid, from: Pt, to: Pt): Pt[] | null {
 
 // ------------------------------------------------------------------------------------------------ interaction spots
 
-export type Action = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash';
+export type Action = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash'
+  | 'work' | 'lift' | 'hammer' | 'sweep' | 'talk' | 'pray' | 'cheer' | 'swing' | 'curl';
 export type SpotPose = 'stand' | 'sit' | 'sleep';
 
 /** Where the avatar goes to use an object and how it ends up. `approach` is always walkable; `final` may be on the furniture itself (seat, bed, tub). */

@@ -1,8 +1,8 @@
 import { sfx } from '@/audio/sfx';
+import { interruptActivity } from './interrupt';
 import { INTERIORS, interiorKindForLandmark, type InteriorKind } from '@/data/interiors';
 import { useActorStore } from '@/stores/actorStore';
 import { useInteriorStore } from '@/stores/interiorStore';
-import { useStatsStore } from '@/stores/statsStore';
 import { toast, useUiStore } from '@/stores/uiStore';
 import { useCameraStore } from '@/stores/cameraStore';
 import { getDirectory } from './instances';
@@ -21,7 +21,7 @@ export type EnterResult = { ok: true } | { ok: false; reason: string };
 export function enterInterior(kind: InteriorKind, opts: { landmarkId?: string; name?: string; vehicleId?: string; force?: boolean } = {}): EnterResult {
   const def = INTERIORS[kind];
   if (!opts.force && isJailed() && kind !== 'jail') return { ok: false, reason: 'You are serving time.' };
-  if (useStatsStore.getState().activity && !opts.force) return { ok: false, reason: 'Finish what you are doing first' };
+  if (!opts.force) interruptActivity(); // going somewhere else stops what you are doing
   const cur = useInteriorStore.getState().current;
   if (cur) getDirectory().leave(cur.kind, PLAYER_ID);
   const j = getDirectory().join(kind, PLAYER_ID);
@@ -46,7 +46,7 @@ export function enterLandmark(landmarkId: string, vehicleId?: string): EnterResu
 export function leaveInterior(): void {
   const cur = useInteriorStore.getState().current; if (!cur) return;
   if (isJailed()) { toast('You are serving time. No leaving early.', 'bad'); return; }
-  if (useStatsStore.getState().activity) { toast('Finish what you are doing first', 'bad'); return; }
+  interruptActivity();
   getDirectory().leave(cur.kind, PLAYER_ID);
   useActorStore.getState().clearOrder();
   useInteriorStore.getState().set(null);
@@ -59,7 +59,7 @@ export function travelToVenue(landmarkId: string, vehicleId?: string): EnterResu
   const lm = getLandmark(landmarkId); const kind = interiorKindForLandmark(landmarkId);
   if (!lm || !kind) return { ok: false, reason: 'This place has no inside yet' };
   if (isJailed()) return { ok: false, reason: 'You are serving time.' };
-  if (useStatsStore.getState().activity) return { ok: false, reason: 'Finish what you are doing first' };
+  interruptActivity();
   const fee = lm.visit.cost;
   if (fee > 0 && !useEconomyStore.getState().debit(fee, `Entry: ${lm.name}`, 'visit')) return { ok: false, reason: copy.broke() };
   useMapStore.getState().recordVisit(landmarkId);

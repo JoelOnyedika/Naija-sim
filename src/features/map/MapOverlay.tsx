@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { interruptActivity } from '@/game/interrupt';
 import { useEffect, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { formatNaira } from '@/core/format';
@@ -55,7 +56,7 @@ export function MapOverlay() {
       const r = travelToVenue(landmark.id); if (!r.ok) { sfx.error(); toast(r.reason, 'bad'); }
       return;
     }
-    if (useStatsStore.getState().activity) { sfx.error(); return toast('Finish what you are doing first', 'bad'); }
+    interruptActivity();
     if (v.cost > 0 && !useEconomyStore.getState().debit(v.cost, `Visit: ${landmark.name}`, 'visit')) { sfx.error(); return toast(copy.broke(), 'bad'); }
     sfx.open(); setTrip({ plan: planTrip({ modeId: 'danfo', seconds: 3.5, landmark }), go: () => undefined });
     useMapStore.getState().recordVisit(landmark.id);

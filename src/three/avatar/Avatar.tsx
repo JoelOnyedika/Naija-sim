@@ -5,7 +5,8 @@ import type { Appearance } from '@/types/game';
 import { buildCharacter, toSpec } from '../character/build';
 
 /** What the avatar is doing with its hands. Drives the arm poses below; positions/poses come from the walker. */
-export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash';
+export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash'
+  | 'work' | 'lift' | 'hammer' | 'sweep' | 'talk' | 'pray' | 'cheer' | 'swing' | 'curl';
 export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean; bubble?: string | null }
 
 /**
@@ -26,6 +27,7 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
     const swing = m.moving ? Math.sin(t * 9) * 0.6 : 0;
     // hands: an action only shows while standing still or sitting (never mid-stride, never lying down)
     const act: ActionKind | undefined = m.moving || m.lying ? undefined : m.action;
+    const lp = Math.sin(t * 2) * 0.5 + 0.5; // 0..1 and back, the rhythm of lifting
     [0, 1].forEach((i) => {
       const s = i === 0 ? 1 : -1; // legs[0] is the left leg (-x)
       const l = legs[i], k = knees[i], r = arms[i], fo = fores[i];
@@ -45,6 +47,16 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
         case 'wash': tx = -1.0; tf = -1.0 + Math.sin(t * 6 + ph) * 0.25; break;
         case 'shower': tx = -2.5 + Math.sin(t * 4 + ph) * 0.2; tf = -0.9; tz = side * 0.12; break;
         case 'dance': tx = -2.3 + Math.sin(t * 5 + ph) * 0.6; tf = -0.4; tz = side * 0.3; break;
+        // ---- working animations (data/activities picks one per activity through world/animations.ts; 'work' is the default)
+        case 'work': tx = -0.75 + Math.sin(t * 2.2 + ph) * 0.12; tf = -0.9 + Math.sin(t * 3.1 + ph * 1.3) * 0.28; break;
+        case 'lift': tx = -0.4 - lp * 1.5; tf = -0.5 - lp * 0.45; break;
+        case 'hammer': if (side === 1) { tx = -2.0 + Math.sin(t * 5) * 0.7; tf = -0.6 - (Math.sin(t * 5) * 0.5 + 0.5) * 0.9; } else { tx = -0.9; tf = -0.8; } break;
+        case 'sweep': tx = -0.95 + Math.sin(t * 3 + ph) * 0.1; tf = -0.4; tz = side * 0.06 + Math.sin(t * 3) * 0.28; break;
+        case 'talk': if (side === 1) { tx = -0.9 + Math.sin(t * 3.2) * 0.35; tf = -1.0 + Math.sin(t * 4.1) * 0.4; tz = side * 0.2; } else { tx = -0.5; tf = -0.5 + Math.sin(t * 2) * 0.15; } break;
+        case 'pray': tx = -0.95; tf = -1.9; tz = -side * 0.15; break;
+        case 'cheer': tx = -2.7 + Math.sin(t * 6 + ph) * 0.35; tf = -0.2; tz = side * 0.35; break;
+        case 'swing': if (side === 1) { tx = -1.2 + Math.sin(t * 4) * 1.2; tf = -0.3; } else { tx = -0.6; tf = -0.4; } break;
+        case 'curl': tx = -0.3; tf = -0.2 - (Math.sin(t * 2.4) * 0.5 + 0.5) * 1.9; break;
         case 'pushup': tx = -1.3; tf = -0.05 - (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.9; break;
         default: break;
       }
@@ -54,10 +66,13 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
       if (fo) fo.rotation.x = sm.f;
     });
     const pushing = act === 'pushup';
-    b.rotation.x = MathUtils.lerp(b.rotation.x, m.lying ? -Math.PI / 2 : pushing ? 1.3 : 0, 0.15);
-    b.rotation.z = MathUtils.lerp(b.rotation.z, act === 'dance' ? Math.sin(t * 2.5) * 0.1 : 0, 0.2);
+    // body lean and sway for the working animations: bowing to pray, stooping to lift, leaning into a sweep
+    const lean = act === 'lift' ? 0.32 * (1 - lp) : act === 'sweep' ? 0.2 : act === 'pray' ? 0.2 + Math.sin(t * 0.8) * 0.04 : act === 'hammer' ? 0.08 : 0;
+    const sway = act === 'dance' ? Math.sin(t * 2.5) * 0.1 : act === 'sweep' ? Math.sin(t * 3) * 0.1 : act === 'talk' ? Math.sin(t * 1.8) * 0.03 : act === 'cheer' ? Math.sin(t * 6) * 0.05 : act === 'swing' ? Math.sin(t * 4) * 0.06 : 0;
+    b.rotation.x = MathUtils.lerp(b.rotation.x, m.lying ? -Math.PI / 2 : pushing ? 1.3 : lean, 0.15);
+    b.rotation.z = MathUtils.lerp(b.rotation.z, sway, 0.2);
     const y = m.lying ? 0.7 : m.sitting ? -0.3 : pushing ? 0.17 + (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.09 : 0;
-    const bob = act === 'dance' ? Math.abs(Math.sin(t * 5)) * 0.07 : m.moving || m.lying || pushing ? 0 : Math.sin(t * 1.6) * 0.006;
+    const bob = act === 'cheer' ? Math.abs(Math.sin(t * 6)) * 0.04 : act === 'lift' ? -0.06 * (1 - lp) : act === 'dance' ? Math.abs(Math.sin(t * 5)) * 0.07 : m.moving || m.lying || pushing ? 0 : Math.sin(t * 1.6) * 0.006;
     b.position.y = MathUtils.lerp(b.position.y, y + bob, 0.15);
   });
   return <primitive object={rig.root} />;

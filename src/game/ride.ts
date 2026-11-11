@@ -1,4 +1,5 @@
 import { formatNaira } from '@/core/format';
+import { interruptActivity } from './interrupt';
 import { useClockStore } from '@/stores/clockStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useRideStore } from '@/stores/rideStore';
@@ -23,7 +24,6 @@ export function travelBlocker(destId: string, method: Method): string | null {
   if (d.cityId !== currentStateId()) return 'Intercity travel is not available yet. Switch city on the map first.';
   if (useRideStore.getState().at === destId) return 'You are already here.';
   if (m.needsCar && useVehicleStore.getState().owned.length === 0) return 'You do not own a car.';
-  if (useStatsStore.getState().activity) return 'Finish what you are doing first.';
   if (m.fare[d.distance] > useEconomyStore.getState().money) return `The fare is ${formatNaira(m.fare[d.distance])}. You do not have enough.`;
   return null;
 }
@@ -32,6 +32,7 @@ export function travel(destId: string, method: Method): Result {
   if (blocked) return no(blocked);
   const d = getDestination(destId)!, m = getMethod(method), fare = m.fare[d.distance];
   return guarded(`ride|${destId}|${method}`, () => {
+    interruptActivity(); // travelling stops what you are doing
     if (fare > 0 && !useEconomyStore.getState().debit(fare, `${m.label} to ${d.name}`, 'visit', d.name, { ref: { type: 'ride', id: destId } })) return no('The fare could not be paid.');
     useClockStore.setState((c) => ({ minutes: c.minutes + m.minutes[d.distance] }));
     useStatsStore.getState().apply(m.effects);
@@ -41,6 +42,7 @@ export function travel(destId: string, method: Method): Result {
 }
 export function goHome(): Result {
   if (!useRideStore.getState().at) return no('You are already home.');
+  interruptActivity();
   useClockStore.setState((c) => ({ minutes: c.minutes + 15 }));
   useRideStore.getState().setAt(null);
   return { ok: true };

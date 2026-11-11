@@ -127,7 +127,7 @@ export function InteriorChat() {
   const spotUses = uses.map(describeUse);
   return (
     <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--dock-gap,4.9rem))] z-[76] flex justify-center px-2 ${dockHidden ? 'pr-16' : ''}`}>
-      <div ref={box} role="region" aria-label="Venue panel" className="panel pointer-events-auto flex max-h-[66vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-3xl p-2.5">
+      <div ref={box} role="region" aria-label="Venue panel" className={`panel pointer-events-auto flex ${onTasks && isClub ? 'max-h-[46vh]' : 'max-h-[66vh]'} w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-3xl p-2.5`}>
         {/* top strip: tap to fold or unfold; camera and fold-the-menu on the right */}
         <div className="flex items-center justify-between">
           <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Fold the panel' : 'Unfold the panel'} className="flex h-7 flex-1 items-center justify-center"><span className="h-1 w-12 rounded-full bg-white/25" /></button>

@@ -90,8 +90,8 @@ ok(enterInterior('club').ok && I().current?.kind === 'club' && getActiveHome()!.
 ok(I().current!.instance === 1 && I().current!.npcCount === 9, 'offline: copy 1 with 9 NPCs (the local directory is NOT authoritative)');
 leaveInterior(); ok(I().current === null && getActiveHome()!.property.id === home, 'leaving puts you back in your own home');
 useStatsStore.getState().start({ label: 'Busy', seconds: 30, effects: {}, pose: 'stand', kind: 'use' } as never);
-ok(!enterInterior('club').ok, 'you cannot walk into a venue in the middle of an activity');
-useStatsStore.getState().stop();
+ok(enterInterior('club').ok && useStatsStore.getState().activity === null, 'walking into a venue in the middle of an activity stops the activity');
+leaveInterior();
 
 console.log('Chat: local and global are different channels');
 fresh(); enterInterior('club'); useChatStore.getState().reset();

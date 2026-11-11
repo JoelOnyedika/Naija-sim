@@ -1,4 +1,5 @@
 import { livePlayer } from '@/world/npcLive';
+import { animFor } from '@/world/animations';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { MathUtils, type Group, type Mesh } from 'three';
@@ -181,7 +182,7 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     m.moving = moving;
     m.lying = acting && spot?.pose === 'sleep';
     m.sitting = acting && spot?.pose === 'sit';
-    m.action = acting ? (spot?.action ?? 'idle') : 'idle';
+    m.action = acting ? (activity && spot?.pose !== 'sleep' && spot?.pose !== 'sit' && activity.kind !== 'visit' ? animFor(activity.targetUid ? its.find((i) => i.uid === activity.targetUid)?.defId : undefined, activity.activityKey, spot?.action) : (spot?.action ?? 'idle')) : 'idle';
     m.bathing = acting && !!spot?.bathing;
     // what the thought bubble shows: the object being used (real activity or AFK cosmetic), nothing while walking
     const usedUid = activity?.targetUid ?? cosmetic?.uid, usedDef = usedUid ? its.find((i) => i.uid === usedUid)?.defId : undefined;

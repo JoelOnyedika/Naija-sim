@@ -1,3 +1,10 @@
+## v35: stop tasks when you travel, working animations, compact club buying
+
+- **Travelling stops your task.** Starting a trip, going to another venue, leaving a venue or going home now stops the current activity (a toast says "Stopped: ...") instead of refusing with "Finish what you are doing first". What the task already gave stays; a payout that comes only at the end is not paid; queued next tasks are dropped. One place does it: `game/interrupt.ts`.
+- **Working animations.** Standing activities now move the character's hands: lifting (cargo, loads, bags, trays), hammering (repair, fixing, building, printing), sweeping (mopping, cleaning, stirring, grilling), talking (haggling, negotiating, pitching, gist), praying, cheering, swinging (sports and games), curls (weights, pull-ups, jogging), plus eating and drinking for food and drink tasks. Anything standing and busy that matches nothing gets the DEFAULT "work" animation, so no task shows a statue. Rules live in one table, `world/animations.ts`; the poses are in `three/avatar/Avatar.tsx`.
+- **Club buying is compact.** The club panel is now about half the screen height and the scene stays visible. One slim row per item (emoji, name, short line, price, small − n + stepper only when you can buy several, Buy). The big "Burned tonight / View bill" row inside the panel is gone; the bill button stays outside on the side of the screen.
+- Tests: `npm run test:workflow` (15 checks, in `test:all`).
+
 ## v34: loan apps and loan collectors
 
 - **Three loan apps** on the phone (Money group in the App Library): **OFAY** (green, 20% interest, 3 days, starts at ₦20k), **FALMFAY** (purple, 25%, 2 days, starts at ₦50k) and **KWIKKASH** (black and yellow, 30%, 1 day, starts at ₦10k, tough collectors). Each has its own look; all share one screen (`features/phone/apps/loans/LenderApp.tsx`) and one set of rules (`game/loans.ts`, data in `data/loans.ts`).

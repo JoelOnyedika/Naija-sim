@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { interruptActivity } from '@/game/interrupt';
 import { sfx } from '@/audio/sfx';
 import { copy } from '@/data/copy';
 import { INTERIORS, interiorKindForLandmark } from '@/data/interiors';
@@ -11,7 +12,6 @@ import { formatNaira } from '@/core/format';
 import { isJailed } from '@/game/crime';
 import { travelToVenue } from '@/game/interiors';
 import { useEconomyStore } from '@/stores/economyStore';
-import { useStatsStore } from '@/stores/statsStore';
 import { useVehicleStore } from '@/stores/vehicleStore';
 import { toast } from '@/stores/uiStore';
 import { Button } from '@/ui/Button';
@@ -55,8 +55,8 @@ export function LocationSheet({ landmark, onClose, onTravel }: { landmark: Landm
   const people = useMemo(() => (def ? makeNpcs(def.kind, 1, Math.min(4, def.npcTarget)) : []), [def]);
   const go = () => {
     if (isJailed()) { sfx.error(); return toast('You are serving time.', 'bad'); }
-    if (useStatsStore.getState().activity) { sfx.error(); return toast('Finish what you are doing first', 'bad'); }
     if (money < mode.cost + fee) { sfx.error(); return toast(copy.broke(), 'bad'); }
+    interruptActivity();
     if (mode.cost > 0) useEconomyStore.getState().debit(mode.cost, `${mode.label} to ${landmark.name}`, 'visit');
     sfx.open();
     onTravel(mode, () => { const r = travelToVenue(landmark.id, mode.vehicleId); if (!r.ok) { if (mode.cost > 0) useEconomyStore.getState().credit(mode.cost, 'Fare refunded', 'refund'); sfx.error(); toast(r.reason, 'bad'); } });
