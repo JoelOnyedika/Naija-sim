@@ -62,6 +62,11 @@ export function onCampusEvent(event: string): { completed?: string; stepDone?: s
   if (!event.startsWith('campus:')) return {};
   const s = S(); const out: { completed?: string; stepDone?: string; hubRound?: boolean } = {};
   s.set({ tasksDone: s.tasksDone + 1, tasksSinceScene: s.tasksSinceScene + 1 });
+  // Discovery: clue spots and asking around make the brotherhood findable. Two clues, or asking Dayo outright, start it at once.
+  if (S().recruit === 'none') {
+    if (event.startsWith('campus:clue_')) { const n = Number(S().flags.clues ?? 0) + 1; S().setFlags({ clues: n }); toast(clueText(event), 'info'); if (n >= STORY.discovery.cluesToStart) S().setFlags({ trigger_now: true }); }
+    if (event === 'campus:ask_around') S().setFlags({ seeking: true, trigger_now: true });
+  }
   if (event === 'campus:exam' && s.grade && (s.grade === 'First' || s.grade === '2:1')) s.setFlags({ good_grade: true });
   const m = currentMission();
   if (m) {
@@ -82,6 +87,22 @@ export function onCampusEvent(event: string): { completed?: string; stepDone?: s
   }
   return out;
 }
+
+const clueText = (e: string) => e === 'campus:clue_flyer' ? 'A plain black flyer: “Real family. Ask Dayo.”' : e === 'campus:clue_bracelets' ? 'Students with black bracelets stop talking when you pass.' : 'You overhear: “Saturday night. The old gate. Bring nobody.”';
+
+/** The chance the story starts on one discovery roll. Hardship, clues and past choices move it; being rude to seniors lowers it. Pure (flags and money are inputs). */
+export function discoveryChance(flags: Flags, money: number): number {
+  const d = STORY.discovery; let p = d.baseChance;
+  p += Number(flags.clues ?? 0) * d.clueBoost;
+  if (money < d.brokeBelow) p += d.brokeBoost;
+  if (flags.caught_cheating) p += d.cheatBoost;
+  if (flags.good_grade) p += d.gradeBoost;
+  if (flags.dayo_curious) p += d.curiousBoost;
+  if (flags.dayo_rude) p += d.rudeBoost;
+  return Math.max(0.005, Math.min(0.6, p));
+}
+/** Which harassment scene fits this many refusals (shouting, blocking and rumours, the final threat). */
+export const harassNode = (refused: number): string | null => { const [a, b, c] = STORY.harassTiers; return refused >= c ? 'harass3' : refused >= b ? 'harass2' : refused >= a ? 'harass' : null; };
 
 // ------------------------------------------------------------------------------------------------ exam
 export function beginExam(rnd: () => number = Math.random) { if (S().exam) return; S().set({ exam: startExam(rnd) }); }
@@ -148,6 +169,8 @@ function runAction(a: StoryAction, rnd: () => number = Math.random, _c?: Choice)
     case 'standFirm': s.set({ refusedCount: s.refusedCount + 1, lastPressureAt: now }); useStatsStore.getState().apply({ happiness: -3, charisma: 1 }); break;
     case 'securityHelp': s.set({ lastPressureAt: now + STORY.pressureEveryMinutes * 2 * 60_000 }); s.setFlags({ reported_security: true }); toast('Security chased them away. For now.', 'good'); break;
     case 'endStory': s.set({ recruit: 'ended', initiationAt: null }); s.setFlags({ story_missed: true }); break;
+    case 'reportPolice': s.set({ recruit: 'ended', initiationAt: null }); s.setFlags({ reported_police: true, story_ended: true }); useStatsStore.getState().apply({ social: -3, happiness: 3 }); break;
+    case 'rumours': useStatsStore.getState().apply({ charisma: -1, social: -3, happiness: -5 }); break;
     case 'enterForest': enterForest(); return 'stay';
     case 'tryLeave': return tryLeave(rnd);
     case 'beating': break; // the effect itself is shown by the scene, the numbers are applied once below
@@ -199,11 +222,20 @@ export const promote = () => { const c = S().confraternity; if (!c.member || c.r
 // ------------------------------------------------------------------------------------------------ the story clock
 const blocked = () => !!S().dialogue || !!S().exam || isJailed() || !!useAgberoStore.getState().active || !!useLoanStore.getState().visit || useUiStore.getState().mode !== 'home';
 /** Called every simulation step. Starts scenes when their conditions are met. `nowMs` and `nowMin` are injectable for tests. */
-export function stepStory(nowMs = Date.now(), nowMin = nowGame()) {
+let lastRoll = 0;
+export function stepStory(nowMs = Date.now(), nowMin = nowGame(), rnd: () => number = Math.random) {
   syncCampusClock(nowMs);
   const s = S(); if (!onCampus() || blocked()) return;
   const mins = campusSecondsNow(nowMs) / 60;
-  if (s.recruit === 'none') { if (s.mission >= 2 && mins >= STORY.campusMinutesBeforeRecruit) openNode('meet'); return; }
+  if (s.recruit === 'none') {
+    const d = STORY.discovery, secs = mins * 60;
+    const force = !!s.flags.trigger_now || mins >= d.pityMinutes; // clues or asking around, or the pity timer: it is always findable
+    const due = secs >= d.graceSeconds && nowMs - lastRoll >= d.checkEverySeconds * 1000;
+    if (!force && !due) return;
+    if (!force) { lastRoll = nowMs; if (rnd() >= discoveryChance(s.flags, useEconomyStore.getState().money)) return; }
+    if (useEconomyStore.getState().money < d.brokeBelow) s.setFlags({ broke: true });
+    s.setFlags({ trigger_now: false }); openNode('meet'); return;
+  }
   if (s.recruit === 'met' || s.recruit === 'blending') {
     const scene = !s.flags.hang1 ? 'hang1' : !s.flags.hang2 ? 'hang2' : !s.flags.hang3 ? 'hang3' : null;
     if (scene && s.tasksSinceScene >= STORY.tasksBetweenScenes) { s.set({ tasksSinceScene: 0, recruit: 'blending' }); openNode(scene); }
@@ -213,7 +245,7 @@ export function stepStory(nowMs = Date.now(), nowMin = nowGame()) {
   if (s.recruit === 'offered' && s.lastPressureAt && nowMs - s.lastPressureAt >= STORY.pressureEveryMinutes * 60_000) {
     const k = Number(s.flags.pressureN ?? 0); s.setFlags({ pressureN: k + 1 });
     if (s.initiationAt === null && s.missed > 0 && s.missed < STORY.maxMissed && !s.flags.missed_shown) { s.setFlags({ missed_shown: true }); openNode('missed'); return; }
-    openNode(s.refusedCount >= STORY.harassAfterRefusals ? 'harass' : k % 2 === 0 ? 'pressure1' : 'pressure2'); return;
+    openNode(harassNode(s.refusedCount) ?? (k % 2 === 0 ? 'pressure1' : 'pressure2')); return;
   }
   if (s.recruit === 'invited' && s.initiationAt !== null) {
     if (initiationOpen(nowMin) && !s.flags.follow_shown) { s.setFlags({ follow_shown: true }); openNode('follow'); }

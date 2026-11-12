@@ -1,3 +1,9 @@
+## v38: the brotherhood is discovered, not earned; escalating harassment; police ending
+
+- **No mission gate.** Weighted dice each campus visit (more likely if broke, caught cheating, curious, good grades) plus clue spots (flyer, bracelets, overheard gist), "Ask Senior Dayo", and a 20-minute pity timer so every player can find it.
+- **Harassment escalates** (shouting, blocking and rumours, a final threat) and every tier offers **Report to the police**, which ends the story for good, or Join.
+- Tests updated (`test:story`), `test:all` passes. Details in `docs/UNILAG_STORY.md`.
+
 ## v37: UNILAG campus, brotherhood story, forest initiation, gun, new character look for everyone
 
 - **Your existing character now has the new look** (bowl cut, black vest over a light tee, gold ear stud). It is the default, and saved characters move to it once (skin, eyes, beard, trousers and shoes are kept). About 60% of the men in venues and every vendor mix wear it too, so the crowd matches you.

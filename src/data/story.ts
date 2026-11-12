@@ -11,14 +11,15 @@ export type Flags = Record<string, Flag>;
 
 // ---------------------------------------------------------------------------------------------------- tuning
 export const STORY = {
-  /** Real minutes on campus before the recruiter story may start (after missions 1 and 2). */
-  campusMinutesBeforeRecruit: 15,
+  /** Discovery: no mission gate. Every `checkEverySeconds` on campus there is a weighted roll; clues, hardship and past choices raise it. */
+  discovery: { checkEverySeconds: 30, graceSeconds: 60, baseChance: 0.02, clueBoost: 0.08, brokeBelow: 5000, brokeBoost: 0.04, cheatBoost: 0.05, gradeBoost: 0.03, curiousBoost: 0.03, rudeBoost: -0.015, /** Guaranteed after this many real minutes on campus. */ pityMinutes: 20, /** Clues that start it at once. */ cluesToStart: 2 },
+  /** Refusals needed for each harassment tier: shouting, blocking and rumours, the final threat. */
+  harassTiers: [3, 6, 9],
   /** Campus tasks done between two "blending in" scenes. */
   tasksBetweenScenes: 2,
   /** Real minutes between pressure scenes after a refusal. */
   pressureEveryMinutes: 6,
   /** Refusals before the hostel harassment scene. */
-  harassAfterRefusals: 3,
   /** "Tell me more" can be asked this many times. */
   moreMax: 2,
   /** The initiation is at 22:00 (night), at least this many game minutes after the invitation, and open for the window after it. */
@@ -63,7 +64,7 @@ export type Grade = (typeof EXAM.grades)[number]['grade'];
 // ---------------------------------------------------------------------------------------------------- dialogue
 export type StoryAction =
   | 'giftDrink' | 'trust' | 'more' | 'join' | 'refuse' | 'later' | 'standFirm' | 'securityHelp'
-  | 'enterForest' | 'tryLeave' | 'beating' | 'becomeMember' | 'rebook' | 'endStory';
+  | 'enterForest' | 'tryLeave' | 'beating' | 'becomeMember' | 'rebook' | 'endStory' | 'reportPolice' | 'rumours';
 export interface Choice { id: string; label: string; next?: string; set?: Flags; fx?: Effects; action?: StoryAction; hideIf?: string; showIf?: string; /** small grey note under the label */ hint?: string }
 export interface Node {
   id: string; speaker: string; /** emoji badge used as the portrait */ badge: string; where: 'campus' | 'forest';
@@ -76,6 +77,7 @@ const DAYO = 'Senior Dayo', FRIENDS = 'Dayo’s guys';
 export const NODES: Node[] = [
   // ---------------- 5.1 meet
   { id: 'meet', speaker: DAYO, badge: '😎', where: 'campus', lines: ['Ah! Fresher! I dey watch you since.', 'The way you dey carry yourself, e dey sweet me.'],
+    alt: [{ flag: 'seeking', lines: ['I hear say you dey ask question about us. Ha! Small fresher, big curiosity.', 'Relax. Nobody dey wicked here. Come, make I show you.'] }, { flag: 'caught_cheating', lines: ['Fresher! I hear exam hall wahala. Hmm.', 'Sit down. People like us dey help each other.'] }, { flag: 'broke', lines: ['Fresher! You dey look like person wey money dey vex.', 'Come, take this drink. Campus no easy, but you no go suffer alone.'] }],
     choices: [{ id: 'polite', label: 'Thank you, Senior.', set: { dayo_polite: true }, next: 'meet_drink' }, { id: 'curious', label: 'Who are you?', set: { dayo_curious: true }, next: 'meet_drink' }, { id: 'rude', label: 'I am busy.', set: { dayo_rude: true }, next: 'meet_drink' }] },
   { id: 'meet_drink', speaker: DAYO, badge: '😎', where: 'campus', action: 'giftDrink', set: { met_dayo: true },
     lines: ['Ha, relax. Na Dayo be my name, everybody dey call me Alpha.', 'Take this drink. Cold one. No pay.', 'Make I introduce you to my guys. Real ones. Come sit with us.'] },
@@ -104,7 +106,14 @@ export const NODES: Node[] = [
   { id: 'pressure2', speaker: FRIENDS, badge: '👀', where: 'campus', lines: ['Seaman: “Some people say you think you are better than us.”', 'Pablo: “Rumours spread fast on campus. We can help them stop.”', 'Baron: “Just talk to Dayo again.”'],
     choices: [{ id: 'standfirm', label: 'People can say what they like.', action: 'standFirm' }, { id: 'talk', label: 'Fine, I will talk to Dayo.', action: 'later', next: 'offer' }] },
   { id: 'harass', speaker: FRIENDS, badge: '📣', where: 'campus', lines: ['In the hostel corridor, Pablo and Seaman block the way, shouting so everybody hears:', '“See the proud fresher! Dayo offered you family and you rejected it!”', 'Doors open. People stare. Nobody touches you, but everyone is listening.'],
-    choices: [{ id: 'firm', label: 'Stand firm. Say no again.', action: 'standFirm' }, { id: 'security', label: 'Call campus security', action: 'securityHelp' }, { id: 'giveIn', label: 'Fine. I will join.', action: 'join', next: 'joined' }] },
+    choices: [{ id: 'firm', label: 'Stand firm. Say no again.', action: 'standFirm' }, { id: 'security', label: 'Call campus security', action: 'securityHelp' }, { id: 'police', label: 'Report them to the police', action: 'reportPolice', next: 'police_end' }, { id: 'giveIn', label: 'Fine. I will join.', action: 'join', next: 'joined' }] },
+  { id: 'harass2', speaker: FRIENDS, badge: '🚧', where: 'campus', action: 'rumours',
+    lines: ['They block the lecture hall door and will not let you through. “Dayo wants a word.”', 'Your seat is taken. Your handout goes missing. Somebody tells the whole hostel you are a snitch and a proud one.', 'Nobody touches you. They just make every day on campus heavy.'],
+    choices: [{ id: 'firm', label: 'Stand firm. Say no again.', action: 'standFirm' }, { id: 'police', label: 'Report them to the police', action: 'reportPolice', next: 'police_end' }, { id: 'giveIn', label: 'Enough. I will join.', action: 'join', next: 'joined' }] },
+  { id: 'harass3', speaker: DAYO, badge: '⚠️', where: 'campus',
+    lines: ['Dayo finds you alone behind the cafeteria. He is not smiling anymore.', '“I gave you every chance. Everybody on campus knows you disrespected me.”', '“Join now, and all this stops. Or keep going and see how long you can last.”'],
+    choices: [{ id: 'giveIn', label: 'Fine. I will join.', action: 'join', next: 'joined' }, { id: 'police', label: 'I am going to the police.', action: 'reportPolice', next: 'police_end' }, { id: 'firm', label: 'Do your worst.', action: 'standFirm' }] },
+  { id: 'police_end', speaker: 'Police', badge: '👮🏾', where: 'campus', lines: ['You walk into the station and make a statement about the threats and harassment.', 'An officer takes names and visits the campus. Dayo’s crew goes quiet. By the end of the week they are gone.', 'It costs you some friends, and the campus is lonelier. But it is over.'] },
   // ---------------- missed initiation
   { id: 'missed', speaker: DAYO, badge: '😒', where: 'campus', lines: ['You no show. I wait for you.', 'I do not like to be disrespected. But I am patient. One more chance.'],
     choices: [{ id: 'rebook', label: 'Give me another time', action: 'rebook', next: 'joined' }, { id: 'forget', label: 'Forget it', action: 'endStory', next: 'refused' }] },
