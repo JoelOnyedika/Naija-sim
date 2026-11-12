@@ -1,3 +1,4 @@
+import { CampusMissions } from './CampusCard';
 import { sfx } from '@/audio/sfx';
 import { motion } from 'framer-motion';
 import { Camera, ChevronsDown, ChevronsUp, Footprints, Home, ListChecks, Send, MessageCircle } from 'lucide-react';
@@ -195,6 +196,7 @@ export function InteriorChat() {
         {/* ------------------------------------------------------------------ tasks: everything you can do here, no hunting for things to tap in the scene */}
         {onTasks && (
           <div className="mt-2">
+            {here.kind === 'university' && <CampusMissions />}
             {isClub && <ClubBalling />}
             {isBetting && <div className="mb-2"><BettingEntry /></div>}
             {!isClub && (spotsList.length > 0 || def.crowd || here.kind === 'showroom') && (

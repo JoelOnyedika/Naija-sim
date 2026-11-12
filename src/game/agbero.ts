@@ -9,22 +9,23 @@ import { toast } from '@/stores/uiStore';
 import { guardStopsAgbero } from './bodyguard';
 import { isJailed } from './crime';
 import { dailyHit } from './daily';
+import { gunFightBonus } from './weapons';
 
 const A = () => useAgberoStore.getState();
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /** What your odds depend on: the needs bars and two skill levels (level 1 is the starting level, so it adds nothing). */
-export interface Fighter { health: number; energy: number; charisma: number; fitness: number; communication: number }
+export interface Fighter { health: number; energy: number; charisma: number; fitness: number; communication: number; /** points (0..1) a carried weapon adds to fight odds (game/weapons.ts) */ gun?: number }
 export const fighterNow = (): Fighter => {
   const s = useStatsStore.getState().stats, k = useSkillStore.getState();
-  return { health: s.health, energy: s.energy, charisma: s.charisma, fitness: k.level('fitness') - 1, communication: k.level('communication') - 1 };
+  return { health: s.health, energy: s.energy, charisma: s.charisma, fitness: k.level('fitness') - 1, communication: k.level('communication') - 1, gun: gunFightBonus() };
 };
 
 /** Chances, 0..1. Pure so they can be tested and shown on the buttons. `power` is the opponent's strength (0, 1 or 2). */
 /** `crew` is how many men block the road (1 to 3); every extra man takes 6 points off your odds. */
 const crewCut = (crew: number) => (Math.max(1, Math.min(ROAD.crewMax, crew)) - 1) * ROAD.crewOddsPenalty;
 export const oddsRun = (f: Fighter, power: number, crew = 1) => clamp(0.25 + (f.energy / 100) * 0.30 + (f.health / 100) * 0.10 + f.fitness * 0.05 - power * 0.10 - crewCut(crew), 0.08, 0.90);
-export const oddsFight = (f: Fighter, power: number, crew = 1) => clamp(0.12 + (f.health / 100) * 0.25 + (f.energy / 100) * 0.20 + f.fitness * 0.07 + (f.charisma / 100) * 0.08 - power * 0.10 - crewCut(crew), 0.05, 0.85);
+export const oddsFight = (f: Fighter, power: number, crew = 1) => clamp(0.12 + (f.health / 100) * 0.25 + (f.energy / 100) * 0.20 + f.fitness * 0.07 + (f.charisma / 100) * 0.08 + (f.gun ?? 0) - power * 0.10 - crewCut(crew), 0.05, 0.85);
 export const oddsTalk = (f: Fighter, power: number, crew = 1) => clamp(0.15 + (f.charisma / 100) * 0.40 + f.communication * 0.07 + (f.energy / 100) * 0.05 - power * 0.10 - crewCut(crew), 0.05, 0.85);
 export const oddsFor = (c: RoadChoice, f: Fighter, power: number, crew = 1): number => (c === 'pay' ? 1 : c === 'run' ? oddsRun(f, power, crew) : c === 'fight' ? oddsFight(f, power, crew) : oddsTalk(f, power, crew));
 /** Crew size from a 0..1 roll: 1, 2 or 3 men with equal chance. */

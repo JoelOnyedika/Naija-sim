@@ -8,9 +8,9 @@ import type { FloorKind, Palette } from '@/types/world';
  * furniture collisions, the action menu, activities and the pay-once activity runner all apply unchanged.
  */
 export type InteriorKind = 'market' | 'church' | 'gallery' | 'stadium' | 'club' | 'showroom' | 'jail'
-  | 'viewing' | 'eatery' | 'bank' | 'mall' | 'cinema' | 'concert' | 'hotel' | 'techhub' | 'park' | 'beach' | 'recreation' | 'government' | 'business' | 'airport' | 'port';
+  | 'viewing' | 'eatery' | 'bank' | 'mall' | 'cinema' | 'concert' | 'hotel' | 'techhub' | 'park' | 'beach' | 'recreation' | 'government' | 'business' | 'airport' | 'port' | 'university' | 'initiation';
 /** What surrounds the venue: a city street (default), a park, a beach with the sea behind it, or a container port. */
-export type VenueTheme = 'street' | 'park' | 'beach' | 'port';
+export type VenueTheme = 'street' | 'park' | 'beach' | 'port' | 'forest';
 export interface VenueItem { defId: string; x: number; z: number; rotation: number }
 export interface InteriorDef {
   id: InteriorKind; kind: InteriorKind; label: string; tagline: string;
@@ -151,6 +151,23 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
     palette: { wall: '#9AA0A4', trim: '#E9B949', accent: '#1F5F8B' }, capacity: 10, npcTarget: 6, crowd: true, chat: true,
     items: [...[3, 6, 9, 12].map((x) => ({ defId: 'v_container', x, z: 1.5, rotation: 0 })), { defId: 'v_container', x: 1.6, z: 5, rotation: 1 }, { defId: 'v_container', x: 1.6, z: 8.5, rotation: 1 }, { defId: 'v_pallet', x: 9, z: 6.4, rotation: 0 }, { defId: 'v_pallet', x: 13.4, z: 6.4, rotation: 0 }, { defId: 'v_pallet', x: 9, z: 9.8, rotation: 0 }, { defId: 'v_crane', x: 18.6, z: 3, rotation: 0 }, { defId: 'v_crane', x: 18.6, z: 12.6, rotation: 0 }, { defId: 'v_kiosk', x: 13.4, z: 12.6, rotation: 0 }, { defId: 'v_customs_desk', x: 6.5, z: 13.4, rotation: 0 }],
   },
+  // The University of Lagos campus (Step A of the UNILAG story, see game/story.ts). Lecture hall, registry, exam desks, library, SUG, cafeteria, field, hostel.
+  university: {
+    id: 'university', kind: 'university', glyph: '🎓', label: 'University', tagline: 'Lectures, queues and campus politics.', w: 24, d: 16, floor: 'terrazzo', wallHeight: 3.8,
+    palette: { wall: '#EFE7D2', trim: '#1F4E9A', accent: '#E9B949' }, capacity: 10, npcTarget: 8, crowd: true, chat: true,
+    items: [{ defId: 'v_lecturer_desk', x: 3.8, z: 1.3, rotation: 0 }, { defId: 'v_registry', x: 8.6, z: 1.3, rotation: 0 }, { defId: 'v_exam_desk', x: 12.4, z: 1.3, rotation: 0 }, { defId: 'v_exam_desk', x: 14.6, z: 1.3, rotation: 0 }, { defId: 'v_photocopy', x: 18.2, z: 1.3, rotation: 0 }, { defId: 'v_notice_board', x: 22.2, z: 0.6, rotation: 0 },
+      ...[3.4, 7.0].flatMap((x) => [{ defId: 'v_lecture_seats', x, z: 4.8, rotation: 2 }, { defId: 'v_lecture_seats', x, z: 7.0, rotation: 2 }]),
+      { defId: 'v_library_desk', x: 12.0, z: 6.6, rotation: 0 }, { defId: 'v_library_desk', x: 15.6, z: 6.6, rotation: 0 },
+      { defId: 'v_sug_kiosk', x: 22.4, z: 8.4, rotation: 3 }, { defId: 'v_campus_cafe', x: 22.2, z: 12.6, rotation: 3 },
+      { defId: 'v_campus_field', x: 6.0, z: 12.6, rotation: 0 }, { defId: 'v_hostel_door', x: 14.4, z: 15.0, rotation: 2 },
+      { defId: 'v_palm', x: 1.2, z: 14.8, rotation: 0 }, { defId: 'v_palm', x: 11, z: 11.6, rotation: 0 }, { defId: 'v_palm', x: 18, z: 11.6, rotation: 0 }],
+  },
+  // The forest of the initiation. Entered only from the story: no map pin, no chat, no crowd. The fire and the robed circle are drawn by three/property/Forest.tsx.
+  initiation: {
+    id: 'initiation', kind: 'initiation', glyph: '🔥', label: 'The forest', tagline: 'Nobody comes here by accident.', w: 20, d: 20, floor: 'dirt', floorTint: '#33261A', floorRough: 0.98, wallHeight: 0.5, theme: 'forest',
+    palette: { wall: '#2A2118', trim: '#4A3828', accent: '#FF7A2B' }, capacity: 10, npcTarget: 0, crowd: false, chat: false, nightlife: false,
+    items: [],
+  },
 };
 /** The extra task props each venue gets (see data/venueKit2.ts). They are placed automatically along free wall space. */
 const EXTRA: Partial<Record<InteriorKind, string[]>> = {
@@ -228,6 +245,6 @@ export const LANDMARK_INTERIORS: Record<string, InteriorKind> = {
   'lagos.freedom-park': 'park', 'lagos.lekki-conservation': 'park', 'lagos.lekki-beach': 'beach', 'lagos.banana-marina': 'beach',
   'lagos.ikoyi-club': 'recreation',
   'lagos.alausa-secretariat': 'government', 'lagos.lagos-house': 'government', 'lagos.federal-secretariat': 'government',
-  'lagos.eko-atlantic': 'business', 'lagos.mmia': 'airport', 'lagos.apapa-port': 'port',
+  'lagos.unilag': 'university', 'lagos.eko-atlantic': 'business', 'lagos.mmia': 'airport', 'lagos.apapa-port': 'port',
 };
 export const interiorKindForLandmark = (landmarkId: string): InteriorKind | undefined => LANDMARK_INTERIORS[landmarkId];

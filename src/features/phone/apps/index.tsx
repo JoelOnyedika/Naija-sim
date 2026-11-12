@@ -1,3 +1,4 @@
+import { BrotherhoodApp } from './Brotherhood';
 import { ArrowLeft, ChevronLeft } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { getApp, type AppId } from '@/data/apps';
@@ -34,7 +35,7 @@ import { FalmfayApp, KwikkashApp, OfayApp } from './loans';
 const APP_COMPONENTS: Record<AppId, ComponentType> = {
   jobs: JobsApp, messages: MessagesApp, contacts: ContactsApp, guide: GuideApp, food: FoodApp, bank: BankApp, boutique: BoutiqueApp,
   forbes: ForbesApp, houses: HousesApp, cars: CarsApp, invite: InviteApp, help: HelpApp, invest: InvestApp, betting: BettingApp,
-  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ofay: OfayApp, falmfay: FalmfayApp, kwikkash: KwikkashApp, ride: RideApp, aircraft: AviationApp, grocery: GroceryApp,
+  family: FamilyApp, staff: StaffApp, hustle: HustleApp, motors: MotorsApp, companies: CompaniesApp, shops: ShopsApp, police: PoliceApp, settings: SettingsApp, court: CourtApp, games: GamesApp, ofay: OfayApp, falmfay: FalmfayApp, kwikkash: KwikkashApp, brotherhood: BrotherhoodApp, ride: RideApp, aircraft: AviationApp, grocery: GroceryApp,
 };
 
 /**

@@ -13,10 +13,10 @@ export const BEARD_STYLES: { id: BeardStyle; label: string }[] = [
 export const HAIR_STYLES: { id: HairStyle; label: string }[] = [
   { id: 'bald', label: 'Bald' }, { id: 'lowcut', label: 'Low cut' }, { id: 'fade', label: 'Fade' }, { id: 'afro', label: 'Afro' },
   { id: 'braids', label: 'Braids' }, { id: 'dreads', label: 'Locs' }, { id: 'bun', label: 'Bun' }, { id: 'cornrows', label: 'Cornrows' }, { id: 'twists', label: 'Twists' },
-  { id: 'ponytail', label: 'Ponytail' }, { id: 'bob', label: 'Bob' }, { id: 'long', label: 'Long' }, { id: 'puffs', label: 'Puffs' },
+  { id: 'ponytail', label: 'Ponytail' }, { id: 'bob', label: 'Bob' }, { id: 'long', label: 'Long' }, { id: 'puffs', label: 'Puffs' }, { id: 'bowl', label: 'Bowl cut' },
 ];
 export const TOP_STYLES: { id: TopStyle; label: string }[] = [
-  { id: 'tee', label: 'T-shirt' }, { id: 'shirt', label: 'Shirt' }, { id: 'hoodie', label: 'Hoodie' }, { id: 'jacket', label: 'Jacket' }, { id: 'kaftan', label: 'Kaftan' }, { id: 'jersey', label: 'Jersey' },
+  { id: 'tee', label: 'T-shirt' }, { id: 'shirt', label: 'Shirt' }, { id: 'hoodie', label: 'Hoodie' }, { id: 'jacket', label: 'Jacket' }, { id: 'kaftan', label: 'Kaftan' }, { id: 'jersey', label: 'Jersey' }, { id: 'vest', label: 'Vest' },
 ];
 export const BOTTOM_STYLES: { id: BottomStyle; label: string }[] = [
   { id: 'jeans', label: 'Jeans' }, { id: 'shorts', label: 'Shorts' }, { id: 'trousers', label: 'Trousers' }, { id: 'skirt', label: 'Skirt' }, { id: 'dress', label: 'Dress' },
@@ -26,7 +26,7 @@ export const SHOE_STYLES: { id: ShoeStyle; label: string }[] = [
   { id: 'sneakers', label: 'Sneakers' }, { id: 'boots', label: 'Boots' }, { id: 'sandals', label: 'Sandals' }, { id: 'barefoot', label: 'Barefoot' },
 ];
 export const ACCESSORIES: { id: Accessory; label: string }[] = [
-  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' }, { id: 'gele', label: 'Gele' }, { id: 'headphones', label: 'Headphones' },
+  { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' }, { id: 'gele', label: 'Gele' }, { id: 'headphones', label: 'Headphones' }, { id: 'stud', label: 'Ear stud' },
 ];
 export const BAG_STYLES: { id: BagStyle; label: string }[] = [{ id: 'none', label: 'No bag' }, { id: 'tote', label: 'Tote' }, { id: 'backpack', label: 'Backpack' }, { id: 'crossbody', label: 'Crossbody' }, { id: 'clutch', label: 'Clutch' }, { id: 'handbag', label: 'Handbag' }];
 export const BAG_COLORS = ['#8A4B2A', '#1B1F24', '#C23B3B', '#E5A400', '#C9A66B', '#2B4C7E', '#0B8F4D', '#F4F1EA'];
@@ -39,6 +39,8 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-hoodie-green', name: 'Green hoodie', slot: 'top', style: 'hoodie', color: '#0B8F4D', price: 28000, glyph: '🧥' },
   { id: 'b-jacket-denim', name: 'Denim jacket', slot: 'top', style: 'jacket', color: '#2B4C7E', price: 38000, glyph: '🧥' },
   { id: 'b-jersey-eagles', name: 'Super Eagles-style jersey', slot: 'top', style: 'jersey', color: '#0B8F4D', price: 22000, glyph: '⚽' },
+  { id: 'b-vest-black', name: 'Black vest over tee', slot: 'top', style: 'vest', color: '#1B1F24', price: 26000, glyph: '🦺' },
+  { id: 'b-robe-black', name: 'Black robe', slot: 'top', style: 'kaftan', color: '#0B0B10', price: 30000, glyph: '🥷' },
   { id: 'b-kaftan-gold', name: 'Gold kaftan', slot: 'top', style: 'kaftan', color: '#E5A400', price: 45000, glyph: '👘' },
   { id: 'b-kaftan-white', name: 'White senator kaftan', slot: 'top', style: 'kaftan', color: '#F4F1EA', price: 60000, glyph: '👘' },
   { id: 'b-jeans-blue', name: 'Blue denim jeans', slot: 'bottom', style: 'jeans', color: '#2B4C7E', price: 18000, glyph: '👖' },
@@ -49,6 +51,7 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-sneakers-white', name: 'White sneakers', slot: 'shoes', style: 'sneakers', color: '#F4F1EA', price: 15000, glyph: '👟' },
   { id: 'b-boots-black', name: 'Black boots', slot: 'shoes', style: 'boots', color: '#1B1F24', price: 35000, glyph: '🥾' },
   { id: 'b-sandals-tan', name: 'Tan sandals', slot: 'shoes', style: 'sandals', color: '#B77B4E', price: 9000, glyph: '🩴' },
+  { id: 'b-hair-bowl', name: 'Bowl cut', slot: 'hair', style: 'bowl', price: 6000, glyph: '💇' },
   { id: 'b-hair-fade', name: 'Fade', slot: 'hair', style: 'fade', price: 3000, glyph: '💈' },
   { id: 'b-hair-afro', name: 'Afro', slot: 'hair', style: 'afro', price: 5000, glyph: '💇' },
   { id: 'b-hair-braids', name: 'Braids', slot: 'hair', style: 'braids', price: 12000, glyph: '💇' },
@@ -61,6 +64,7 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-hair-long', name: 'Long hair', slot: 'hair', style: 'long', price: 16000, glyph: '💇' },
   { id: 'b-hair-puffs', name: 'Twin puffs', slot: 'hair', style: 'puffs', price: 7000, glyph: '💇' },
   { id: 'b-x-gele', name: 'Gele headwrap', slot: 'extra', style: 'gele', price: 30000, glyph: '👑' },
+  { id: 'b-extra-stud', name: 'Gold ear stud', slot: 'extra', style: 'stud', price: 9000, glyph: '💎' },
   { id: 'b-x-headphones', name: 'Headphones', slot: 'extra', style: 'headphones', price: 26000, glyph: '🎧' },
   { id: 'b-x-earrings', name: 'Gold earrings', slot: 'extra', style: 'earrings', price: 14000, glyph: '✨' },
   { id: 'b-x-glasses', name: 'Round glasses', slot: 'extra', style: 'glasses', price: 10000, glyph: '👓' },

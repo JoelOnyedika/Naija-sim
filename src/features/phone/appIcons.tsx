@@ -1,11 +1,12 @@
-import { BookOpen, Briefcase, Building2, Car, CircleHelp, Crown, Dices, Gauge, HeartHandshake, Home, Landmark, LayoutGrid, MessageCircle, Navigation, Scale, Settings, ShieldCheck, ShoppingCart, Shirt, Sparkles, Store, Ticket, TrendingUp, Users, Utensils, Plane, Zap, type LucideIcon } from 'lucide-react';
+import { BookOpen, Briefcase, Building2, Car, CircleHelp, Crown, Dices, Gauge, HeartHandshake, Home, Landmark, LayoutGrid, MessageCircle, Navigation, Scale, Settings, ShieldCheck, ShoppingCart, Shirt, Sparkles, Store, Ticket, TrendingUp, Users, Utensils, Plane, Zap, type LucideIcon, Skull } from 'lucide-react';
 import type { AppDef, AppId } from '@/data/apps';
 import type { PhoneType } from '@/types/game';
+import { LOAN_LOGOS } from './apps/loans/logos';
 
 const ICONS: Record<AppId, LucideIcon> = {
   messages: MessageCircle, bank: Landmark, food: Utensils, jobs: Briefcase, contacts: Users, houses: Home, cars: Car, boutique: Shirt, forbes: Crown, invest: TrendingUp,
   betting: Dices, hustle: Zap, shops: Store, companies: Building2, motors: Gauge, family: HeartHandshake, staff: Sparkles, police: ShieldCheck, court: Scale,
-  ride: Navigation, grocery: ShoppingCart, games: Dices, invite: Ticket, guide: BookOpen, help: CircleHelp, settings: Settings, aircraft: Plane, ofay: Landmark, falmfay: Landmark, kwikkash: Zap,
+  ride: Navigation, grocery: ShoppingCart, games: Dices, invite: Ticket, guide: BookOpen, help: CircleHelp, settings: Settings, aircraft: Plane, ofay: Landmark, falmfay: Landmark, kwikkash: Zap, brotherhood: Skull,
 };
 export const appIcon = (id: AppId): LucideIcon => ICONS[id];
 
@@ -14,7 +15,8 @@ export const appIcon = (id: AppId): LucideIcon => ICONS[id];
  * vector glyph on the app's own colour, so every app stays recognisable at a glance.
  */
 export function AppIcon({ app, variant, size = 56 }: { app: Pick<AppDef, 'id' | 'from' | 'to'>; variant: PhoneType; size?: number }) {
-  const Icon = ICONS[app.id], ios = variant === 'ios';
+  const Icon = ICONS[app.id], ios = variant === 'ios', Logo = (LOAN_LOGOS as Record<string, (() => JSX.Element) | undefined>)[app.id];
+  if (Logo) return <span className={`relative flex shrink-0 overflow-hidden shadow-[0_4px_10px_rgba(0,0,0,0.25)] ${ios ? 'rounded-[26%]' : 'rounded-[34%]'}`} style={{ width: size, height: size }} aria-hidden><Logo />{ios && <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />}</span>;
   return (
     <span className={`relative flex shrink-0 items-center justify-center overflow-hidden text-white shadow-[0_4px_10px_rgba(0,0,0,0.25)] ${ios ? 'rounded-[26%]' : 'rounded-[34%]'}`}
       style={{ width: size, height: size, background: `linear-gradient(${ios ? 160 : 145}deg, ${app.from}, ${app.to})` }} aria-hidden>

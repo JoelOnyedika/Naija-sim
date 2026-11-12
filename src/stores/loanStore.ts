@@ -10,7 +10,7 @@ export interface Loan {
 export interface LenderRecord { onTime: number; late: number }
 export type Where = 'home' | 'venue' | 'street';
 export interface Visit {
-  lender: LenderId; where: Where; police: boolean; men: number; owed: number;
+  lender: LenderId; where: Where; men: number; owed: number;
   /** Set once the player has chosen. */
   result: { text: string; tone: 'good' | 'bad'; choice: string } | null;
 }

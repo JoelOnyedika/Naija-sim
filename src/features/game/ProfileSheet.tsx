@@ -1,3 +1,4 @@
+import { InventoryTab } from './InventoryTab';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
@@ -21,9 +22,9 @@ import { STAT_META } from './statMeta';
 // the 3D preview is only loaded (and its canvas only created) while the Profile tab is showing
 const AvatarPreview = lazy(() => import('@/three/avatar/AvatarPreview').then((m) => ({ default: m.AvatarPreview })));
 
-type Tab = 'profile' | 'needs' | 'goals' | 'skills' | 'career' | 'people';
+type Tab = 'profile' | 'needs' | 'goals' | 'skills' | 'career' | 'people' | 'inventory';
 const REL_LABEL = '💍 Single';
-const TABS: { id: Tab; label: string }[] = [{ id: 'profile', label: 'Profile' }, { id: 'needs', label: 'Needs' }, { id: 'goals', label: 'Goals' }, { id: 'skills', label: 'Skills' }, { id: 'career', label: 'Career' }, { id: 'people', label: 'People' }];
+const TABS: { id: Tab; label: string }[] = [{ id: 'profile', label: 'Profile' }, { id: 'needs', label: 'Needs' }, { id: 'goals', label: 'Goals' }, { id: 'skills', label: 'Skills' }, { id: 'career', label: 'Career' }, { id: 'people', label: 'People' }, { id: 'inventory', label: 'Inventory' }];
 
 const Chip = ({ on, onClick, children }: { on?: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={() => { sfx.pop(); onClick(); }} aria-pressed={on} className={`rounded-full px-3.5 py-2 text-sm font-bold ${on ? 'bg-slate-200 text-night' : 'bg-white/10 text-white/85'}`}>{children}</button>
@@ -122,7 +123,7 @@ export function ProfileSheet() {
             <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3" role="tablist">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => { sfx.pop(); setTab(t.id); }} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${tab === t.id ? 'bg-slate-200 text-night' : 'bg-white/10 text-white/75'}`}>{t.label}</button>)}</div>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
               {tab === 'profile' && <ProfileTab />}{tab === 'needs' && <NeedsTab />}{tab === 'goals' && <GoalsTab />}{tab === 'skills' && <SkillsTab />}
-              {tab === 'career' && <OpenApp label="Open Jobs" app="jobs" hint="Your job, salary and shifts live in the Jobs app on your phone." />}
+              {tab === 'inventory' && <InventoryTab />}{tab === 'career' && <OpenApp label="Open Jobs" app="jobs" hint="Your job, salary and shifts live in the Jobs app on your phone." />}
               {tab === 'people' && <OpenApp label="Open Contacts" app="contacts" hint="Friends and family are in Contacts and Messages on your phone." />}
             </div>
           </motion.div>

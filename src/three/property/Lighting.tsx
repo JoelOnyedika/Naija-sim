@@ -14,8 +14,9 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
   const minutes = useClockStore((s) => s.minutes);
   const anchor = useClockStore((s) => s.anchor);
   const hour = clockParts(minutes, anchor).hour + (minutes % 60) / 60;
-  const day = Math.max(0, Math.min(1, Math.sin(((hour - 6) / 12) * Math.PI) * 1.4));
-  const dusk = hour > 17 && hour < 19.5 ? 1 - Math.abs(hour - 18.25) / 1.25 : hour > 5.5 && hour < 7 ? 1 - Math.abs(hour - 6.25) / 0.75 : 0;
+  const forest = layout.id === 'interior.initiation'; // the initiation is always night: dark blue sky, firelight only
+  const day = forest ? 0 : Math.max(0, Math.min(1, Math.sin(((hour - 6) / 12) * Math.PI) * 1.4));
+  const dusk = forest ? 0 : hour > 17 && hour < 19.5 ? 1 - Math.abs(hour - 18.25) / 1.25 : hour > 5.5 && hour < 7 ? 1 - Math.abs(hour - 6.25) / 0.75 : 0;
   const bg = useMemo(() => new Color('#0E1D2E').lerp(new Color('#BFD9E0'), day).lerp(new Color('#F2B97A'), Math.max(0, dusk) * 0.6), [day, dusk]);
   // One ceiling light per room. GPUs only take a handful of point lights per shader, so when a home has more than
   // MAX_ROOM_LIGHTS rooms the two smallest neighbours (e.g. WC and kitchen) share one light between them.
@@ -43,7 +44,7 @@ export function Lighting({ layout }: { layout: PropertyLayout }) {
         shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-camera-left={-22} shadow-camera-right={22} shadow-camera-top={22} shadow-camera-bottom={-22} shadow-camera-near={1} shadow-camera-far={50}
       />
       {/* every room has its own warm ceiling light: a soft glow by day, a bright pool of light at night */}
-      {q.nightLights && lamps.map((z) => {
+      {q.nightLights && !forest && lamps.map((z) => {
         const w = z.x1 - z.x0, d = z.z1 - z.z0;
         return <pointLight key={z.id} position={[(z.x0 + z.x1) / 2, 1.9, (z.z0 + z.z1) / 2]} intensity={(4 + night * 24) * level} distance={Math.max(w, d) * 1.5 + 2} decay={1.5} color="#FFC688" />;
       })}

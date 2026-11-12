@@ -9,8 +9,8 @@ import { activeLoan, anyOverdue, borrow, huntedLoans, lateFee, limitFor, owedOn,
 import { startNewLife } from '../src/game/life';
 import { useClockStore } from '../src/stores/clockStore';
 import { useEconomyStore } from '../src/stores/economyStore';
-import { useJailStore } from '../src/stores/jailStore';
 import { useLoanStore } from '../src/stores/loanStore';
+import { useStatsStore } from '../src/stores/statsStore';
 
 registerContent();
 let fails = 0;
@@ -72,8 +72,8 @@ ok(huntedLoans().length === 0 && hunter() === null, 'just overdue: nobody comes 
 ok(!maybeCollectors('home', undefined, () => 0), 'and no visit happens');
 at(k.dueAt + LOAN_RULES.huntAfterMinutes);
 ok(huntedLoans().length === 1 && hunter()?.lender === 'kwikkash', 'overdue half a day: the lender hunts you');
-ok(!maybeCollectors('home', undefined, () => 0.31), 'a roll of 31% does not trigger (chance is 30%)');
-ok(maybeCollectors('home', undefined, seq(0.1, 0, 0.9), 1_000_000_000_000), 'a roll under 30% sends them');
+ok(!maybeCollectors('home', undefined, () => 0.51), 'a roll of 51% does not trigger (chance is 50% per roll, one roll every 5 minutes: about one visit every ten minutes)');
+ok(maybeCollectors('home', undefined, seq(0.1, 0, 0.9), 1_000_000_000_000), 'a roll under 50% sends them');
 ok(L().visit?.lender === 'kwikkash' && L().visit!.where === 'home', 'the visit is on screen');
 ok(!maybeCollectors('home', undefined, () => 0), 'only one visit at a time');
 ok(chooseVisit('hide', () => 0.49)?.tone === 'good' && L().visit?.result?.choice === 'hide', 'hiding works on a roll under 50%');
@@ -83,14 +83,17 @@ ok(!maybeCollectors('home', undefined, () => 0, Date.now() + 1000), 'after a vis
 ok(maybeCollectors('home', undefined, seq(0, 0, 0.9), Date.now() + (LOAN_RULES.cooldownSeconds + 5) * 1000), 'and come back after the cooldown');
 finishVisit();
 
-console.log('Visit outcomes');
+console.log('Visit outcomes: harassment, never jail');
 const visit = (rnd: () => number, where: 'home' | 'street' = 'home') => { L().set({ visit: null, lastVisitAt: 0 }); return maybeCollectors(where, undefined, rnd, 5_000_000_000_000); };
 setMoney(5_000);
-ok(visit(seq(0.1, 0, 0.9)) && !L().visit!.police, 'a visit without police');
+ok(visit(seq(0.1, 0, 0.9)), 'a visit starts');
 const owed = L().visit!.owed;
 ok(owed === owedOn(activeLoan('kwikkash')!) && owed > 13_000, 'they ask for the loan plus late fees');
+const before = { happy: useStatsStore.getState().stats.happiness, health: useStatsStore.getState().stats.health, money: E().money };
 const lose = chooseVisit('hide', () => 0.99);
-ok(lose?.tone === 'bad' && E().money < 5_000 && !isJailed(), 'failing to hide without police: beaten and robbed, not jailed');
+ok(lose?.tone === 'bad' && useStatsStore.getState().stats.happiness < before.happy, 'failing to hide: humiliated (happiness drops)');
+ok(useStatsStore.getState().stats.health === before.health && !isJailed(), 'but never beaten and never jailed');
+ok(E().money < before.money && E().money >= before.money - Math.round(owed * 0.1) - 1, 'they only charge a small recovery fee (10% of what you owe)');
 finishVisit();
 setMoney(100_000);
 ok(visit(seq(0.1, 0, 0.9)), 'visit again');
@@ -98,13 +101,11 @@ const pay = chooseVisit('pay');
 ok(pay?.tone === 'good' && !activeLoan('kwikkash') && E().money < 100_000, 'paying clears the loan');
 finishVisit();
 fresh(); setMoney(0); borrow('ofay', 20_000); at(activeLoan('ofay')!.dueAt + LOAN_RULES.huntAfterMinutes + 5);
-ok(visit(seq(0.1, 0, 0.1)) && L().visit!.police, 'a visit with police (roll under 30%)');
-const ph = oddsOf('hide', L().visit!);
-ok(ph === 0.35, 'hiding is harder with police (35%)');
-ok(oddsOf('run', L().visit!) > oddsOf('fight', L().visit!), 'running beats fighting');
-chooseVisit('hide', () => 0.99);
-ok(isJailed() && useJailStore.getState().sentence?.minutes === LOAN_RULES.jailMinutes, 'police catch you: jailed for 10 minutes');
-useJailStore.getState().patch({ sentence: null }); finishVisit();
+visit(seq(0.1, 0, 0.9));
+ok(oddsOf('hide', L().visit!) === 0.5, 'hiding is 50-50');
+ok(oddsOf('run', L().visit!) > oddsOf('fight', L().visit!), 'running beats arguing');
+ok(!('police' in L().visit!), 'there are no police in a visit');
+finishVisit();
 
 console.log('Running and the street');
 fresh(); setMoney(0); borrow('falmfay', 50_000); at(activeLoan('falmfay')!.dueAt + LOAN_RULES.huntAfterMinutes + 5);

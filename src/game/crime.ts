@@ -1,3 +1,4 @@
+import { policeSearch } from './weapons';
 import { CRIME } from '@/data/balance';
 import { INTERIORS } from '@/data/interiors';
 import { npcRegistry } from '@/data/npcs';
@@ -88,6 +89,8 @@ export function stepJail(now = Date.now()): 'released' | 'imprisoned' | null {
 
 /** Locks the player up for `minutes` (used by loan collectors with police). Same sentence record as a pickpocketing arrest. */
 export function arrestPlayer(minutes: number, reason: string, now = Date.now()): void {
+  const search = policeSearch(minutes); minutes = search.minutes; // a weapon on you: double the sentence, and it is taken
+  if (search.confiscated) reason = `${reason} (weapon found)`;
   const jail = useJailStore.getState();
   useJailStore.getState().patch({ criminality: jail.criminality + CRIME.criminalityPerArrest, sentence: { startAt: now, endAt: now + minutes * 60_000, minutes, reason } });
   useJailStore.getState().note('arrest');

@@ -1,3 +1,4 @@
+import { beginExam } from './story';
 import { useBoutiqueNav } from '@/stores/boutiqueNavStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { sfx } from '@/audio/sfx';
@@ -79,8 +80,15 @@ function openHaggle(u: UseDef): boolean {
   useUiStore.getState().setHaggle({ who: w, item, glyph: u.glyph ?? '💬', ask: u.haggle.ask }); return true;
 }
 
+/** The exam is a mini game: it opens its own sheet right away (once you are not busy). */
+function openExam(u: UseDef): boolean {
+  if (!u.exam) return false;
+  if (isBusy()) { sfx.error(); toast('Finish what you are doing first', 'bad'); return true; }
+  sfx.click(); beginExam(); return true;
+}
+
 function beginUse(item: PlacedItem, u: UseDef) {
-  if (openHaggle(u)) return;
+  if (openHaggle(u) || openExam(u)) return;
   if (!canBegin(u, item.uid)) return;
   if (u.id) chosen.set(item.uid, u.id); else chosen.delete(item.uid);
   useActorStore.getState().useItem(item.uid);
@@ -93,7 +101,7 @@ export function chooseActivity(item: PlacedItem, activityId: string) {
   const u = usesOf(def).find((x) => x.id === activityId);
   useUiStore.getState().setActionMenu(null);
   if (!u) return;
-  if (openHaggle(u)) return;
+  if (openHaggle(u) || openExam(u)) return;
   if (isBusy()) enqueueUse(item, u); else beginUse(item, u);
 }
 

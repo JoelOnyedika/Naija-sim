@@ -1,3 +1,4 @@
+import { useWeaponStore } from '@/stores/weaponStore';
 import { livePlayer } from '@/world/npcLive';
 import { animFor } from '@/world/animations';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -36,7 +37,8 @@ const IDLE: Plan = { stage: 'idle', path: [], spot: null, then: 'none', clip: fa
  * back out onto free floor, so it can never be left stuck inside furniture.
  */
 export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items: PlacedItem[] }) {
-  const appearance = useCharacterStore((s) => s.appearance);
+  const baseLook = useCharacterStore((s) => s.appearance), armed = useWeaponStore((s) => !!s.equipped);
+  const appearance = useMemo(() => (armed ? { ...baseLook, gun: true } : baseLook), [baseLook, armed]); // a carried weapon shows as a holster
   const root = useRef<Group>(null);
   const cover = useRef<Mesh>(null);
   const motion = useRef<Motion>({ moving: false, lying: false, sitting: false });

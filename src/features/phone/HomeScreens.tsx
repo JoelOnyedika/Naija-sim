@@ -1,10 +1,11 @@
+import { useStoryStore } from '@/stores/storyStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MapPin, Moon, Search, Signal, Sun, Wifi } from 'lucide-react';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { sfx } from '@/audio/sfx';
 import { APPS, getApp, type AppId } from '@/data/apps';
 import { cityName } from '@/data/land';
-import { CATEGORIES, DOCK, FAVORITES } from '@/data/phoneLayout';
+import { CATEGORIES, DOCK, HOME_ITEMS, isFolder, type HomeFolder } from '@/data/phoneLayout';
 import { clockParts, useClockStore } from '@/stores/clockStore';
 import { currentStateId } from '@/stores/mapStore';
 import { usePhoneStore } from '@/stores/phoneStore';
@@ -71,6 +72,43 @@ function HomeIcon({ id, type, onOpen }: { id: AppId; type: PhoneType; onOpen: Op
   );
 }
 
+/** A folder icon: a glass tile showing up to nine mini icons. Tap to open it. */
+function FolderIcon({ folder, type, onOpenFolder }: { folder: HomeFolder; type: PhoneType; onOpenFolder: (f: HomeFolder) => void }) {
+  const unread = usePhoneStore((s) => s.notifications.filter((n) => !n.read && n.appId && folder.apps.includes(n.appId)).length), ios = type === 'ios';
+  return (
+    <button onClick={() => { sfx.click(); onOpenFolder(folder); }} className="relative flex min-w-0 flex-col items-center gap-1.5 active:opacity-70" aria-label={`${folder.title} folder, ${folder.apps.length} apps`}>
+      <span className={`grid h-14 w-14 grid-cols-3 content-center gap-[3px] bg-white/30 p-[7px] backdrop-blur-xl ${ios ? 'rounded-[26%]' : 'rounded-[34%]'}`} aria-hidden>
+        {folder.apps.slice(0, 9).map((id) => <span key={id} className="block aspect-square overflow-hidden rounded-[28%]"><AppIcon app={getApp(id)} variant={type} size={14} /></span>)}
+      </span>
+      <span className="w-full truncate text-center text-[11px] font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]">{folder.title}</span>
+      {unread > 0 && <span className="absolute -right-0.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-hibiscus px-1 text-[11px] font-bold text-white ring-2 ring-black/20">{unread}</span>}
+    </button>
+  );
+}
+
+/** The open folder: a glass card over the home screen. Tap outside, or the title bar, to close. */
+function FolderPopup({ folder, type, onOpen, onClose }: { folder: HomeFolder; type: PhoneType; onOpen: OpenApp; onClose: () => void }) {
+  return (
+    <motion.div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 px-5 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} role="dialog" aria-label={`${folder.title} folder`}>
+      <motion.div className="w-full rounded-[30px] bg-white/25 p-4 backdrop-blur-2xl" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="mb-3 block w-full text-center text-[16px] font-bold text-white" aria-label="Close folder">{folder.title}</button>
+        <div className="grid grid-cols-3 gap-x-2 gap-y-4">{folder.apps.map((id) => <HomeIcon key={id} id={id} type={type} onOpen={(a, e) => { onClose(); onOpen(a, e); }} />)}</div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/** The 12 home slots (apps and folders) plus the open folder, shared by the iOS and Android homes. */
+function HomeGrid({ type, onOpen }: { type: PhoneType; onOpen: OpenApp }) {
+  const [open, setOpen] = useState<HomeFolder | null>(null);
+  return (
+    <>
+      {HOME_ITEMS.map((it) => isFolder(it) ? <FolderIcon key={it.id} folder={it} type={type} onOpenFolder={setOpen} /> : <HomeIcon key={it} id={it} type={type} onOpen={onOpen} />)}
+      <AnimatePresence>{open && <FolderPopup key={open.id} folder={open} type={type} onOpen={onOpen} onClose={() => setOpen(null)} />}</AnimatePresence>
+    </>
+  );
+}
+
 function Dock({ type, onOpen, onLibrary, libOpen }: { type: PhoneType; onOpen: OpenApp; onLibrary: () => void; libOpen: boolean }) {
   return (
     <div className="grid grid-cols-4 gap-2 rounded-[30px] bg-white/25 p-3 backdrop-blur-xl" role="group" aria-label="Dock">
@@ -106,7 +144,7 @@ export function IosHome({ onOpen, onLibrary, libOpen }: { onOpen: OpenApp; onLib
           <div className="mt-1 text-[12px] text-slate-500">Today in {city}</div>
         </div>
       </div>
-      <div className="mt-5 grid grid-cols-4 gap-x-2 gap-y-4">{FAVORITES.map((id) => <HomeIcon key={id} id={id} type="ios" onOpen={onOpen} />)}</div>
+      <div className="mt-5 grid grid-cols-4 gap-x-2 gap-y-4"><HomeGrid type="ios" onOpen={onOpen} /></div>
       <div className="mt-auto pt-4"><Dock type="ios" onOpen={onOpen} onLibrary={onLibrary} libOpen={libOpen} /></div>
     </div>
   );
@@ -122,7 +160,7 @@ export function AndroidHome({ onOpen, onLibrary, libOpen }: { onOpen: OpenApp; o
         <div className="mt-1.5 text-[15px] font-medium">{t.weekday}, {t.dateLabel}</div>
         <div className="mt-0.5 flex items-center gap-1 text-[13px] text-white/75"><MapPin size={13} />{city}</div>
       </div>
-      <div className="mt-6 grid grid-cols-4 gap-x-2 gap-y-4">{FAVORITES.map((id) => <HomeIcon key={id} id={id} type="android" onOpen={onOpen} />)}</div>
+      <div className="mt-6 grid grid-cols-4 gap-x-2 gap-y-4"><HomeGrid type="android" onOpen={onOpen} /></div>
       <div className="mt-auto space-y-3 pt-4">
         <button onClick={onLibrary} className="flex w-full items-center gap-3 rounded-full bg-white/90 px-4 py-3 text-left text-[14px] text-slate-500 shadow-lg"><Search size={18} />Search apps</button>
         <Dock type="android" onOpen={onOpen} onLibrary={onLibrary} libOpen={libOpen} />
@@ -135,8 +173,9 @@ export function AndroidHome({ onOpen, onLibrary, libOpen }: { onOpen: OpenApp; o
 export function AppLibrary({ type, onOpen, focusSearch }: { type: PhoneType; onOpen: OpenApp; focusSearch: boolean }) {
   const [q, setQ] = useState(''), input = useRef<HTMLInputElement>(null);
   useEffect(() => { if (focusSearch) input.current?.focus(); }, [focusSearch]);
-  const n = q.trim().toLowerCase(), results = n ? APPS.filter((a) => a.label.toLowerCase().includes(n)) : [];
-  const grid = (ids: AppId[]) => <div className="grid grid-cols-4 gap-x-2 gap-y-4">{ids.map((id) => <HomeIcon key={id} id={id} type={type} onOpen={onOpen} />)}</div>;
+  const member = useStoryStore((s) => s.confraternity.member); // the Brotherhood app exists only for members
+  const n = q.trim().toLowerCase(), results = n ? APPS.filter((a) => a.label.toLowerCase().includes(n) && (member || a.id !== 'brotherhood')) : [];
+  const grid = (ids: AppId[]) => <div className="grid grid-cols-4 gap-x-2 gap-y-4">{ids.filter((id) => member || id !== 'brotherhood').map((id) => <HomeIcon key={id} id={id} type={type} onOpen={onOpen} />)}</div>;
   return (
     <div className="absolute inset-0 z-10 flex flex-col bg-black/40 pt-14 backdrop-blur-2xl" role="dialog" aria-label="App library">
       <div className="px-4"><label className={`flex items-center gap-2 bg-white/20 px-3.5 py-2.5 text-white ${type === 'ios' ? 'rounded-xl' : 'rounded-full'}`}><Search size={17} className="shrink-0 text-white/70" />

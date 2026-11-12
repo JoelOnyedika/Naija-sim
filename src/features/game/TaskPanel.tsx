@@ -1,3 +1,4 @@
+import { InitiationNote } from './CampusCard';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, ListChecks, X } from 'lucide-react';
 import { sfx } from '@/audio/sfx';
@@ -42,6 +43,7 @@ export function TaskPanel() {
                 <span className="min-w-0 flex-1"><span className="block text-[13px] font-bold leading-tight">Daily rewards</span><span className="block text-[11px] text-amber-100/70">{badge > 0 ? `${badge} waiting for you` : 'Quests and your streak'}</span></span>
                 {badge > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-hibiscus px-1.5 text-[11px] font-extrabold tabular-nums">{badge}</span> : <ChevronRight size={16} className="text-white/40" />}
               </button>
+              <InitiationNote />
               <AnimatePresence initial={false}>
                 {tasks.map((t) => {
                   const go = t.action ? () => { sfx.open(); const ph = usePhoneStore.getState(); ph.openPhone(); ph.openApp(t.action!.app); } : undefined;

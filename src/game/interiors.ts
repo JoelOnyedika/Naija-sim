@@ -11,6 +11,7 @@ import { useEconomyStore } from '@/stores/economyStore';
 import { useMapStore } from '@/stores/mapStore';
 import { isJailed, resetCrimeVisit } from './crime';
 import { fireTask } from './tasks';
+import { onEnterCampus, syncCampusClock } from './story';
 import { getLandmark } from '@/world/registry';
 
 const PLAYER_ID = 'me';
@@ -33,6 +34,7 @@ export function enterInterior(kind: InteriorKind, opts: { landmarkId?: string; n
   const ui = useUiStore.getState(); ui.setMode('home'); ui.setSceneLoading(true);
   sfx.open();
   fireTask(`interior:${kind}`);
+  syncCampusClock(); if (kind === 'university') onEnterCampus();
   return { ok: true };
 }
 
@@ -50,6 +52,7 @@ export function leaveInterior(): void {
   getDirectory().leave(cur.kind, PLAYER_ID);
   useActorStore.getState().clearOrder();
   useInteriorStore.getState().set(null);
+  syncCampusClock();
   useUiStore.getState().setSceneLoading(true);
   sfx.pop();
 }

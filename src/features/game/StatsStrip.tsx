@@ -1,3 +1,4 @@
+import { useWeaponStore } from '@/stores/weaponStore';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -14,9 +15,11 @@ const KEYS: StatKey[] = ['hunger', 'thirst', 'bladder', 'energy', 'happiness'];
  */
 export function StatsStrip() {
   const inVenue = useInteriorStore((s) => !!s.current), stats = useStatsStore((s) => s.stats), top = useStripTop();
+  const gun = useWeaponStore((s) => s.equipped);
   if (!inVenue) return null;
   return (
     <button onClick={() => { sfx.pop(); useUiStore.getState().setProfileOpen(true); }} aria-label="Your needs. Tap for your profile" style={{ top: `calc(env(safe-area-inset-top,0px) + ${top}rem)` }} className="absolute left-3 z-40 flex items-center gap-2 rounded-full border border-white/10 bg-night/80 px-2.5 py-1.5 backdrop-blur active:bg-white/10">
+      {gun && <span className="flex w-6 items-center justify-center text-[13px]" aria-label="Weapon equipped" title="Weapon equipped">🔫</span>}
       {KEYS.map((k) => {
         const { Icon, color } = STAT_META[k], v = stats[k], low = v < 25;
         return (

@@ -11,6 +11,12 @@ interface Vendor { names: string[]; role: string; greeting: string; starter: str
 const V = (names: string[], role: string, greeting: string, starter: string): Vendor => ({ names, role, greeting, starter });
 export const VENDORS: Record<string, Vendor> = {
   v_stall: V(['Baba Tunde', 'Iya Ibeji', 'Mallam Bashir', 'Mama Joy', 'Alhaji Sule', 'Iya Basira', 'Oga Kingsley'], 'Market trader', 'Customer! Come, come, see better price!', 'Last price, no be small thing. How much you dey carry?'),
+  v_sug_kiosk: V(['Senior Dayo'], 'SUG Welfare Director', 'Fresher! Come, come. Alpha dey here.', 'You don register your courses? I fit help you.'),
+  v_lecturer_desk: V(['Dr. Adebayo'], 'Senior lecturer', 'Yes? Do you have your matric number?', 'Attendance is compulsory. Do not tell me about traffic.'),
+  v_registry: V(['Mrs. Balogun'], 'Registry officer', 'Next! Where is your clearance slip?', 'The system is down. Come back after lunch.'),
+  v_campus_cafe: V(['Mama Campus'], 'Cafeteria woman', 'Students! Rice is ready, small money!', 'You people dey chop on credit again?'),
+  v_photocopy: V(['Mr. Segun'], 'Photocopy man', 'Notes? Handouts? I copy anything.', 'Exam week is my December.'),
+  v_library_desk: V(['Librarian Hauwa'], 'Librarian', 'Shhh. Silence please.', 'Your fine is not going to pay itself.'),
   v_foodstuff_stall: V(['Mama Chioma'], 'Sells foodstuff', 'My dear, fresh tomatoes today!', 'Pepper don cost this season. You don notice?'),
   v_fabric_rack: V(['Alhaji Dansiru', 'Alhaja Rukayat', 'Mama Kemi'], 'Fabric seller', 'Oga, come and see Ankara!', 'Na Ankara for owambe or lace for wedding?'),
   v_fruit_stand: V(['Auntie Bisi', 'Auntie Ngozi'], 'Fruit seller', 'Sweet watermelon, sweet pineapple!', 'You wan buy for house or you wan chop now?'),
@@ -152,7 +158,7 @@ export const VENDORS: Record<string, Vendor> = {
 
 const SKIN = ['#8D5524', '#6B4226', '#C68642', '#4A2C17', '#A0673B', '#7A4A2A'];
 const COLORS = ['#C4552D', '#1F4E47', '#E9B949', '#3A5BA0', '#8A3F6A', '#2B2F32', '#F4F1EA', '#2F8F8A', '#B8892F'];
-const FEMALE = /^(mama|iya|auntie|alhaja|mrs|ms|teller ngozi|agent chika|nkem|cashier|concierge zainab|barista femi$|judge folake|commissioner adeyemi$)/i;
+const FEMALE = /^(mrs|librarian hauwa|mama|iya|auntie|alhaja|mrs|ms|teller ngozi|agent chika|nkem|cashier|concierge zainab|barista femi$|judge folake|commissioner adeyemi$)/i;
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
 
 /** The vendor standing behind each prop in this venue (same people every time for the same venue copy). */
@@ -176,6 +182,7 @@ export function vendorSpots(kind: string, items: PlacedItem[], sizeOf: (defId: s
       top: woman ? 'shirt' : (['kaftan', 'shirt', 'tee'] as const)[h % 3], topColor: COLORS[(h >>> 3) % COLORS.length],
       bottom: woman ? (h % 2 ? 'skirt' : 'trousers') : 'trousers', bottomColor: COLORS[(h >>> 6) % COLORS.length], shoes: 'sandals', shoeColor: '#2B2B2B', accessory: 'none',
     } as Appearance;
+    if (!woman && h % 5 < 3) Object.assign(appearance, { hairStyle: 'bowl', top: 'vest', topColor: '#1B1F24', accessory: 'stud' }); // most men wear the new look
     const profile: NpcProfile = { id: `npc:vendor:${it.uid}`, name, appearance, wallet: 6000 + (h % 8) * 1000, greeting: v.greeting, role: v.role, starter: v.starter, venue: kind };
     npcRegistry.set(profile.id, profile);
     out.push({ profile, x, z, yaw: th });

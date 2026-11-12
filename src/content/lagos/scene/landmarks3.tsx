@@ -113,7 +113,22 @@ function PolancoMotors() { // glass-fronted showroom with a sign and two cars in
   );
 }
 
+function University() { // UNILAG: a long admin block with a clock tower and a lawn
+  return (
+    <group>
+      <B size={[2.2, 0.7, 0.9]} pos={[0, 0.35, 0]} color="#EFE7D2" rough={0.8} radius={0.03} />
+      <B size={[2.3, 0.08, 1.0]} pos={[0, 0.74, 0]} color="#1F4E9A" />
+      {[-0.8, -0.4, 0, 0.4, 0.8].map((x) => <B key={x} size={[0.12, 0.34, 0.03]} pos={[x, 0.4, 0.46]} color="#7FA6D8" rough={0.3} shadow={false} />)}
+      <B size={[0.5, 1.6, 0.5]} pos={[0, 0.8, -0.1]} color="#F4F1EA" rough={0.8} radius={0.03} />
+      <B size={[0.34, 0.34, 0.04]} pos={[0, 1.35, 0.17]} color="#FFF8DC" emissive="#FFE9A0" emissiveIntensity={0.3} shadow={false} />
+      <B size={[0.56, 0.08, 0.56]} pos={[0, 1.64, -0.1]} color="#1F4E9A" />
+      <B size={[2.0, 0.04, 0.8]} pos={[0, 0.02, 0.9]} color="#6FAE5A" rough={1} shadow={false} />
+      <Flag pos={[0.9, 0.74, 0.1]} color="#1F4E9A" />
+    </group>
+  );
+}
+
 export const LANDMARK_MODELS_3: Record<string, ComponentType> = {
   secretariat: Secretariat, tafawaBalewa: TafawaBalewa, lagosHouse: LagosHouse, federalSecretariat: FederalSecretariat,
-  ekoHotel: EkoHotel, airportTerminal: AirportTerminal, portCrane: PortCrane, church: Church, polancoMotors: PolancoMotors,
+  university: University, ekoHotel: EkoHotel, airportTerminal: AirportTerminal, portCrane: PortCrane, church: Church, polancoMotors: PolancoMotors,
 };

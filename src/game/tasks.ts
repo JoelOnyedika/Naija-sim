@@ -4,10 +4,12 @@ import { useStatsStore } from '@/stores/statsStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { toast } from '@/stores/uiStore';
 import { dailyHit } from './daily';
+import { onCampusEvent } from './story';
 
 /** Fire a game event ("visit:art", "buy:furniture"). Completes matching tasks and pays their rewards. */
 export function fireTask(event: string) {
   dailyHit(event);
+  if (event.startsWith('campus:')) onCampusEvent(event);
   if (event.startsWith('interior:')) { dailyHit('visit'); dailyHit(`visit:${event.slice(9)}`); }
   for (const t of useTaskStore.getState().fire(event)) {
     if (t.reward.money) useEconomyStore.getState().credit(t.reward.money, `Task: ${t.title}`, 'reward');

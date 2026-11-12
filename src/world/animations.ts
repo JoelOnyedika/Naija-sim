@@ -12,14 +12,14 @@ const BY_ACTIVITY: [RegExp, Action][] = [
   [/carry|load|unload|cargo|lorry|trailer|bags|trays|push_bike|clear_container|pallet|bundle|container|crane/, 'lift'],
   [/repair|fix|solder|replace_screen|sew|print|build|castle|unlock|fill_fuel|learn_gen|wash_bike|dig/, 'hammer'],
   [/mop|wash_plates|clean|sweep|stir|grill|roast|make_zobo|chop|scrub|usher/, 'sweep'],
-  [/haggle|bargain|negotiate|gist|chat|talk|pitch|network|argue|debate|meet|ask|sell|promote|request|attend|counsel|complain|lodge|complaint|interview|join_|hustle|podcast|spoken|sing|jam|mix|club_mix|speech|persuade|babysit|tax_sigh|queue_story|swear/, 'talk'],
+  [/haggle|bargain|negotiate|gist|chat|talk|pitch|network|argue|debate|meet|ask|sell|promote|request|attend|counsel|complain|lodge|complaint|interview|join_|hustle|podcast|spoken|sing|jam|mix|club_mix|speech|persuade|babysit|tax_sigh|queue_story|swear|queue|tutor/, 'talk'],
   [/pray|candle|offering|sermon|reflect|swear_oath|hear_sermon|give_offering/, 'pray'],
   [/cheer|clap|spray|owambe|celebrate|selfie|pose|attend_wedding|dance_battle|club_dance|dance_/, 'cheer'],
   [/tennis|penalty|match|volley|football|pool|snooker|putt|kite|play_|street_match|swim|surf|ayo|draughts|chess|arcade/, 'swing'],
   [/lift_weights|pullups|dips|stretch|jog|treadmill|march|yoga/, 'curl'],
   [/buy_snack|buy_chinchin|buy_popcorn|buy_pastry|jollof|chapman|pepper|suya|chicken|corn|amala|fruit|plate|taste|buffet|snack|meat|fish|prawns|order_plate/, 'eat'],
   [/zobo|kunu|water|cold_drink|coffee|smoothie|mocktail|drink|fridge/, 'drink'],
-  [/code|ws_|st_|cowork|bench_code|use_pos|run_pos|atm|check_balance|count_cash|file_tax|submit_forms|apply_passport|register|learn_|edit|record|film|social|study|sd_|read_|browse|window|try_|specs|board|poster|posters|study_art|sketch|paint/, 'type'],
+  [/code|ws_|st_|cowork|bench_code|use_pos|run_pos|atm|check_balance|count_cash|file_tax|submit_forms|apply_passport|register|photocopy|submit|learn_|edit|record|film|social|study|sd_|read_|browse|window|try_|specs|board|poster|posters|study_art|sketch|paint/, 'type'],
 ];
 const BY_OBJECT: [RegExp, Action][] = [
   [/stall|hawker|counter|booth/, 'talk'], [/altar|pulpit|candle|donation|choir/, 'pray'], [/pallet|loading|bay|rank/, 'lift'],

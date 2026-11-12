@@ -28,7 +28,7 @@ const G = '#0F6B3E', STYLES: Record<string, Partial<Style> & { kind: Kind }> = {
   'agege-bakery': { kind: 'food', wall: '#F2D9A8', accent: '#C2762B' }, 'yaba-tech-hub': { kind: 'tower', wall: '#9FB6C9', accent: '#19C3A6', h: 12 }, 'naija-first-bank': { kind: 'bank', wall: '#E7E1D3', accent: G },
   'lekki-conservation': { kind: 'gate', wall: '#B9B29A', accent: '#2F8A55' }, 'ikoyi-club': { kind: 'villa', wall: '#F7F3EA', accent: '#B03A2E', h: 6.5 }, 'banana-marina': { kind: 'gate', wall: '#D8D3C8', accent: '#2B6CB0' },
   'alausa-secretariat': { kind: 'gov', wall: '#E3DFD3', accent: G }, 'tafawa-balewa-square': { kind: 'gov', wall: '#EAE6DA', accent: G }, 'lagos-house': { kind: 'gov', wall: '#F4F0E6', accent: '#B03A2E' },
-  'federal-secretariat': { kind: 'gov', wall: '#DAD6CA', accent: G }, 'eko-hotel': { kind: 'hotel', wall: '#E9EEF3', accent: '#1F5FBF' }, mmia: { kind: 'airport', wall: '#E6EAEE', accent: '#1F5FBF' },
+  unilag: { kind: 'gov', wall: '#EFE7D2', accent: '#1F4E9A' }, 'federal-secretariat': { kind: 'gov', wall: '#DAD6CA', accent: G }, 'eko-hotel': { kind: 'hotel', wall: '#E9EEF3', accent: '#1F5FBF' }, mmia: { kind: 'airport', wall: '#E6EAEE', accent: '#1F5FBF' },
 };
 const BY_CATEGORY: Record<string, Kind> = { market: 'market', Market: 'market', food: 'food', Food: 'food', bank: 'bank', business: 'tower', Work: 'tower', tech: 'tower', government: 'gov', culture: 'theatre', entertainment: 'cinema', club: 'club', Nightlife: 'club', park: 'gate', Outdoors: 'gate', beach: 'gate', shopping: 'mall', Shopping: 'mall', recreation: 'villa', Fitness: 'villa', transport: 'airport' };
 const SIZE: Record<Kind, [number, number, number, number, number]> = { // w, d, h, doorW, doorH

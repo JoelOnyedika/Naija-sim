@@ -23,6 +23,8 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useFinishStore } from '@/stores/finishStore';
 import { usePetStore } from '@/stores/petStore';
 import { useLoanStore } from '@/stores/loanStore';
+import { useStoryStore } from '@/stores/storyStore';
+import { useWeaponStore } from '@/stores/weaponStore';
 import { resetLoanNotices } from './loans';
 import { useJailStore } from '@/stores/jailStore';
 import { useClubStore } from '@/stores/clubStore';
@@ -74,6 +76,8 @@ export function startNewLife(type: LifeTypeId) {
   usePetStore.getState().reset();
   useJailStore.getState().reset();
   useLoanStore.getState().reset();
+  useStoryStore.getState().reset();
+  useWeaponStore.getState().reset();
   resetLoanNotices();
   useClubStore.getState().reset();
   useInteriorStore.getState().set(null);

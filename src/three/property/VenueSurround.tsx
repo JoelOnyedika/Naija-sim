@@ -1,3 +1,4 @@
+import { Forest } from './Forest';
 import { useMemo } from 'react';
 import { BoxGeometry, CanvasTexture, CylinderGeometry, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import { INTERIORS, type InteriorKind } from '@/data/interiors';
@@ -85,6 +86,9 @@ function ParkedCar({ x, z, rot, color, model }: { x: number; z: number; rot: num
 }
 
 export function VenueSurround({ layout }: { layout: PropertyLayout }) {
+  return INTERIORS[layout.id.replace('interior.', '') as InteriorKind]?.theme === 'forest' ? <Forest layout={layout} /> : <StreetSurround layout={layout} />;
+}
+function StreetSurround({ layout }: { layout: PropertyLayout }) {
   const kind = layout.id.replace('interior.', '') as InteriorKind;
   const def = INTERIORS[kind];
   const name = useInteriorStore((s) => s.current?.name) ?? def.label;

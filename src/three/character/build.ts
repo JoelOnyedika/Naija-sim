@@ -19,11 +19,12 @@ export interface Spec {
   skin: string; eye: string;
   hair: HairStyle;
   hairColor: string; beard: 'none' | 'stubble' | 'moustache' | 'goatee' | 'full';
-  top: 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey'; topColor: string;
+  top: 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey' | 'vest'; topColor: string;
   bottom: 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress'; bottomColor: string;
   shoes: 'sneakers' | 'boots' | 'sandals' | 'barefoot'; shoeColor: string;
   accessory: Accessory;
   bag: BagStyle; bagColor: string;
+  gun?: boolean;
 }
 
 // ------------------------------------------------------------------ style presets
@@ -248,6 +249,8 @@ export function buildCharacter(spec: Spec): Rig {
   switch (spec.hair) {
     case 'bald': break;
     case 'lowcut': shellHair(0.15, 0.5, 0.045); break;
+    case 'bowl': // a rounded bowl: full on top, a straight fringe over the brows, cut level above the ears all the way round
+      mesh(headShell(R, hseg, (x, y, z) => (y > R * 0.34) || (y > -R * 0.12 && z < R * 0.2 && Math.abs(x) > -1), (_x, y) => R * (y > R * 0.34 ? 0.085 : 0.07), jawK), hc, head); break;
     case 'fade': shellHair(0.3, 0.45, 0.07); mesh(headShell(R, hseg, above(0.45, 0.0), () => 0.02 * R, jawK), mat(mix(spec.skin, spec.hairColor, 0.45), 0.9), head); break;
     case 'afro': {
       const g = new IcosahedronGeometry(R * 1.55, 1); const p = g.attributes.position;
@@ -308,7 +311,7 @@ export function buildCharacter(spec: Spec): Rig {
   // ---- accessories
   if (spec.accessory === 'glasses') {
     const f = mat('#15181D', 0.3, { metal: 0.4 });
-    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.7, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY, surf(s * eyeX, eyeY) + R * 0.06]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 0.9), f, head, [s * R * 0.8, eyeY + R * 0.02, R * 0.4]); }
+    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.7, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY, surf(s * eyeX, eyeY) + R * 0.06]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 0.9), f, head, [s * R * 0.9, eyeY + R * 0.02, R * 0.36]); }
     mesh(new BoxGeometry(R * 0.2, R * 0.025, R * 0.025), f, head, [0, eyeY + R * 0.05, surf(0, eyeY) + R * 0.06]);
   }
   if (spec.accessory === 'cap') {
@@ -329,8 +332,8 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(new TorusGeometry(R * 1.18, R * 0.07, 6, 18, Math.PI), hp, head, [0, R * 0.15, 0], [0, 0, 0]);
     for (const sd of [-1, 1]) { mesh(new CylinderGeometry(R * 0.36, R * 0.36, R * 0.26, 10), hp, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); mesh(new CylinderGeometry(R * 0.28, R * 0.28, R * 0.3, 10), pad, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); }
   }
+  if (spec.accessory === 'stud') mesh(new SphereGeometry(R * 0.055, 8, 6), mat('#F2C94C', 0.25, { metal: 0.85 }), head, [R * 0.93, -R * 0.26, -R * 0.07]);
   if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * 0.82, -R * 0.3, -R * 0.06], [0, Math.PI / 2, 0]);
-  if (spec.accessory === 'chain') { const g = mat('#E5B93C', 0.25, { metal: 0.85 }); mesh(new TorusGeometry(0.1, 0.005, 6, 22), g, body, [0, shoulderY - 0.03, 0.02], [Math.PI / 2.2, 0, 0], [1, 1.2, 1]); mesh(new SphereGeometry(0.016, 8, 6), g, body, [0, shoulderY - 0.13, 0.085]); }
 
   // ---- garments (shells built from the same silhouette so every style fits)
   const topC = mat(spec.topColor, 0.82, { double: true }), topTrim = mat(shade(spec.topColor, 0.35), 0.7, { double: true }), topDark = mat(shade(spec.topColor, -0.4), 0.8, { double: true });
@@ -342,19 +345,35 @@ export function buildCharacter(spec: Spec): Rig {
   };
   const onePiece = spec.bottom === 'dress';
   const T0 = onePiece ? 'tee' : spec.top;
+  // a vest is a sleeveless open gilet worn over a light tee: the tee is the shirt under it, the vest the top colour
+  const VEST = T0 === 'vest', B = (VEST ? 'tee' : T0) as Exclude<typeof T0, 'vest'>, shirtC = VEST ? mat('#D9DCE0', 0.8, { double: true }) : topC;
   if (onePiece) {
     mesh(torsoShell(0.008, h(0.4)), mat(spec.topColor, 0.8, { double: true }), body);
     const skirtG = lathe([[waist + 0.006, h(0.46)], [lerp(waist, hipR, 0.8) + 0.01, h(0.25)], [hipR + 0.02, h(0.1)], [hipR + 0.1, hipY - 0.14], [hipR + 0.15, hipY - 0.3], [hipR + 0.16, hipY - 0.32]], seg); skirtG.scale(1, 1, 0.9);
     mesh(skirtG, mat(spec.topColor, 0.85, { double: true }), body);
     mesh(new TorusGeometry(waist + 0.01, 0.01, 6, 20), mat(shade(spec.topColor, -0.35), 0.7), body, [0, h(0.43), 0], [Math.PI / 2, 0, 0], [1, depth, 1]);
   } else {
-    const hem = { tee: h(0.04), shirt: h(0.02), hoodie: h(-0.04), jacket: h(-0.02), kaftan: hipY - 0.3, jersey: h(-0.02) }[T0];
-    const off = { tee: 0.01, shirt: 0.009, hoodie: 0.022, jacket: 0.03, kaftan: 0.028, jersey: 0.012 }[T0];
-    mesh(torsoShell(off, hem, T0 === 'kaftan' ? 0.1 : 0.006), topC, body);
-    mesh(new TorusGeometry(neckR * 1.55, 0.008, 6, 16), T0 === 'shirt' ? topTrim : topDark, body, [0, h(1.0) + 0.04, 0.0], [Math.PI / 2, 0, 0]);
-    if (T0 === 'hoodie') mesh(new SphereGeometry(0.13, 14, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.6), topC, body, [0, shoulderY + 0.07, -0.07], [0.35, 0, 0], [1.15, 0.9, 0.8]);
-    if (T0 === 'kaftan') mesh(new BoxGeometry(0.035, T * 0.75 + 0.3, 0.008), mat('#E5B93C', 0.4, { metal: 0.5 }), body, [0, hipY + T * 0.5 - 0.1, (waist + 0.03) * depth + 0.012]);
-    if (T0 === 'jersey') mesh(new TorusGeometry(profileAt(torsoProf, hem) + off + 0.006, 0.008, 6, 20), mat('#FFFFFF', 0.7), body, [0, hem + 0.004, 0], [Math.PI / 2, 0, 0], [1, depth + 0.02, 1]);
+    const hem = { tee: h(0.04), shirt: h(0.02), hoodie: h(-0.04), jacket: h(-0.02), kaftan: hipY - 0.3, jersey: h(-0.02) }[B];
+    const off = { tee: 0.01, shirt: 0.009, hoodie: 0.022, jacket: 0.03, kaftan: 0.028, jersey: 0.012 }[B];
+    mesh(torsoShell(off, hem, B === 'kaftan' ? 0.1 : 0.006), shirtC, body);
+    if (VEST) { // the vest: open at the front, standing collar, snug to the body; sleeveless
+      const vp: Pt[] = []; for (const [r, y] of torsoProf) if (y >= h(0.0) && y < h(1.0) + 0.05) vp.push([r + off + 0.016, y]);
+      vp.unshift([profileAt(torsoProf, h(0.0)) + off + 0.016, h(0.0)]);
+      const vg = new LatheGeometry(vp.map(([r, y]) => new Vector2(r, y)), seg, 0.52, Math.PI * 2 - 1.04); vg.scale(1, 1, depth); mesh(vg, topC, body);
+      mesh(new TorusGeometry(neckR * 1.75, 0.014, 6, 16, Math.PI * 2 - 1.0), topDark, body, [0, h(1.0) + 0.052, 0.0], [Math.PI / 2, 0, Math.PI / 2 + 0.5]);
+    }
+    mesh(new TorusGeometry(neckR * 1.55, 0.008, 6, 16), B === 'shirt' ? topTrim : topDark, body, [0, h(1.0) + 0.04, 0.0], [Math.PI / 2, 0, 0]);
+    if (B === 'hoodie') mesh(new SphereGeometry(0.13, 14, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.6), topC, body, [0, shoulderY + 0.07, -0.07], [0.35, 0, 0], [1.15, 0.9, 0.8]);
+    if (B === 'kaftan') mesh(new BoxGeometry(0.035, T * 0.75 + 0.3, 0.008), mat('#E5B93C', 0.4, { metal: 0.5 }), body, [0, hipY + T * 0.5 - 0.1, (waist + 0.03) * depth + 0.012]);
+    if (B === 'jersey') mesh(new TorusGeometry(profileAt(torsoProf, hem) + off + 0.006, 0.008, 6, 20), mat('#FFFFFF', 0.7), body, [0, hem + 0.004, 0], [Math.PI / 2, 0, 0], [1, depth + 0.02, 1]);
+  }
+
+  // ---- chain: lies ON the garment (its radius follows the body plus the garment's thickness), never inside it
+  if (spec.accessory === 'chain') {
+    const g = mat('#E5B93C', 0.25, { metal: 0.85 }), cy = shoulderY - 0.035, thick = onePiece ? 0.008 : ({ tee: 0.01, shirt: 0.009, hoodie: 0.022, jacket: 0.03, kaftan: 0.028, jersey: 0.012 }[B]) + (VEST ? 0.016 : 0);
+    const cr = profileAt(torsoProf, cy) + thick + 0.014;
+    mesh(new TorusGeometry(cr, 0.006, 6, 24), g, body, [0, cy, 0], [Math.PI / 2, 0, 0], [1, depth, 1]);
+    mesh(new SphereGeometry(0.017, 8, 6), g, body, [0, cy - 0.015, (cr + 0.01) * depth]);
   }
 
   // ---- pelvis / legs
@@ -406,16 +425,23 @@ export function buildCharacter(spec: Spec): Rig {
     const hand = grp(elbow, 0, -fore, 0), hs = st.hand;
     mesh(handGeo(s, hs), skinM, hand);
     // sleeves
-    const sleeveLen = T0 === 'tee' || T0 === 'jersey' ? upper * 0.45 : T0 === 'kaftan' ? upper * 1.1 : upper;
-    const so = { tee: 0.008, shirt: 0.008, hoodie: 0.016, jacket: 0.022, kaftan: 0.022, jersey: 0.01 }[T0], flare = T0 === 'kaftan' ? 0.06 : 0.006;
-    mesh(lathe([[0.001, r0 * 1.2 + so + 0.006], [(r0 + so) * 0.8, r0 * 1.1 + so], [(r0 + so) * 1.04, r0 * 0.42], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 12), topC, sh);
-    if (T0 === 'shirt' || T0 === 'hoodie' || T0 === 'jacket') {
+    const sleeveLen = B === 'tee' || B === 'jersey' ? upper * 0.45 : B === 'kaftan' ? upper * 1.1 : upper;
+    const so = { tee: 0.008, shirt: 0.008, hoodie: 0.016, jacket: 0.022, kaftan: 0.022, jersey: 0.01 }[B], flare = B === 'kaftan' ? 0.06 : 0.006;
+    mesh(lathe([[0.001, r0 * 1.2 + so + 0.006], [(r0 + so) * 0.8, r0 * 1.1 + so], [(r0 + so) * 1.04, r0 * 0.42], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 12), shirtC, sh);
+    if (B === 'shirt' || B === 'hoodie' || B === 'jacket') {
       mesh(lathe(tubePts(fore * 0.92, r1 * 0.95 + so, r1 * 0.9 + so, r2 + so + 0.002), 10), topC, elbow);
       mesh(new TorusGeometry(r2 + so + 0.002, 0.007, 5, 12), T0 === 'shirt' ? topTrim : topDark, elbow, [0, -fore * 0.92, 0], [Math.PI / 2, 0, 0]);
     }
     return { sh, elbow, hand };
   };
   const AL = mkArm(-1), AR = mkArm(1);
+
+  // ---- holster: a carried weapon shows as a small holster and grip on the right hip; it is hidden under a jacket or hoodie (concealed)
+  if (spec.gun && spec.top !== 'jacket' && spec.top !== 'hoodie') {
+    const hx = hipX + 0.1 + (onePiece ? 0.03 : 0), leather = mat('#2B1D12', 0.8), steel = mat('#1A1C20', 0.5, { metal: 0.4 });
+    mesh(new BoxGeometry(0.05, 0.14, 0.09), leather, body, [hx, hipY + 0.02, 0.02], [0, 0, -0.08]);
+    mesh(new BoxGeometry(0.034, 0.075, 0.03), steel, body, [hx + 0.004, hipY + 0.11, 0.02], [0, 0, -0.18]);
+  }
 
   // ---- bag (bought in the Boutique): hand-carried bags hang from the right hand and swing with it; the others sit on the body
   if (spec.bag !== 'none') {
@@ -460,6 +486,6 @@ export const DEFAULT_EYE = '#2A1A10';
 export function toSpec(a: Appearance): Spec {
   return {
     body: a.body ?? 'masc', skin: a.skin, eye: a.eye ?? DEFAULT_EYE, hair: a.hairStyle, hairColor: a.hairColor, beard: a.beard ?? 'none',
-    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A',
+    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A', gun: !!a.gun,
   };
 }

@@ -34,6 +34,8 @@ import { EventPrompt } from './EventPrompt';
 import { DailySheet } from './DailySheet';
 import { RoadBlock } from './RoadBlock';
 import { CollectorVisit } from './CollectorVisit';
+import { StoryDialogue } from './StoryDialogue';
+import { ExamGame } from './ExamGame';
 import { TestDrive } from './TestDrive';
 import { preloadTravel } from '@/features/travel/preload';
 import { useDailyPopup } from './useDailyPopup';
@@ -81,6 +83,8 @@ export function GameScreen() {
       <DailySheet />
       <RoadBlock />
       <CollectorVisit />
+      <ExamGame />
+      <StoryDialogue />
       <PropertyDetails />
       <Toasts />
       <LoadingOverlay />

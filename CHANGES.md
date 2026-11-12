@@ -1,3 +1,23 @@
+## v37: UNILAG campus, brotherhood story, forest initiation, gun, new character look for everyone
+
+- **Your existing character now has the new look** (bowl cut, black vest over a light tee, gold ear stud). It is the default, and saved characters move to it once (skin, eyes, beard, trousers and shoes are kept). About 60% of the men in venues and every vendor mix wear it too, so the crowd matches you.
+- **University of Lagos (Akoka)** is on the map (Yaba area) with its own 3D landmark and a campus interior: lecture hall, registry, exam desks, notice board, photocopy shop, library, SUG office, cafeteria, football field, hostel. 20+ campus activities, all firing campus events.
+- **Missions** (Welcome, Fresher / Find Your Feet / Assignment Season) then a repeating Campus Life hub. Shown in the venue's Tasks tab.
+- **Exam Hall mini game**: 8 questions, 10 s each, 28-question bank, grades First to Fail with pay, and a Peek button (20% caught, +20% each time). Getting caught sets `caught_cheating`.
+- **Senior Dayo and the brotherhood**: friendly student, three blending-in scenes, the offer (with variants), pressure, harassment, security, a booked 22:00 initiation, missed-it rules, and a real "no" ending. Dialogue overlay with typewriter text and choices.
+- **Forest initiation**: night scene with fire, twelve robed members, Dayo, oath, two tests, a stylised beating, new name and rank.
+- **Members get** a Brotherhood phone app, a black bracelet and an **Inventory** tab in the profile. **Guns** (local and imported pistol; rifle later) are bought there: fight-odds bonus, holster on the hip, heat, and harsher police (double jail, weapon taken). Open-world hooks are in `game/weapons.ts`.
+- Docs: `docs/UNILAG_STORY.md` (the old plan file was deleted as you asked). Tests: `npm run test:story` (checks the whole flow); `test:all` passes. Looked at in headless Chromium: campus, dialogue, forest.
+
+## v36: nicer loan apps, harassment instead of jail, home-screen folders, new character look, plan for UNILAG
+
+- **Loan collectors are harassment only.** No police, no jail, no beatings. Collectors knock, shout and shame you in front of everyone. Choices: pretend you are not home (50%), run, shout back, or pay. Lose and you are humiliated (happiness and social drop) and they charge a small recovery fee (10% of what you owe). A visit comes about every ten minutes of play (a roll every 5 minutes at 50%, never closer than 7 minutes) instead of every 90 seconds.
+- **Loan apps redesigned.** Each has its own SVG logo (OFAY: green ring in the style of OPay; FALMFAY: purple palm in the style of PalmPay; KWIKKASH: black bolt on yellow) used as the home-screen icon, and a tabbed app (Borrow, Repay, History, How it works) with a limit header, a slider and chips, a countdown ring for the loan, and a look per brand (airy green, deep purple, black and yellow). Logos: `features/phone/apps/loans/logos.tsx`.
+- **Folders on the phone home screen** (iOS and Android styles): tap a folder to open its apps. The three loan apps are in a **Loans** folder; Invest, Companies and Betting are in a **Money** folder. Data: `HOME_ITEMS` in `data/phoneLayout.ts`.
+- **New character look** (from the reference image): **Bowl cut** hair, a **Vest** top (sleeveless, open front, standing collar, over a light tee) and an **Ear stud**. They are in the character creator and the Boutique. **Accessories no longer sink into skin or clothes:** the chain now lies on the garment, glasses arms sit outside the head.
+- **`docs/NEXT_CHAT_UNILAG_PLAN.md`**: the full plan (UNILAG campus, tasks and missions, the Exam Hall mini game, the story engine and dialogue overlay, the recruitment story script, the forest initiation, the gun and inventory, open-world hooks) for the next Claude to build. Delete it when done.
+- Tests: `test:loans` updated for harassment (no jail), `test:phone` checks the folders. Looked at in headless Chromium: home with folders, the three apps, the repay ring, the character close-up.
+
 ## v35: stop tasks when you travel, working animations, compact club buying
 
 - **Travelling stops your task.** Starting a trip, going to another venue, leaving a venue or going home now stops the current activity (a toast says "Stopped: ...") instead of refusing with "Finish what you are doing first". What the task already gave stays; a payout that comes only at the end is not paid; queued next tasks are dropped. One place does it: `game/interrupt.ts`.

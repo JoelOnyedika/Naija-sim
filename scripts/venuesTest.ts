@@ -52,7 +52,7 @@ const E = () => useEconomyStore.getState(), J = () => useJailStore.getState(), I
 const fresh = () => { startNewLife('nepo'); E().credit(900_000_000, 'test'); useChatStore.getState().reset(); useClubStore.getState().reset(); useJailStore.getState().reset(); useVehicleStore.getState().reset(); };
 
 console.log('Venues');
-ok(INTERIOR_LIST.length === 22 && (['market', 'church', 'gallery', 'stadium', 'club', 'showroom', 'jail', 'viewing', 'eatery', 'bank', 'mall', 'cinema', 'concert', 'hotel', 'techhub', 'park', 'beach', 'recreation', 'government', 'business', 'airport', 'port'] as InteriorKind[]).every((k) => INTERIORS[k]), 'twenty-two venue templates exist');
+ok(INTERIOR_LIST.length === 24 && (['market', 'church', 'gallery', 'stadium', 'club', 'showroom', 'jail', 'viewing', 'eatery', 'bank', 'mall', 'cinema', 'concert', 'hotel', 'techhub', 'park', 'beach', 'recreation', 'government', 'business', 'airport', 'port', 'university', 'initiation'] as InteriorKind[]).every((k) => INTERIORS[k]), 'twenty-four venue templates exist (22 + the UNILAG campus and the initiation forest)');
 ok(LANDMARKS.every((l) => !!LANDMARK_INTERIORS[l.id]), `every one of the ${LANDMARKS.length} landmarks on the map opens an interior`);
 for (const d of INTERIOR_LIST) {
   const L = interiorLayout(d), items = venueItems(d), g = buildNavGrid(L, items);

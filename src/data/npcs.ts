@@ -40,6 +40,8 @@ const SHOES: ShoeStyle[] = ['sneakers', 'boots', 'sandals'];
 const ACC: Accessory[] = ['none', 'none', 'glasses', 'cap', 'chain'];
 const COLORS = ['#C4552D', '#1F4E47', '#E9B949', '#3A5BA0', '#8A3F6A', '#2B2F32', '#F4F1EA', '#2F8F8A', '#B8892F'];
 
+/** The new character look (bowl cut, black vest, gold ear stud) worn by most men, so the crowd matches the player. */
+const NEW_LOOK_NPC: Partial<Appearance> = { hairStyle: 'bowl', top: 'vest', topColor: '#1B1F24', accessory: 'stud' };
 function rng(seed: number) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const pick = <T,>(r: () => number, l: readonly T[]): T => l[Math.floor(r() * l.length)];
 
@@ -57,6 +59,7 @@ export function makeNpcs(kind: string, seed: number, count: number): NpcProfile[
       wallet: Math.round((CRIME.walletRange[0] + r() * (CRIME.walletRange[1] - CRIME.walletRange[0])) / 500) * 500,
       greeting: pick(r, GREETINGS), role: pick(r, ROLES[kind] ?? ['Visitor']), starter: pick(r, STARTERS), venue: kind,
     };
+    if (!femme && r() < 0.6) p.appearance = { ...p.appearance, ...NEW_LOOK_NPC }; // most men wear the new look
     npcRegistry.set(p.id, p); out.push(p);
   }
   return out;
