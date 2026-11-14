@@ -27,7 +27,6 @@ export const KIT3: Kit[] = [
   ]),
   P('v_notice_board', 'Notice board', '📌', 2.2, 0.4, 2.0, L('board', '#8A5A2E', '#F4F1EA', '#E9B949', 'NOTICES'), [
     U('read_notices', '📌', 'Read the notice board', 8, { social: 1, happiness: 1 }),
-    U('read_flyer', '🖤', 'Read the plain black flyer', 6, { happiness: 1 }, { ...ev('clue_flyer') }),
     U('find_gig', '🔎', 'Look for a campus gig', 10, { energy: -2 }, { skill: { id: 'business', xp: 2 } }),
   ]),
   P('v_photocopy', 'Photocopy shop', '🖨️', 1.8, 1.0, 1.5, L('machine', '#2E86C1', '#E8ECEF', '#FFE08A', 'COPY'), [
@@ -41,14 +40,12 @@ export const KIT3: Kit[] = [
   P('v_sug_kiosk', 'SUG office', '🏛️', 2.4, 1.0, 1.8, L('stall', '#1F3D6B', '#F4F1EA', '#E9B949', 'SUG'), [
     U('join_sug_queue', '🧍🏾', 'Join the SUG queue', 10, { energy: -2, social: 2 }, { ...ev('sug_queue') }),
     U('sug_errand', '🏃🏾', 'Run an SUG errand', 16, { energy: -7 }, { payout: 3000, skill: { id: 'communication', xp: 2 }, ...ev('sug_errand') }),
-    U('ask_about_brotherhood', '🕶️', 'Ask Senior Dayo about the brotherhood', 8, { social: 1 }, { ...ev('ask_around') }),
     U('sell_handouts', '📘', 'Sell handouts to freshers', 16, { energy: -5 }, { payout: 2800, skill: { id: 'business', xp: 3 }, ...ev('sell_handouts') }),
   ]),
   P('v_campus_cafe', 'Campus cafeteria', '🍛', 2.8, 1.0, 1.8, L('stall', '#C4552D', '#F4F1EA', '#2F6B4A', 'CAFETERIA'), [
     U('buy_snack_campus', '🥟', 'Buy a snack', 5, { hunger: 14, happiness: 3 }, { cost: 600, ...ev('eat') }),
     U('buy_jollof_campus', '🍛', 'Buy jollof and chicken', 8, { hunger: 38, happiness: 5 }, { cost: 2200, ...ev('eat') }),
     U('buy_zobo_campus', '🧃', 'Buy chilled zobo', 4, { thirst: 28 }, { cost: 400 }),
-    U('overhear_gist', '👂', 'Listen to the table behind you', 8, { happiness: 1 }, { ...ev('clue_gist') }),
   ]),
   P('v_campus_field', 'Football field', '⚽', 4.6, 3.0, 0.1, L('mat', '#3F8F3A', '#F4F1EA', '#2F6B4A'), [
     U('play_football_campus', '⚽', 'Play football with the boys', 18, { energy: -9, happiness: 10, social: 4 }, { cost: 200, skill: { id: 'fitness', xp: 3 }, ...ev('football') }),
@@ -58,6 +55,9 @@ export const KIT3: Kit[] = [
     U('talk_coursemate', '💬', 'Talk to a coursemate', 10, { social: 4, happiness: 2 }, { skill: { id: 'communication', xp: 1 }, ...ev('coursemate') }),
     U('tutor_fresher', '🧑🏾‍🏫', 'Tutor a fresher for pay', 16, { energy: -6 }, { payout: 3200, skill: { id: 'teaching', xp: 4 }, ...ev('tutor') }),
     U('hostel_gist', '🗣️', 'Gist in the hostel corridor', 10, { social: 5, happiness: 3 }),
-    U('spot_bracelets', '👀', 'Watch the students with black bracelets', 8, { happiness: 1 }, { ...ev('clue_bracelets') }),
   ]),
+  // Seating for chats: benches in front of the cafeteria. The story's group scene sits some people here (data/story.ts SPOTS.seats).
+  P('v_campus_bench', 'Campus bench', '🪑', 1.2, 0.8, 0.9, L('seats', '#6B4A2B', '#E8E2D0', '#2F6B4A'), [
+    U('rest_bench', '🪑', 'Rest on the bench', 14, { energy: 8, happiness: 2 }, { pose: 'sit' }),
+  ], false, seat(0.46)),
 ];

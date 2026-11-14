@@ -14,6 +14,8 @@ import { Lighting } from './Lighting';
 import { PlacedLayer } from './PlacedLayer';
 import { PetLayer } from './Pets';
 import { NpcLayer } from './Npcs';
+import { StoryActors } from './StoryActors';
+import { InteractionDriver } from './InteractionDriver';
 import { BodyguardLayer } from './Bodyguard';
 import { ShowroomLayer } from './Showroom';
 import { PropertyEnvironment } from './PropertyEnvironment';
@@ -47,6 +49,8 @@ export function PropertyScene() {
         <PlacedLayer items={all} />
         {mode !== 'buy' && <PetLayer layout={home.layout} items={all} />}
         <NpcLayer layout={home.layout} items={all} />
+        <StoryActors layout={home.layout} items={all} />
+        <InteractionDriver />
         <BodyguardLayer layout={home.layout} />
         <ShowroomLayer items={all} />
         <GroundClick />

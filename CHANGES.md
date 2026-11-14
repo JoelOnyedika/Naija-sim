@@ -1,3 +1,12 @@
+## v39: camera, dialogue and interaction overhaul; guided Bayo storyline
+
+- **Camera:** Normal View (unchanged), new Close View (elevated, follows the player) and a temporary cinematic camera. Toggle button and `V` key; the choice is saved.
+- **Dialogue:** no emoji people. Standard and cinematic styles, real 3D portraits, skip, choices, branching.
+- **Interaction system:** talk, group (benches, loose arcs), follow, handshake/give, ceremonies. Objective guidance with 3D marker, arrow, prompt and map highlight.
+- **Brotherhood look:** black bracelet, insignia, optional beret, different faces and builds.
+- **Storyline rebuilt:** Tobi the watcher, Senior Bayo, the group meeting, a real invitation, a phone message, "follow Bayo", the forest initiation. No random rolls, no harassment. Old saves are upgraded.
+- Tests: `test:interact` added, `test:story` rewritten; see docs/UNILAG_STORY.md.
+
 ## v38: the brotherhood is discovered, not earned; escalating harassment; police ending
 
 - **No mission gate.** Weighted dice each campus visit (more likely if broke, caught cheating, curious, good grades) plus clue spots (flyer, bracelets, overheard gist), "Ask Senior Dayo", and a 20-minute pity timer so every player can find it.

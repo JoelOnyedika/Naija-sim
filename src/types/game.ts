@@ -50,4 +50,8 @@ export interface Appearance {
   bagColor?: string;
   /** A weapon is carried: a small holster shows on the hip (not under a jacket or hoodie). Set by the avatar from weaponStore, never saved. */
   gun?: boolean;
+  /** Brotherhood look: black bracelet and a small insignia on the chest, plus an optional beret. Optional, so older saves and other NPCs have none. */
+  bro?: 'plain' | 'beret';
+  /** Body proportions of an NPC: width and height multipliers on the whole figure (about 0.9 to 1.12). Cheap: one scale on the root, no extra geometry. */
+  frame?: { w: number; h: number };
 }

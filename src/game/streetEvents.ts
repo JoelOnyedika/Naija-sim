@@ -4,6 +4,8 @@ import { clockParts, useClockStore } from '@/stores/clockStore';
 import { useDailyStore } from '@/stores/dailyStore';
 import { useEconomyStore } from '@/stores/economyStore';
 import { useInteriorStore } from '@/stores/interiorStore';
+import { useStoryStore } from '@/stores/storyStore';
+import { useInteractStore } from './interact';
 import { useLifeStore } from '@/stores/lifeStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { skillName, useSkillStore } from '@/stores/skillStore';
@@ -36,7 +38,7 @@ const inHours = (h: number, w?: [number, number]) => !w || (w[0] <= w[1] ? h >= 
 /** Which events could appear right now (place, hour, life type, cooldown). Exported for tests. */
 export function eligibleEvents(now = Date.now()): StreetEvent[] {
   const { home, kind } = placeNow();
-  if (kind === 'jail') return [];
+  if (kind === 'jail' || kind === 'initiation') return []; // nothing interrupts the forest
   const hour = clockParts(useClockStore.getState().minutes, useClockStore.getState().anchor).hour;
   const life = useLifeStore.getState().lifeType;
   return STREET_EVENTS.filter((e) => {
@@ -59,7 +61,7 @@ export function pickEvent(list: StreetEvent[], r = Math.random()): StreetEvent |
 export function screenBusy(): boolean {
   const ui = useUiStore.getState();
   return !!(useStatsStore.getState().activity || usePhoneStore.getState().open || ui.mode !== 'home' || ui.sceneLoading || ui.actionMenuUid || ui.clubMenuOpen || ui.receiptId
-    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || D().sheetOpen || !!D().pending || !!useAgberoStore.getState().active || !!useTestDriveStore.getState().vehicleId || isJailed());
+    || ui.showroomVehicle || ui.carReveal || ui.profileOpen || ui.foodPickerUid || ui.detailPropertyId || ui.infoItemId || useInteriorStore.getState().selectedNpc || !!useStoryStore.getState().dialogue || !!useStoryStore.getState().exam || useInteractStore.getState().mode !== 'idle' ||  D().sheetOpen || !!D().pending || !!useAgberoStore.getState().active || !!useTestDriveStore.getState().vehicleId || isJailed());
 }
 
 const scheduleNext = (now = Date.now()) => D().set({ nextEventAt: now + rand(EVENT_PACING.minGap, EVENT_PACING.maxGap) * 1000 });

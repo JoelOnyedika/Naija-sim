@@ -2,35 +2,47 @@ import type { Effects } from '@/types/game';
 
 /**
  * The UNILAG story (data only). Rules are in game/story.ts, state in stores/storyStore.ts, the dialogue overlay in
- * features/game/StoryDialogue.tsx. It is data-driven on purpose: the open world will reuse the same nodes, flags and actions with
- * a server deciding the dice. Tone: campus humour first, creeping menace second. It never glorifies violence; it is a dark story
- * with consequences, and refusing is a real ending.
+ * features/game/StoryDialogue.tsx. It is a guided story: every step has a visible objective, a target and a place; nothing depends on
+ * random rolls or hidden timers. Tone: campus warmth first, quiet menace second. Declining is always allowed and never punished.
  */
 export type Flag = boolean | number | string;
 export type Flags = Record<string, Flag>;
 
 // ---------------------------------------------------------------------------------------------------- tuning
 export const STORY = {
-  /** Discovery: no mission gate. Every `checkEverySeconds` on campus there is a weighted roll; clues, hardship and past choices raise it. */
-  discovery: { checkEverySeconds: 30, graceSeconds: 60, baseChance: 0.02, clueBoost: 0.08, brokeBelow: 5000, brokeBoost: 0.04, cheatBoost: 0.05, gradeBoost: 0.03, curiousBoost: 0.03, rudeBoost: -0.015, /** Guaranteed after this many real minutes on campus. */ pityMinutes: 20, /** Clues that start it at once. */ cluesToStart: 2 },
-  /** Refusals needed for each harassment tier: shouting, blocking and rumours, the final threat. */
-  harassTiers: [3, 6, 9],
-  /** Campus tasks done between two "blending in" scenes. */
-  tasksBetweenScenes: 2,
-  /** Real minutes between pressure scenes after a refusal. */
-  pressureEveryMinutes: 6,
-  /** Refusals before the hostel harassment scene. */
-  /** "Tell me more" can be asked this many times. */
+  /** Watcher: how long the student with the bracelet watches before leaving (real seconds), or until the player walks this close (metres). */
+  watcherSeconds: 7, watcherNear: 4.5,
+  /** "Tell me what kind of people" can be asked this many times. */
   moreMax: 2,
   /** The initiation is at 22:00 (night), at least this many game minutes after the invitation, and open for the window after it. */
   initiationHour: 22, initiationLeadMinutes: 120, initiationWindowMinutes: 240,
   /** Missed it once: one more offer. Twice: the story ends quietly. */
   maxMissed: 2,
+  /** After declining, Bayo may mention it softly (a phone message, no pressure) when a mission is completed, at most this many times. */
+  maxReoffers: 2,
   /** Health and energy lost in the beating scene, and how long happiness stays low (game minutes). */
   beating: { health: -30, energy: -40, happiness: -20 },
   /** Starting rank and reputation of a new member. */
   startRank: 1, startReputation: 5, maxRank: 3,
 } as const;
+
+/** The plot stages, in order. Saved with the game. `declined` and `missed` are quiet side branches that can return to `meeting`. */
+export type Stage = 'arrival' | 'watcher' | 'talk_bayo' | 'declined' | 'meeting' | 'missed' | 'follow' | 'initiation' | 'member' | 'ended';
+
+/** Where things happen on the campus (venue coordinates in metres). */
+export const SPOTS = {
+  /** places the watching student can stand: the one 5 to 14 m from the player is used, so he is always in view */
+  watchSpots: [{ x: 20.0, z: 3.6 }, { x: 8.8, z: 9.6 }, { x: 19.6, z: 7.0 }, { x: 13.4, z: 9.4 }, { x: 5.0, z: 3.4 }],
+  watcher: { x: 20.0, z: 3.6 }, watcherExit: { x: 11.2, z: 15.3 },
+  bayoHome: { x: 19.9, z: 10.2 },
+  groupCentre: { x: 17.6, z: 10.6 },
+  seats: [{ id: 'b1a', x: 15.4, z: 10.1, yaw: Math.PI / 2 }, { id: 'b1b', x: 15.4, z: 11.1, yaw: Math.PI / 2 }, { id: 'b2a', x: 17.1, z: 13.2, yaw: Math.PI }, { id: 'b2b', x: 18.1, z: 13.2, yaw: Math.PI }],
+  /** where the others wait before the group meeting, and the order they are introduced in */
+  others: [{ id: 'seaman', x: 21.0, z: 9.0 }, { id: 'pablo', x: 20.6, z: 8.4 }, { id: 'baron', x: 21.2, z: 7.6 }],
+  /** the meeting place ("the back gate") and the way out Bayo leads through */
+  gate: { x: 10.4, z: 14.2 }, gateOut: { x: 10.4, z: 15.6 }, bayoArrives: { x: 6.2, z: 15.0 },
+} as const;
+export const INITIATION_PIN = 'the UNILAG back gate';
 
 // ---------------------------------------------------------------------------------------------------- missions
 export interface MissionStep { id: string; label: string; /** campus event that completes it ("campus:attend_lecture") */ event: string; /** times needed */ count?: number }
@@ -63,79 +75,87 @@ export type Grade = (typeof EXAM.grades)[number]['grade'];
 
 // ---------------------------------------------------------------------------------------------------- dialogue
 export type StoryAction =
-  | 'giftDrink' | 'trust' | 'more' | 'join' | 'refuse' | 'later' | 'standFirm' | 'securityHelp'
-  | 'enterForest' | 'tryLeave' | 'beating' | 'becomeMember' | 'rebook' | 'endStory' | 'reportPolice' | 'rumours';
+  | 'more' | 'accept' | 'decline' | 'rebook' | 'endStory' | 'meetOthers' | 'startFollow' | 'backOut'
+  | 'enterForest' | 'stepIn' | 'tryLeave' | 'beating' | 'handshake' | 'giveBracelet' | 'becomeMember';
+/** A line is plain text (said by the node's speaker) or `{ who, text }` with who = a cast id, "player" or "narrator" (no portrait, no one speaks). */
+export type Line = string | { who: string; text: string };
 export interface Choice { id: string; label: string; next?: string; set?: Flags; fx?: Effects; action?: StoryAction; hideIf?: string; showIf?: string; /** small grey note under the label */ hint?: string }
 export interface Node {
-  id: string; speaker: string; /** emoji badge used as the portrait */ badge: string; where: 'campus' | 'forest';
-  lines: string[]; /** replaces `lines` when this flag is set (the first match wins) */ alt?: { flag: string; lines: string[] }[];
+  id: string; /** a cast id (bayo, seaman...) */ speaker: string;
+  /** standard = a slim box at the bottom, the world stays visible; cinematic = letterbox, portrait, premium layout, closer camera */ style: 'standard' | 'cinematic';
+  /** how the camera frames the scene while this node is open */ shot?: 'auto' | 'close' | 'two' | 'group';
+  where: 'campus' | 'forest';
+  lines: Line[]; /** replaces `lines` when this flag is set (the first match wins) */ alt?: { flag: string; lines: Line[] }[];
   choices?: Choice[]; /** after the last line, if there are no choices */ next?: string;
   /** applied when the node opens */ set?: Flags; fx?: Effects; action?: StoryAction; scene?: 'beating';
+  /** runs when the last line is finished and there is no `next` */ then?: StoryAction;
 }
-const DAYO = 'Senior Dayo', FRIENDS = 'Dayo’s guys';
+const B = 'bayo';
 
 export const NODES: Node[] = [
-  // ---------------- 5.1 meet
-  { id: 'meet', speaker: DAYO, badge: '😎', where: 'campus', lines: ['Ah! Fresher! I dey watch you since.', 'The way you dey carry yourself, e dey sweet me.'],
-    alt: [{ flag: 'seeking', lines: ['I hear say you dey ask question about us. Ha! Small fresher, big curiosity.', 'Relax. Nobody dey wicked here. Come, make I show you.'] }, { flag: 'caught_cheating', lines: ['Fresher! I hear exam hall wahala. Hmm.', 'Sit down. People like us dey help each other.'] }, { flag: 'broke', lines: ['Fresher! You dey look like person wey money dey vex.', 'Come, take this drink. Campus no easy, but you no go suffer alone.'] }],
-    choices: [{ id: 'polite', label: 'Thank you, Senior.', set: { dayo_polite: true }, next: 'meet_drink' }, { id: 'curious', label: 'Who are you?', set: { dayo_curious: true }, next: 'meet_drink' }, { id: 'rude', label: 'I am busy.', set: { dayo_rude: true }, next: 'meet_drink' }] },
-  { id: 'meet_drink', speaker: DAYO, badge: '😎', where: 'campus', action: 'giftDrink', set: { met_dayo: true },
-    lines: ['Ha, relax. Na Dayo be my name, everybody dey call me Alpha.', 'Take this drink. Cold one. No pay.', 'Make I introduce you to my guys. Real ones. Come sit with us.'] },
-  // ---------------- 5.2 blending in
-  { id: 'hang1', speaker: FRIENDS, badge: '🍗', where: 'campus', lines: ['Pablo: “Fresher! Sit down. Seaman, share the rice.”', 'Baron: “Dayo says you are cool. Free food for cool people.”'],
-    choices: [{ id: 'eat', label: 'Eat with them', fx: { hunger: 25, happiness: 6, social: 4 }, action: 'trust', set: { hang1: true } }, { id: 'thanks', label: 'Thank them, but you must go', set: { hang1: true } }] },
-  { id: 'hang2', speaker: FRIENDS, badge: '📝', where: 'campus', lines: ['Seaman: “I hear you are stressing over assignment. Easy! Baron does these for fun.”', 'Pablo: “And there is a party Saturday. You are invited.”'],
-    choices: [{ id: 'accept', label: 'Accept the help', fx: { social: 5, happiness: 4 }, action: 'trust', set: { hang2: true, accepted_help: true } }, { id: 'own', label: 'I do my own work', set: { hang2: true, own_work: true } }] },
-  { id: 'hang3', speaker: FRIENDS, badge: '🛡️', where: 'campus', lines: ['A senior called Kayode was pushing you around in the queue.', 'Pablo stepped in: “Leave am. That one is with us.” Kayode went quiet and left.', 'Baron: “Nobody go touch you again. That is what family is for.”'],
-    choices: [{ id: 'thank', label: 'Thank them', fx: { social: 4, happiness: 5 }, action: 'trust', set: { hang3: true } }, { id: 'handled', label: 'I had it handled', set: { hang3: true }, action: 'trust' }] },
-  // ---------------- 5.3 the offer
-  { id: 'offer', speaker: DAYO, badge: '🕶️', where: 'campus',
-    lines: ['Alpha, I like the way you dey. We want you for the brotherhood.', 'Real family, real connection. Nobody go touch you again.'],
-    alt: [{ flag: 'dayo_rude', lines: ['You were short with me before. I let am pass.', 'But I see you now. We want you for the brotherhood. Last time I go ask nicely.'] }, { flag: 'caught_cheating', lines: ['I hear they caught you for exam hall. Hmm. Wahala.', 'I can fix your result. Small thing. We take care of our own. Come join the brotherhood.'] }, { flag: 'good_grade', lines: ['Your result is sweet. Oga at the top.', 'After school, connections na everything. The brotherhood has people everywhere. Join us.'] }],
-    choices: [{ id: 'join', label: 'Join', action: 'join', next: 'joined' }, { id: 'more', label: 'Tell me more', action: 'more', hideIf: 'more_maxed' }, { id: 'no', label: 'No, thanks', action: 'refuse', next: 'refused' }, { id: 'later', label: 'Later', action: 'later', next: 'later_ack' }] },
-  { id: 'more1', speaker: DAYO, badge: '🕶️', where: 'campus', next: 'offer',
-    lines: ['We are brothers. We look out for each other. Parties, connections, protection.', 'There is an initiation. A small thing. You go see.', 'One thing: once you are in, you are in. We no dey play with that.'] },
-  { id: 'more2', speaker: DAYO, badge: '🕶️', where: 'campus', next: 'offer',
-    lines: ['Rules? Be loyal. Keep quiet. Answer when we call.', 'The brotherhood sometimes do things people no go like. But we are family.', 'Think well. Then tell me.'] },
-  { id: 'joined', speaker: DAYO, badge: '😎', where: 'campus', lines: ['Good. Good! I knew you had sense.', 'It happens {when}. Come alone. Wear black. Meet me at {pin}.', 'If you no show, I no go ask twice. Remember.'] },
-  { id: 'refused', speaker: DAYO, badge: '😐', where: 'campus', lines: ['Ha. No wahala. No hard feelings.', 'My door dey open if you change your mind.'] },
-  { id: 'later_ack', speaker: DAYO, badge: '🙂', where: 'campus', lines: ['Later is fine. Think am. I no dey rush you.', 'But remember who looked after you.'] },
-  // ---------------- pressure after refusals
-  { id: 'pressure1', speaker: DAYO, badge: '😏', where: 'campus', lines: ['Hey, my friend. Remember that rice? That drink? Those favours?', 'Not that I am counting. But brothers do not count. Brothers share.'],
-    choices: [{ id: 'standfirm', label: 'I told you, no.', action: 'standFirm' }, { id: 'think', label: 'Let me think about it.', action: 'later', next: 'offer' }] },
-  { id: 'pressure2', speaker: FRIENDS, badge: '👀', where: 'campus', lines: ['Seaman: “Some people say you think you are better than us.”', 'Pablo: “Rumours spread fast on campus. We can help them stop.”', 'Baron: “Just talk to Dayo again.”'],
-    choices: [{ id: 'standfirm', label: 'People can say what they like.', action: 'standFirm' }, { id: 'talk', label: 'Fine, I will talk to Dayo.', action: 'later', next: 'offer' }] },
-  { id: 'harass', speaker: FRIENDS, badge: '📣', where: 'campus', lines: ['In the hostel corridor, Pablo and Seaman block the way, shouting so everybody hears:', '“See the proud fresher! Dayo offered you family and you rejected it!”', 'Doors open. People stare. Nobody touches you, but everyone is listening.'],
-    choices: [{ id: 'firm', label: 'Stand firm. Say no again.', action: 'standFirm' }, { id: 'security', label: 'Call campus security', action: 'securityHelp' }, { id: 'police', label: 'Report them to the police', action: 'reportPolice', next: 'police_end' }, { id: 'giveIn', label: 'Fine. I will join.', action: 'join', next: 'joined' }] },
-  { id: 'harass2', speaker: FRIENDS, badge: '🚧', where: 'campus', action: 'rumours',
-    lines: ['They block the lecture hall door and will not let you through. “Dayo wants a word.”', 'Your seat is taken. Your handout goes missing. Somebody tells the whole hostel you are a snitch and a proud one.', 'Nobody touches you. They just make every day on campus heavy.'],
-    choices: [{ id: 'firm', label: 'Stand firm. Say no again.', action: 'standFirm' }, { id: 'police', label: 'Report them to the police', action: 'reportPolice', next: 'police_end' }, { id: 'giveIn', label: 'Enough. I will join.', action: 'join', next: 'joined' }] },
-  { id: 'harass3', speaker: DAYO, badge: '⚠️', where: 'campus',
-    lines: ['Dayo finds you alone behind the cafeteria. He is not smiling anymore.', '“I gave you every chance. Everybody on campus knows you disrespected me.”', '“Join now, and all this stops. Or keep going and see how long you can last.”'],
-    choices: [{ id: 'giveIn', label: 'Fine. I will join.', action: 'join', next: 'joined' }, { id: 'police', label: 'I am going to the police.', action: 'reportPolice', next: 'police_end' }, { id: 'firm', label: 'Do your worst.', action: 'standFirm' }] },
-  { id: 'police_end', speaker: 'Police', badge: '👮🏾', where: 'campus', lines: ['You walk into the station and make a statement about the threats and harassment.', 'An officer takes names and visits the campus. Dayo’s crew goes quiet. By the end of the week they are gone.', 'It costs you some friends, and the campus is lonelier. But it is over.'] },
-  // ---------------- missed initiation
-  { id: 'missed', speaker: DAYO, badge: '😒', where: 'campus', lines: ['You no show. I wait for you.', 'I do not like to be disrespected. But I am patient. One more chance.'],
-    choices: [{ id: 'rebook', label: 'Give me another time', action: 'rebook', next: 'joined' }, { id: 'forget', label: 'Forget it', action: 'endStory', next: 'refused' }] },
-  // ---------------- the walk to the forest
-  { id: 'follow', speaker: DAYO, badge: '🌙', where: 'campus', lines: ['You came. Good. Wear that black well.', 'Follow me. No questions. No phone.'],
-    choices: [{ id: 'follow', label: 'Follow him', action: 'enterForest' }, { id: 'backout', label: 'Back out', action: 'refuse', next: 'refused' }] },
-  // ---------------- the forest
-  { id: 'forest_start', speaker: 'The Circle', badge: '🔥', where: 'forest', lines: ['Twelve robed figures stand in a ring around a fire. Nobody speaks.', 'The only sound is the fire and a slow drum. Dayo, in a red sash, steps forward.'],
-    choices: [{ id: 'on', label: 'Step into the circle', next: 'oath' }, { id: 'leave', label: 'Try to leave', action: 'tryLeave' }] },
-  { id: 'oath', speaker: DAYO, badge: '🩸', where: 'forest', lines: ['Repeat after me. I will be loyal to my brothers.', 'I will keep what I see here. I will answer when I am called.', 'Anybody who breaks this oath answers to the fire.'],
-    choices: [{ id: 'swear', label: 'Swear the oath', next: 'test1' }, { id: 'leave', label: 'Try to leave', action: 'tryLeave' }] },
-  { id: 'test1', speaker: DAYO, badge: '🔥', where: 'forest', lines: ['First test. Show us what you are made of.'],
-    choices: [{ id: 'still', label: 'Stay still', fx: { energy: -5 }, set: { t1: 'still' }, next: 'test2' }, { id: 'answer', label: 'Answer the question', fx: { energy: -3, charisma: 1 }, set: { t1: 'answer' }, next: 'test2' }, { id: 'stick', label: 'Hold the fire stick', fx: { health: -5, charisma: 1 }, set: { t1: 'stick' }, next: 'test2' }] },
-  { id: 'test2', speaker: DAYO, badge: '🔥', where: 'forest', lines: ['Second test. Silence is also an answer.'],
-    choices: [{ id: 'steady', label: 'Keep your eyes on the fire', fx: { energy: -4 }, set: { t2: 'steady' }, next: 'beating' }, { id: 'nod', label: 'Nod and say nothing', fx: { energy: -3 }, set: { t2: 'nod' }, next: 'beating' }, { id: 'hold', label: 'Hold your ground', fx: { health: -3 }, set: { t2: 'hold' }, next: 'beating' }] },
-  { id: 'beating', speaker: 'The Circle', badge: '🥁', where: 'forest', scene: 'beating', action: 'beating', next: 'named', lines: ['The drum speeds up. The circle tightens.', 'Blow after blow. You hold on.', 'Then silence. The fire pops. You are still standing.'] },
-  { id: 'named', speaker: DAYO, badge: '👑', where: 'forest', action: 'becomeMember', lines: ['Welcome, brother. From tonight your name is {nick}.', 'Rank one. Everything starts here. The circle cheers.', 'A member hands you a black bracelet. “Wear it. Everybody who knows will know.”'] },
+  // ---------------- stage 3: meeting Senior Bayo
+  { id: 'bayo_intro', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['Ah, you must be the fresher everybody has been noticing.', 'Relax. I am Bayo. People call me Senior Bayo, but Bayo is fine.', 'I saw you registering earlier. First day is always wahala. How are you finding the place?'],
+    choices: [{ id: 'fine', label: 'Fine, thank you.', set: { tone: 'friendly' }, next: 'bayo_intro2' }, { id: 'lot', label: 'It is a lot, honestly.', set: { tone: 'overwhelmed' }, next: 'bayo_intro2' }, { id: 'who', label: 'Who told you about me?', set: { tone: 'suspicious' }, next: 'bayo_intro2' }] },
+  { id: 'bayo_intro2', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['Good. Campus is easier when you know people.', 'Come, let me introduce you to some friends. They are sitting just over there.'],
+    alt: [{ flag: 'tone_overwhelmed', lines: ['I understand. We all felt like that. That is why people here look out for each other.', 'Come, let me introduce you to some friends. They are sitting just over there.'] }, { flag: 'tone_suspicious', lines: ['Ha, sharp eye. Nobody told me. I just notice people. It is a habit.', 'Come, let me introduce you to some friends. They are sitting just over there.'] }],
+    then: 'meetOthers' },
+  // ---------------- stage 4: meeting the others (a real group scene)
+  { id: 'group_chat', speaker: B, style: 'cinematic', shot: 'group', where: 'campus',
+    lines: [{ who: 'seaman', text: 'Bayo! You did not tell me you were bringing company. Sit, sit. Rice dey.' }, { who: B, text: 'Seaman, Pablo, Baron. This is our new friend.' }, { who: 'pablo', text: 'Welcome, welcome! Let me guess your course. Business. No? Engineering? Law?' }, { who: 'baron', text: 'Let the person breathe, Pablo.' }],
+    choices: [{ id: 'hello', label: 'Nice to meet you all.', next: 'g_hello' }, { id: 'course', label: 'Which courses are you all in?', next: 'g_course' }, { id: 'here', label: 'Do you always sit here?', next: 'g_here' }] },
+  { id: 'g_hello', speaker: 'seaman', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
+    lines: [{ who: 'seaman', text: 'The pleasure is ours. A person who greets properly is a rare thing.' }, { who: 'pablo', text: 'See? Politeness. I like this one.' }, { who: 'baron', text: 'Hm. Good.' }] },
+  { id: 'g_course', speaker: 'pablo', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
+    lines: [{ who: 'pablo', text: 'Seaman is Mass Comm, I am Law, Baron is Engineering. Bayo is a professional senior.' }, { who: B, text: 'Somebody has to be.' }, { who: 'seaman', text: 'Do not mind them. We argue about everything. It is how we like each other.' }] },
+  { id: 'g_here', speaker: 'seaman', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
+    lines: [{ who: 'seaman', text: 'Every day. This is our bench. Rent free, view of the cafeteria.' }, { who: 'baron', text: 'Seaman picked it. For the view of the jollof.' }, { who: 'pablo', text: 'He is not lying.' }] },
+  // ---------------- stage 5: the invitation (the player decides)
+  { id: 'invite_start', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['You know, we are not just friends who sit around and eat rice.', 'There is a group of people I think you should meet. Serious people. People who look out for each other.'],
+    choices: [{ id: 'what', label: 'What kind of people?', action: 'more', hideIf: 'more_maxed' }, { id: 'yes', label: 'I am interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'I am not interested.', action: 'decline', next: 'invite_decline' }] },
+  { id: 'invite_more1', speaker: B, style: 'cinematic', shot: 'two', where: 'campus', next: 'invite_start',
+    lines: ['People who have been through this place and came out the other side.', 'Parties, connections, somebody to call when things go wrong.'] },
+  { id: 'invite_more2', speaker: B, style: 'cinematic', shot: 'two', where: 'campus', next: 'invite_start',
+    lines: ['I cannot say too much out here. There is a private meeting. After that, you decide.', 'And one thing. Whatever you decide, nobody will hold it against you.'] },
+  { id: 'invite_accept', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['Good. I knew you had sense.', 'I will send you a message with the time and the place. Come alone. Wear black if you can.'] },
+  { id: 'invite_decline', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['No problem, my guy. No pressure at all.', 'The seat stays open if you change your mind. I am around the cafeteria most days.'] },
+  { id: 'reoffer', speaker: B, style: 'standard', where: 'campus',
+    lines: ['Back again. Did you think about it?'],
+    choices: [{ id: 'yes', label: 'Yes, I am interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'Still not interested.', next: 'reoffer_no' }] },
+  { id: 'reoffer_no', speaker: B, style: 'standard', where: 'campus', lines: ['Fair enough. The door stays open. Enjoy school.'] },
+  { id: 'missed', speaker: B, style: 'standard', where: 'campus',
+    lines: ['You did not show up. I waited.', 'These things do not wait for people. But I can try again, once.'],
+    choices: [{ id: 'again', label: 'Give me another chance.', action: 'rebook', next: 'invite_accept' }, { id: 'forget', label: 'Forget it.', action: 'endStory', next: 'missed_end' }] },
+  { id: 'missed_end', speaker: B, style: 'standard', where: 'campus', lines: ['Alright. Take care of yourself.'] },
+  // ---------------- stage 7: the walk to the forest
+  { id: 'follow_intro', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
+    lines: ['You came. Good.', 'From here we walk. No phone, no questions. Stay close to me.'],
+    choices: [{ id: 'lead', label: 'Lead the way.', action: 'startFollow' }, { id: 'back', label: 'I changed my mind.', action: 'backOut', next: 'backout' }] },
+  { id: 'backout', speaker: B, style: 'standard', where: 'campus', lines: ['Alright. Go back to class. No hard feelings.'] },
+  // ---------------- stage 8: the initiation (in the forest)
+  { id: 'forest_start', speaker: B, style: 'cinematic', shot: 'two', where: 'forest',
+    lines: ['This is the place.', 'Twelve of us stand in this ring. Every one of us stood where you are standing.'],
+    choices: [{ id: 'on', label: 'Step into the circle.', action: 'stepIn', next: 'oath' }, { id: 'leave', label: 'Try to leave.', action: 'tryLeave' }] },
+  { id: 'oath', speaker: B, style: 'cinematic', shot: 'group', where: 'forest',
+    lines: ['Repeat after me. I will be loyal to my brothers.', 'I will keep what I see here. I will answer when I am called.', 'Anybody who breaks this oath answers to the fire.'],
+    choices: [{ id: 'swear', label: 'Swear the oath.', next: 'test1' }, { id: 'leave', label: 'Try to leave.', action: 'tryLeave' }] },
+  { id: 'test1', speaker: B, style: 'cinematic', shot: 'close', where: 'forest', lines: ['First test. Show us what you are made of.'],
+    choices: [{ id: 'still', label: 'Stay still.', fx: { energy: -5 }, set: { t1: 'still' }, next: 'test2' }, { id: 'answer', label: 'Answer the question.', fx: { energy: -3, charisma: 1 }, set: { t1: 'answer' }, next: 'test2' }, { id: 'stick', label: 'Hold the fire stick.', fx: { health: -5, charisma: 1 }, set: { t1: 'stick' }, next: 'test2' }] },
+  { id: 'test2', speaker: B, style: 'cinematic', shot: 'close', where: 'forest', lines: ['Second test. Silence is also an answer.'],
+    choices: [{ id: 'steady', label: 'Keep your eyes on the fire.', fx: { energy: -4 }, set: { t2: 'steady' }, next: 'beating' }, { id: 'nod', label: 'Nod and say nothing.', fx: { energy: -3 }, set: { t2: 'nod' }, next: 'beating' }, { id: 'hold', label: 'Hold your ground.', fx: { health: -3 }, set: { t2: 'hold' }, next: 'beating' }] },
+  { id: 'beating', speaker: B, style: 'cinematic', shot: 'group', where: 'forest', scene: 'beating', action: 'beating', next: 'named',
+    lines: [{ who: 'narrator', text: 'The drum speeds up. The circle tightens.' }, { who: 'narrator', text: 'Blow after blow. You hold on.' }, { who: 'narrator', text: 'Then silence. The fire pops. You are still standing.' }] },
+  { id: 'named', speaker: B, style: 'cinematic', shot: 'two', where: 'forest', action: 'becomeMember', then: 'giveBracelet',
+    lines: ['Welcome, brother. From tonight your name is {nick}.', 'Rank one. Everything starts here. The circle cheers.', 'Take this. Wear it. Everybody who knows will know.'] },
 ];
 export const NODE = (id: string): Node | undefined => NODES.find((n) => n.id === id);
+export const lineText = (l: Line): string => (typeof l === 'string' ? l : l.text);
+export const lineWho = (n: Node, l: Line): string => (typeof l === 'string' ? n.speaker : l.who);
 
-/** Where the initiation meets (shown in the Tasks panel and the phone reminder). */
-export const INITIATION_PIN = 'the UNILAG back gate';
 export const ALIASES = ['Eagle', 'Baron Jr.', 'Viper', 'Scorpion', 'Lion', 'Cobra'];
 /** The black bracelet and other things a member owns, for the Inventory in the profile. */
 export const MEMBER_ITEMS = [{ id: 'bracelet', name: 'Black bracelet', glyph: '⚫' }] as const;

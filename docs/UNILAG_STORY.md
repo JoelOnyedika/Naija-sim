@@ -1,40 +1,29 @@
-# UNILAG campus, the brotherhood story, and the gun (v37)
+# UNILAG campus, the Bayo storyline and the interaction system (v39)
 
-Where things live, how to extend them, and what the open world should reuse. The old plan file is gone: everything in it is built except what is listed under "Not built".
+## The story, stage by stage (data/story.ts `Stage`, rules in game/story.ts)
+| Stage | What the player sees | How it moves on |
+|---|---|---|
+| `arrival` | the existing university tasks and missions, untouched | mission "Welcome, Fresher" done (4 intro tasks) |
+| `watcher` | a student with a black bracelet stands in view (5 to 14 m away), a short camera glance at him, a phone banner "Someone seems to have noticed you around campus." | he watches 7 seconds (or until the player walks within 4.5 m), then walks out of the gate |
+| `talk_bayo` | objective **TALK TO SENIOR BAYO**: marker over Bayo near the cafeteria, edge arrow, map pin, prompt button when close | tap the prompt: the player walks up, both face each other, cinematic dialogue |
+| group scene | Bayo takes the player to meet Seaman, Pablo and Baron; two sit on a bench, others stand in a loose arc | dialogue ends in the invitation with three choices |
+| `declined` | normal university life, no objective, no pressure | one soft phone message after the next mission (max 2 per decline); talking to Bayo again re-opens the offer |
+| `meeting` | real phone message from Bayo, objective **MEET SENIOR BAYO** with 22:00, a countdown, "Open now" and the back-gate marker | be at the gate in the 4-hour window |
+| `follow` | Bayo walks up to the player, objective **FOLLOW BAYO** | prompt, short cinematic, then he leads the way; "Stop following" is always on screen |
+| `initiation` | fade into the forest, circle, oath, two tests, stylised beating, new name, handshake, bracelet | rank 1 |
+| `member` / `ended` | Brotherhood app unlocked in Phone > App Library > More, bracelet in Inventory | |
 
-## Files
-| What | Where |
-|---|---|
-| Story script, missions, tuning (`STORY`, `EXAM`), dialogue nodes | `src/data/story.ts` |
-| Story rules (missions, recruiter, initiation, clocks) | `src/game/story.ts` |
-| Exam Hall rules (pure, `rnd` injectable) and 28 questions | `src/game/exam.ts`, `src/data/examQuestions.ts` |
-| Weapons data, rules, open-world intents (`draw`, `holster`, `fire`) | `src/data/weapons.ts`, `src/game/weapons.ts` |
-| State | `src/stores/storyStore.ts`, `src/stores/weaponStore.ts` (both persisted; dialogue/exam/beating are not) |
-| Campus props and 20+ campus activities | `src/data/venueKit3.ts` |
-| Interiors `university` and `initiation` | `src/data/interiors.ts` |
-| Map pin | `lagos.unilag` in `src/content/lagos/landmarks.ts` (Akoka, in the Yaba area) |
-| Forest scene (fire, 12 robed members, Dayo, trees) | `src/three/property/Forest.tsx` |
-| UI | `StoryDialogue.tsx`, `ExamGame.tsx`, `CampusCard.tsx`, `InventoryTab.tsx`, phone app `Brotherhood.tsx` |
-| Tests | `npm run test:story` (also in `test:all`) |
+Missed meeting: one friendly message and an optional objective to reschedule; missed twice, the story ends quietly. There are no random rolls, no hidden timers, no harassment and no threats any more.
 
-## How it works
-- A campus task is an ordinary activity whose finish fires `campus:<id>` (`game/tasks.ts` -> `onCampusEvent`). Missions count those events. The exam desk is the one special case (`exam: true` on the use, like `haggle`).
-- Missions: Welcome, Fresher -> Find Your Feet -> Assignment Season, then the repeating Campus Life hub. Mission flags: `registered`, `has_friends`, `grade_set`, `good_grade`.
-- Discovery (no mission gate): from the first visit, every 30 s on campus there is a weighted roll (`discoveryChance`): base 2%, more when broke, caught cheating, good grades or curious, less if rude to Dayo. Clue spots add to it: the black flyer (notice board), students with bracelets (hostel), the table behind you (cafeteria). Two clues, or "Ask Senior Dayo about the brotherhood" at the SUG office, start it at once. A pity timer (20 real minutes on campus) guarantees it, so any player can find it. Dayo's first scene has variants (seeking, broke, caught cheating).
-- Recruiter state machine (`storyStore.recruit`): none -> met -> blending (three scenes, two tasks apart) -> offered -> invited -> member, or ended. The offer's lines change with `dayo_rude`, `caught_cheating`, `good_grade`.
-- Refusing escalates: favour reminders, then harassment tier 1 (shouting, 3 refusals), tier 2 (blocking and rumours, costs social/charisma, 6), tier 3 (the final threat, 9). Every tier offers Join and **Report to the police**, which ends the story for good (Dayo never returns, not even by the pity timer; small social cost). "Call campus security" buys time. Standing firm is allowed forever.
-- Initiation: 22:00 game time, at least 2 game hours after saying yes, open for 4 game hours. Arriving on campus in the window starts "Follow me". Miss it once: one more offer. Twice: the story ends quietly. In the forest you can try to leave before the oath (uses `oddsRun`). The beating is a stylised scene: screen shake, red pulse, tightening circle, health -30, energy -40, happiness -20. No gore.
-- Member: random alias, rank 1, reputation 5, black bracelet (Inventory), the Brotherhood phone app (hidden until you are a member), Black robe in the Boutique (a black kaftan cut).
-- Gun: bought only in the Brotherhood app (never in Shops), members only. It adds fight points (capped at 25) through `fighterNow()`, so Agbero roadblocks and loan collectors feel it. A carried gun shows as a holster on the hip (hidden under a jacket or hoodie) and a 🔫 in the venue strip. Heat rises with use. An arrest with a weapon doubles the sentence and takes the weapon (`policeSearch`).
-- A new life resets story and weapons (`game/life.ts`).
+## Reusable systems
+- **Camera** (`stores/viewStore.ts`, `stores/cameraStore.ts`, `three/property/CameraRig.tsx`, `world/cameraShots.ts`): Normal View (the original top-down orbit), Close View (elevated, follows the player smoothly, kept inside the venue) and a temporary cinematic camera (establishing, two-shot, group, close-up). The Normal/Close choice is saved and survives venues and reloads (toggle button under Rotate, key `V`). A cinematic shot always has a deadline and is dropped on venue change.
+- **Interaction** (`game/interact.ts`, `world/actors.ts`, `world/arrangement.ts`, `three/property/StoryActors.tsx`): `startTalk`, `startGroup` (benches first, no rows, nobody closer than 0.85 m), `startFollow` (leader waits when you fall behind; cancel any time), `beginScene`, `setSpeaker` (speaker gestures, others listen), `playBeat('handshake' | 'give')`, `glanceAt`, `endInteraction`. Everything goes through an `IO` object, so it runs in tests without a renderer. Stuck people are snapped to their marks after a timeout.
+- **Cast** (`data/cast.ts`): Bayo, Tobi, Seaman, Pablo, Baron: black shirt and trousers, black bracelet, red-and-gold insignia, some with a beret, each with a different face, hair, build, accessory, idle poses and way of talking.
+- **Objectives** (`stores/objectiveStore.ts`, `features/game/ObjectiveHud.tsx`, `three/property/InteractionDriver.tsx`): card, "new objective" flash, completion banner, 3D marker, edge arrow, prompt, map highlight (the map flies to the place and offers the trip). Saved with the game; rebuilt from the stage after a reload.
+- **Dialogue** (`features/game/StoryDialogue.tsx`): standard (slim box, small portrait) and cinematic (letterbox, large portrait with name and role, numbered choice cards). Portraits are the real 3D characters. Tap to finish typing, tap to continue, Skip, keyboard Enter/Space/Esc. Narration has no portrait.
 
-## Open world: what carries over
-`WeaponDef` already has `damage`, `range`, `noise`, `ammoPerClip`, `cooldownMs`. `weapons.draw/holster/fire` are pure rules returning events; nothing renders a shot yet. A server must own buying, shooting and dice (`game/authority.ts`). The dialogue nodes, flags and actions are data, so the open world can run the same scenes. The forest circle in `Forest.tsx` can be filled with real players.
+## Saving
+Stage, objective, flags, view mode and membership are saved. Scenes are never saved half way: a reload in the forest returns to "FOLLOW BAYO"; older saves are upgraded (`recruit` becomes a stage).
 
-## Not built (honest list)
-- "Intelligence" is not a stat in this game. Study and lectures give skill XP (communication, business, teaching) instead.
-- No shooting, no rifle (listed as "Later"), no gun-specific animation: only the holster and the stats.
-- No separate `chant` avatar action: the robed members' raised hands are animated inside `Forest.tsx`.
-- Robes are a black kaftan, not a new garment shape. The robed figures are simple cone/sphere models.
-- The 3D Exam Hall is a sheet, not a walk-in scene. Campus has no custom decor beyond its props and palms.
-- Police roadblock "searches" are only applied at arrest, not at Agbero or traffic stops.
+## Not built / limits
+See the end-of-task report in the chat; the short version: no new 3D models or animation clips (poses are procedural), no real hand clasp in the handshake, props are not ray-cast for camera clipping (only the venue bounds), movement is tap-to-walk (the game never had WASD).

@@ -25,6 +25,7 @@ export interface Spec {
   accessory: Accessory;
   bag: BagStyle; bagColor: string;
   gun?: boolean;
+  bro?: 'plain' | 'beret';
 }
 
 // ------------------------------------------------------------------ style presets
@@ -308,6 +309,13 @@ export function buildCharacter(spec: Spec): Rig {
     if (spec.beard === 'moustache' || spec.beard === 'full' || spec.beard === 'goatee') mesh(new SphereGeometry(R * 0.2, 10, 8), beardM, head, [0, -R * 0.38, surf(0, -R * 0.4) - R * 0.02], undefined, [1.4, 0.32, 0.5]);
   }
 
+  // ---- Brotherhood look: a small red-and-gold insignia over the heart and (optionally) a black beret
+  if (spec.bro) {
+    mesh(new CylinderGeometry(0.026, 0.026, 0.008, 12), mat('#B91C1C', 0.5), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.02], [Math.PI / 2, 0, 0]);
+    mesh(new CylinderGeometry(0.013, 0.013, 0.01, 8), mat('#E5B93C', 0.3, { metal: 0.8 }), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.024], [Math.PI / 2, 0, 0]);
+    if (spec.bro === 'beret') mesh(new SphereGeometry(R * 1.08, seg, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#0B0B0E', 0.9), head, [R * 0.12, R * 0.2, -R * 0.02], [0.1, 0, -0.22], [1.08, 0.5, 1.1]);
+  }
+
   // ---- accessories
   if (spec.accessory === 'glasses') {
     const f = mat('#15181D', 0.3, { metal: 0.4 });
@@ -424,6 +432,7 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(lathe(limbPts(fore, r1 * 0.95, r1 * 0.9, r2), 10), skinM, elbow);
     const hand = grp(elbow, 0, -fore, 0), hs = st.hand;
     mesh(handGeo(s, hs), skinM, hand);
+    if (spec.bro && s === -1) mesh(new CylinderGeometry(r2 + 0.009, r2 + 0.009, 0.034, 12), mat('#0A0A0C', 0.5), elbow, [0, -fore * 0.9, 0]); // the black Brotherhood bracelet, on the left wrist
     // sleeves
     const sleeveLen = B === 'tee' || B === 'jersey' ? upper * 0.45 : B === 'kaftan' ? upper * 1.1 : upper;
     const so = { tee: 0.008, shirt: 0.008, hoodie: 0.016, jacket: 0.022, kaftan: 0.022, jersey: 0.01 }[B], flare = B === 'kaftan' ? 0.06 : 0.006;
@@ -486,6 +495,6 @@ export const DEFAULT_EYE = '#2A1A10';
 export function toSpec(a: Appearance): Spec {
   return {
     body: a.body ?? 'masc', skin: a.skin, eye: a.eye ?? DEFAULT_EYE, hair: a.hairStyle, hairColor: a.hairColor, beard: a.beard ?? 'none',
-    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A', gun: !!a.gun,
+    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A', gun: !!a.gun, bro: a.bro,
   };
 }

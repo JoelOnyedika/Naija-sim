@@ -4,6 +4,7 @@ import { Color, type Group, type InstancedMesh, MeshStandardMaterial, Object3D, 
 import type { PropertyLayout } from '@/types/world';
 import { INTERIORS, type InteriorKind } from '@/data/interiors';
 import { useStoryStore } from '@/stores/storyStore';
+import { FOREST } from '@/game/story';
 
 /**
  * The initiation forest: a dark clearing ringed by instanced low-poly trees, a flickering fire with a moving light, twelve
@@ -39,7 +40,8 @@ export function Forest({ layout }: { layout: PropertyLayout }) {
   const cx = def.w / 2, cz = def.d / 2;
   const ring = useRef<Group>(null), light = useRef<PointLight>(null), flames = useRef<Group>(null), trees = useRef<InstancedMesh>(null), crowns = useRef<InstancedMesh>(null);
   const arms = useRef<{ g: Group; side: number }[]>([]);
-  const members = useMemo(() => Array.from({ length: ROBES }, (_, i) => ({ a: (i / ROBES) * Math.PI * 2 })), []);
+  // the ring of robed figures: gaps for the entrance (where the player arrives) and for the named members, who are real characters (StoryActors)
+  const members = useMemo(() => Array.from({ length: ROBES }, (_, i) => ({ i, a: (i / ROBES) * Math.PI * 2 })).filter((m) => m.i !== 0 && !Object.values(FOREST.named).includes(m.i)), []);
   const spots = useMemo(() => {
     const r = rng(777), out: { x: number; z: number; s: number }[] = [];
     for (let i = 0; i < 90; i++) { const a = r() * Math.PI * 2, d = 10.5 + r() * 14; out.push({ x: cx + Math.cos(a) * d, z: cz + Math.sin(a) * d, s: 0.8 + r() * 0.9 }); }
@@ -55,7 +57,7 @@ export function Forest({ layout }: { layout: PropertyLayout }) {
   const trunkMat = useMemo(() => new MeshStandardMaterial({ color: '#2B1D12', roughness: 1, flatShading: true }), []);
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime(), beating = useStoryStore.getState().beating;
-    if (ring.current) { ring.current.rotation.y = t * (beating ? 0.55 : 0.22); const k = beating ? 0.82 : 1; ring.current.scale.set(k, 1, k); } // the circle tightens during the beating
+    if (ring.current) { const k = beating ? 0.82 : 1; ring.current.scale.set(k, 1, k); } // the circle tightens during the beating
     // hands up and down together on the beat; faster when the drum speeds up
     const beat = Math.sin((t / (beating ? BEAT / 2 : BEAT)) * Math.PI * 2) * 0.5 + 0.5;
     for (const { g, side } of arms.current) { g.rotation.z = side * (0.15 + beat * 2.4); g.rotation.x = 0; }
@@ -86,8 +88,6 @@ export function Forest({ layout }: { layout: PropertyLayout }) {
             <group key={i} position={[Math.sin(m.a) * 5.2, 0, Math.cos(m.a) * 5.2]} rotation={[0, m.a + Math.PI, 0]}><Robed setArms={setArms} /></group>
           ))}
         </group>
-        {/* Dayo stands still opposite the player, red sash on his robe */}
-        <group position={[0, 0, -3.2]} rotation={[0, 0, 0]}><Robed leader /></group>
       </group>
     </group>
   );

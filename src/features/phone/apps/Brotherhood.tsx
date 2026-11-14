@@ -16,7 +16,7 @@ export function BrotherhoodApp() {
   const buy = (id: (typeof WEAPON_IDS)[number]) => { const r = buyWeapon(id); if (r.ok) { sfx.purchase(); toast(r.message, 'good'); } else { sfx.error(); toast(r.message, 'bad'); } };
   return (
     <div className="space-y-3">
-      <Card className="bg-slate-900 text-white"><Row glyph="⚫" title={`${c.alias || 'Member'} · Rank ${c.rank}`} sub={`Reputation ${c.reputation} · Heat ${Math.round(heat)}${heat >= GUN.hotHeat ? ' (hot)' : ''}`} /></Card>
+      <Card><Row glyph="⚫" title={`${c.alias || 'Member'} · Rank ${c.rank}`} sub={`Reputation ${c.reputation} · Heat ${Math.round(heat)}${heat >= GUN.hotHeat ? ' (hot)' : ''}`} /></Card>
       <Card><div className="rounded-2xl bg-slate-100 p-3 text-[13px] text-slate-700">“Welcome, brother. Business dey open. No be everybody we sell to. Keep quiet.”</div></Card>
       <Title>Business</Title>
       {WEAPON_IDS.map((id) => {

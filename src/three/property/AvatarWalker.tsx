@@ -1,5 +1,6 @@
 import { useWeaponStore } from '@/stores/weaponStore';
 import { livePlayer } from '@/world/npcLive';
+import { playerDirective, yawTo } from '@/world/actors';
 import { animFor } from '@/world/animations';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
@@ -176,6 +177,9 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     }
 
     // ---- turn, lift/lower, publish pose to the avatar
+    // a scene holds the player: face the person they are talking to (only when standing idle, never mid-activity)
+    const sceneHeld = playerDirective.hold && !moving && p.stage === 'idle' && !activity;
+    if (sceneHeld) { if (playerDirective.face) yawGoal = yawTo({ x: g.position.x, z: g.position.z }, playerDirective.face); else if (playerDirective.yaw !== null) yawGoal = playerDirective.yaw; }
     const ay = p.stage !== 'idle' && !moving && p.spot ? p.spot.yaw : yawGoal;
     if (ay !== null) g.rotation.y += angleDiff(g.rotation.y, ay) * (1 - Math.exp(-dt * (moving ? 12 : 9)));
     const yTarget = acting && spot ? spot.y : 0;
@@ -186,6 +190,7 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     m.sitting = acting && spot?.pose === 'sit';
     m.action = acting ? (activity && spot?.pose !== 'sleep' && spot?.pose !== 'sit' && activity.kind !== 'visit' ? animFor(activity.targetUid ? its.find((i) => i.uid === activity.targetUid)?.defId : undefined, activity.activityKey, spot?.action) : (spot?.action ?? 'idle')) : 'idle';
     m.bathing = acting && !!spot?.bathing;
+    if (sceneHeld && !acting && playerDirective.action) m.action = playerDirective.action;
     // what the thought bubble shows: the object being used (real activity or AFK cosmetic), nothing while walking
     const usedUid = activity?.targetUid ?? cosmetic?.uid, usedDef = usedUid ? its.find((i) => i.uid === usedUid)?.defId : undefined;
     m.bubble = acting ? (cosmetic?.kind === 'relax' && !activity ? '😌' : bubbleFor(usedDef, spot?.action, spot?.pose)) : null;

@@ -11,7 +11,7 @@ interface Vendor { names: string[]; role: string; greeting: string; starter: str
 const V = (names: string[], role: string, greeting: string, starter: string): Vendor => ({ names, role, greeting, starter });
 export const VENDORS: Record<string, Vendor> = {
   v_stall: V(['Baba Tunde', 'Iya Ibeji', 'Mallam Bashir', 'Mama Joy', 'Alhaji Sule', 'Iya Basira', 'Oga Kingsley'], 'Market trader', 'Customer! Come, come, see better price!', 'Last price, no be small thing. How much you dey carry?'),
-  v_sug_kiosk: V(['Senior Dayo'], 'SUG Welfare Director', 'Fresher! Come, come. Alpha dey here.', 'You don register your courses? I fit help you.'),
+  v_sug_kiosk: V(['SUG Officer Femi'], 'SUG officer', 'Fresher! Come, come. SUG dey for you.', 'You don register your courses? I fit help you.'),
   v_lecturer_desk: V(['Dr. Adebayo'], 'Senior lecturer', 'Yes? Do you have your matric number?', 'Attendance is compulsory. Do not tell me about traffic.'),
   v_registry: V(['Mrs. Balogun'], 'Registry officer', 'Next! Where is your clearance slip?', 'The system is down. Come back after lunch.'),
   v_campus_cafe: V(['Mama Campus'], 'Cafeteria woman', 'Students! Rice is ready, small money!', 'You people dey chop on credit again?'),

@@ -35,6 +35,7 @@ import { DailySheet } from './DailySheet';
 import { RoadBlock } from './RoadBlock';
 import { CollectorVisit } from './CollectorVisit';
 import { StoryDialogue } from './StoryDialogue';
+import { ObjectiveHud } from './ObjectiveHud';
 import { ExamGame } from './ExamGame';
 import { TestDrive } from './TestDrive';
 import { preloadTravel } from '@/features/travel/preload';
@@ -83,6 +84,7 @@ export function GameScreen() {
       <DailySheet />
       <RoadBlock />
       <CollectorVisit />
+      <ObjectiveHud />
       <ExamGame />
       <StoryDialogue />
       <PropertyDetails />

@@ -1,6 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
+import { CLOSE, DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
+import { useViewStore } from '@/stores/viewStore';
+import { livePlayer } from '@/world/npcLive';
+import { clampToBounds } from '@/world/cameraShots';
 import { PLACE_FOCUS } from '@/data/balance';
 import { useInteriorStore } from '@/stores/interiorStore';
 import { useEditorStore } from '@/stores/editorStore';
@@ -25,6 +28,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const panLimit = useRef(10);
   const blend = useRef(0); // 0 = normal view, 1 = fully focused on the placed item
   const inVenue = useInteriorStore((st) => !!st.current);
+  const closeBlend = useRef(0), cineBlend = useRef(0), baseFov = useRef(38), smLook = useRef<[number, number, number] | null>(null), lastShot = useRef<import('@/world/cameraShots').Shot | null>(null);
   const aspect = size.width / Math.max(size.height, 1);
   // MVP framing, applied to every home: distance grows with the house side, pulled back a little on portrait screens.
   // Only the house is framed and centred; the parking pad is separate and may run off screen.
@@ -114,10 +118,44 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     // slide: eased like the turn and tilt, and fades out while the camera is looking at a freshly placed item
     curPan.current[0] += (st.pan[0] - curPan.current[0]) * (1 - Math.exp(-Math.min(dt, 0.1) * 14)); curPan.current[1] += (st.pan[1] - curPan.current[1]) * (1 - Math.exp(-Math.min(dt, 0.1) * 14));
     const px = curPan.current[0] * (1 - bl), pz = curPan.current[1] * (1 - bl);
-    const lx = (fp ? tx + (fp[0] - tx) * bl : tx) + px, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = (fp ? tz + (fp[2] - tz) * bl : tz) + pz;
-    const r = fit * st.zoom * (1 - (1 - PLACE_FOCUS.zoomFactor) * bl), sp = Math.sin(pol), a = cur.current;
-    camera.position.set(lx + r * sp * Math.sin(a), ly + r * Math.cos(pol), lz + r * sp * Math.cos(a));
+    let lx = (fp ? tx + (fp[0] - tx) * bl : tx) + px, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = (fp ? tz + (fp[2] - tz) * bl : tz) + pz;
+    let r = fit * st.zoom * (1 - (1 - PLACE_FOCUS.zoomFactor) * bl), pol2 = pol;
+    // ---- Close View: the same orbit, but around the player and much closer (elevated, never over-the-shoulder). The choice is remembered in viewStore.
+    const wantClose = useViewStore.getState().view === 'close' && !useEditorStore.getState().dragging && livePlayer.set ? 1 : 0;
+    closeBlend.current += (wantClose - closeBlend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 4.5));
+    if (Math.abs(wantClose - closeBlend.current) < 1e-3) closeBlend.current = wantClose;
+    const cb = closeBlend.current;
+    if (cb > 0) {
+      const hb = houseBounds(layout), narrow = Math.min(hb.x1 - hb.x0, hb.z1 - hb.z0) < CLOSE.narrowBelow;
+      const px2 = livePlayer.x, pz2 = livePlayer.z;
+      if (!smLook.current) smLook.current = [px2, CLOSE.lookHeight, pz2];
+      const k = 1 - Math.exp(-Math.min(dt, 0.1) * CLOSE.follow), sl = smLook.current; // smooth follow: the camera trails the player a little
+      sl[0] += (px2 - sl[0]) * k; sl[2] += (pz2 - sl[2]) * k;
+      const rc = Math.min(CLOSE.distance * (narrow ? 0.82 : 1), fit * 0.8) * Math.max(0.5, st.zoom);
+      const polc = Math.min(CLOSE.polarMax, Math.max(CLOSE.polarMin, pol + (CLOSE.polar - DEFAULT_POLAR)));
+      lx += (sl[0] - lx) * cb; ly += (sl[1] - ly) * cb; lz += (sl[2] - lz) * cb; r += (rc - r) * cb; pol2 += (polc - pol2) * cb;
+    } else smLook.current = null;
+    const sp = Math.sin(pol2), a = cur.current;
+    let cx = lx + r * sp * Math.sin(a), cy = ly + r * Math.cos(pol2), cz = lz + r * sp * Math.cos(a);
+    if (cb > 0) { const hb = houseBounds(layout); [cx, cy, cz] = clampToBounds([cx, cy, cz], { x0: hb.x0, z0: hb.z0, x1: hb.x1, z1: hb.z1 }, 2.2); } // never end up behind a wall or out in the street
+    let fov = baseFov.current;
+    // ---- Cinematic: a temporary scripted shot. It flies in, and flies back out when the scene ends (or its deadline passes).
+    const cine = st.cinematic;
+    if (cine && Date.now() > cine.until) useCameraStore.getState().endCinematic();
+    const live = useCameraStore.getState().cinematic;
+    if (live) lastShot.current = live.shot;
+    const wantCine = live ? 1 : 0;
+    cineBlend.current += (wantCine - cineBlend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 3.2));
+    if (Math.abs(wantCine - cineBlend.current) < 1e-3) cineBlend.current = wantCine;
+    const cn = cineBlend.current, sh = live?.shot ?? lastShot.current;
+    if (cn > 0 && sh) {
+      cx += (sh.pos[0] - cx) * cn; cy += (sh.pos[1] - cy) * cn; cz += (sh.pos[2] - cz) * cn;
+      lx += (sh.look[0] - lx) * cn; ly += (sh.look[1] - ly) * cn; lz += (sh.look[2] - lz) * cn; fov += (sh.fov - fov) * cn;
+    }
+    camera.position.set(cx, cy, cz);
     camera.lookAt(lx, ly, lz);
+    const pc = camera as import('three').PerspectiveCamera;
+    if (Math.abs(pc.fov - fov) > 0.01) { pc.fov = fov; pc.updateProjectionMatrix(); }
     const ed = useEditorStore.getState(), na = Math.atan2(Math.sin(a), Math.cos(a));
     if (Math.abs(ed.cameraAzimuth - na) > 1e-3) ed.setCameraAzimuth(na);
     if (Math.abs(ed.cameraPolar - pol) > 1e-3) ed.setCameraPolar(pol);

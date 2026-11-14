@@ -160,7 +160,7 @@ export const INTERIORS: Record<InteriorKind, InteriorDef> = {
       { defId: 'v_library_desk', x: 12.0, z: 6.6, rotation: 0 }, { defId: 'v_library_desk', x: 15.6, z: 6.6, rotation: 0 },
       { defId: 'v_sug_kiosk', x: 22.4, z: 8.4, rotation: 3 }, { defId: 'v_campus_cafe', x: 22.2, z: 12.6, rotation: 3 },
       { defId: 'v_campus_field', x: 6.0, z: 12.6, rotation: 0 }, { defId: 'v_hostel_door', x: 14.4, z: 15.0, rotation: 2 },
-      { defId: 'v_palm', x: 1.2, z: 14.8, rotation: 0 }, { defId: 'v_palm', x: 11, z: 11.6, rotation: 0 }, { defId: 'v_palm', x: 18, z: 11.6, rotation: 0 }],
+      { defId: 'v_palm', x: 1.2, z: 14.8, rotation: 0 }, { defId: 'v_palm', x: 11, z: 11.6, rotation: 0 }, { defId: 'v_palm', x: 21.0, z: 5.6, rotation: 0 }, { defId: 'v_campus_bench', x: 15.4, z: 10.6, rotation: 1 }, { defId: 'v_campus_bench', x: 17.6, z: 13.2, rotation: 2 }],
   },
   // The forest of the initiation. Entered only from the story: no map pin, no chat, no crowd. The fire and the robed circle are drawn by three/property/Forest.tsx.
   initiation: {

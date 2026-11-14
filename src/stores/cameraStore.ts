@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PLACE_FOCUS } from '@/data/balance';
+import type { Shot } from '@/world/cameraShots';
 
 /** One authoritative source of camera rotation. The rig only reads this; the button and swipes only write it. */
 export const STEP = Math.PI / 2;          // one button press
@@ -10,11 +11,21 @@ export const POLAR_MIN = 0.7;             // most top-down view
 export const POLAR_MAX = 1.2;             // lowest, most side-on view
 /** How far the player can zoom (1 = the default framing). Lower is closer. Wider than before so mouse and touch can really get in. */
 export const ZOOM_MIN = 0.32, ZOOM_MAX = 1.5;
+/** Close View: the camera sits this many metres from the player (before zoom), at this elevation (radians from straight up). Tweak here. */
+export const CLOSE = { distance: 8.8, polar: 0.95, polarMin: 0.75, polarMax: 1.2, lookHeight: 1.0, follow: 6, narrowBelow: 9 } as const;
 
 /** A short "look at what I just placed" request. `at` is when it was made (ms); the rig eases in, holds, then eases back. */
 export interface CameraFocus { id: string; point: [number, number, number]; at: number }
 
+/** A running cinematic shot. `until` is a hard deadline (ms): the rig drops the shot when it passes, so a scene can never trap the camera. */
+export interface Cinematic { shot: Shot; until: number }
+/** The longest any cinematic shot may be held without being refreshed. */
+export const CINEMATIC_MAX_MS = 120_000;
 interface CameraState {
+  /** The temporary cinematic camera (null = the player's own view). Set by game/interact.ts and the story; always ends. */
+  cinematic: Cinematic | null;
+  setCinematic: (shot: Shot, maxMs?: number) => void;
+  endCinematic: () => void;
   focus: CameraFocus | null;
   /** Ease toward a placed item. Ignored if the same item was just focused (duplicate state updates). */
   focusOn: (id: string, point: [number, number, number]) => void;
@@ -40,7 +51,9 @@ interface CameraState {
 }
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const useCameraStore = create<CameraState>((set, get) => ({
-  steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null,
+  steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null, cinematic: null,
+  setCinematic: (shot, maxMs = CINEMATIC_MAX_MS) => set({ cinematic: { shot, until: Date.now() + maxMs } }),
+  endCinematic: () => { if (get().cinematic) set({ cinematic: null }); },
   focusOn: (id, point) => {
     const f = get().focus, now = Date.now();
     if (f && f.id === id && now - f.at < PLACE_FOCUS.dedupeMs) return;
@@ -54,7 +67,7 @@ export const useCameraStore = create<CameraState>((set, get) => ({
   panBy: (dx, dz, limit) => set((s) => { let x = s.pan[0] + dx, z = s.pan[1] + dz; const m = Math.hypot(x, z); if (m > limit) { x *= limit / m; z *= limit / m; } return { pan: [x, z] }; }),
   recenter: () => set({ pan: [0, 0] }),
   tiltBy: (d) => set((s) => ({ polar: clamp(s.polar + d, POLAR_MIN, POLAR_MAX) })),
-  reset: () => set({ steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null }),
+  reset: () => set({ steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null, cinematic: null }),
 }));
 /** The azimuth the camera is heading for. */
 export const targetAzimuth = (s: { steps: number; offset: number }) => DEFAULT_AZ + s.steps * STEP + s.offset;
