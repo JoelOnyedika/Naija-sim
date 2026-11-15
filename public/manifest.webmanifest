@@ -1,0 +1,23 @@
+{
+  "name": "Nigeria Life",
+  "short_name": "Nigeria Life",
+  "description": "A 3D Nigerian life simulator: Lagos, campus life, hustle and stories.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#0A1512",
+  "theme_color": "#0A1512",
+  "lang": "en",
+  "categories": ["games", "entertainment", "simulation"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Continue playing", "short_name": "Play", "url": "/?source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}

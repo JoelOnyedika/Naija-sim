@@ -1,3 +1,4 @@
+import { useStoryStore } from '@/stores/storyStore';
 import { useWeaponStore } from '@/stores/weaponStore';
 import { livePlayer } from '@/world/npcLive';
 import { playerDirective, yawTo } from '@/world/actors';
@@ -39,7 +40,8 @@ const IDLE: Plan = { stage: 'idle', path: [], spot: null, then: 'none', clip: fa
  */
 export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items: PlacedItem[] }) {
   const baseLook = useCharacterStore((s) => s.appearance), armed = useWeaponStore((s) => !!s.equipped);
-  const appearance = useMemo(() => (armed ? { ...baseLook, gun: true } : baseLook), [baseLook, armed]); // a carried weapon shows as a holster
+  const blind = useStoryStore((s) => !!s.flags.blindfolded); // the initiation: a blindfold while you are taken to the forest
+  const appearance = useMemo(() => (armed || blind ? { ...baseLook, ...(armed ? { gun: true } : {}), ...(blind ? { blind: true } : {}) } : baseLook), [baseLook, armed, blind]); // a carried weapon shows as a holster; a blindfold shows when the story says so
   const root = useRef<Group>(null);
   const cover = useRef<Mesh>(null);
   const motion = useRef<Motion>({ moving: false, lying: false, sitting: false });
@@ -185,7 +187,7 @@ export function AvatarWalker({ layout, items }: { layout: PropertyLayout; items:
     const yTarget = acting && spot ? spot.y : 0;
     g.position.y = MathUtils.lerp(g.position.y, yTarget, 1 - Math.exp(-dt * 10));
     const m = motion.current;
-    m.moving = moving;
+    m.moving = moving; m.speed = WALK;
     m.lying = acting && spot?.pose === 'sleep';
     m.sitting = acting && spot?.pose === 'sit';
     m.action = acting ? (activity && spot?.pose !== 'sleep' && spot?.pose !== 'sit' && activity.kind !== 'visit' ? animFor(activity.targetUid ? its.find((i) => i.uid === activity.targetUid)?.defId : undefined, activity.activityKey, spot?.action) : (spot?.action ?? 'idle')) : 'idle';

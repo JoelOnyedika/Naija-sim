@@ -21,7 +21,7 @@ export const STORY = {
   /** After declining, Bayo may mention it softly (a phone message, no pressure) when a mission is completed, at most this many times. */
   maxReoffers: 2,
   /** Health and energy lost in the beating scene, and how long happiness stays low (game minutes). */
-  beating: { health: -30, energy: -40, happiness: -20 },
+  beating: { health: -18, energy: -25, happiness: -20 }, jump: { health: -6, energy: -6, happiness: -5 }, gauntlet: { health: -10, energy: -12, happiness: -5 },
   /** Starting rank and reputation of a new member. */
   startRank: 1, startReputation: 5, maxRank: 3,
 } as const;
@@ -76,7 +76,7 @@ export type Grade = (typeof EXAM.grades)[number]['grade'];
 // ---------------------------------------------------------------------------------------------------- dialogue
 export type StoryAction =
   | 'more' | 'accept' | 'decline' | 'rebook' | 'endStory' | 'meetOthers' | 'startFollow' | 'backOut'
-  | 'enterForest' | 'stepIn' | 'tryLeave' | 'beating' | 'handshake' | 'giveBracelet' | 'becomeMember';
+  | 'enterForest' | 'stepIn' | 'tryLeave' | 'beating' | 'handshake' | 'giveBracelet' | 'becomeMember' | 'blindfold' | 'unblind';
 /** A line is plain text (said by the node's speaker) or `{ who, text }` with who = a cast id, "player" or "narrator" (no portrait, no one speaks). */
 export type Line = string | { who: string; text: string };
 export interface Choice { id: string; label: string; next?: string; set?: Flags; fx?: Effects; action?: StoryAction; hideIf?: string; showIf?: string; /** small grey note under the label */ hint?: string }
@@ -87,70 +87,95 @@ export interface Node {
   where: 'campus' | 'forest';
   lines: Line[]; /** replaces `lines` when this flag is set (the first match wins) */ alt?: { flag: string; lines: Line[] }[];
   choices?: Choice[]; /** after the last line, if there are no choices */ next?: string;
-  /** applied when the node opens */ set?: Flags; fx?: Effects; action?: StoryAction; scene?: 'beating';
+  /** applied when the node opens */ set?: Flags; fx?: Effects; action?: StoryAction; scene?: 'beating' | 'jump' | 'gauntlet';
   /** runs when the last line is finished and there is no `next` */ then?: StoryAction;
+  /** how the people in the scene are placed and what they do while this node is open (game/story.ts stageScene) */ staging?: 'jump' | 'wake' | 'oath' | 'gauntlet' | 'beating' | 'named';
+  /** the player's pose for given line numbers (a beating: kneel, then curled on the ground) */ player?: Partial<Record<number, 'idle' | 'kneel' | 'beaten' | 'stagger' | 'shiver' | 'brace' | 'cower'>>;
 }
-const B = 'bayo';
+const B = 'bayo', N = (text: string): Line => ({ who: 'narrator', text }), L = (who: string, text: string): Line => ({ who, text });
 
 export const NODES: Node[] = [
   // ---------------- stage 3: meeting Senior Bayo
   { id: 'bayo_intro', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['Ah, you must be the fresher everybody has been noticing.', 'Relax. I am Bayo. People call me Senior Bayo, but Bayo is fine.', 'I saw you registering earlier. First day is always wahala. How are you finding the place?'],
-    choices: [{ id: 'fine', label: 'Fine, thank you.', set: { tone: 'friendly' }, next: 'bayo_intro2' }, { id: 'lot', label: 'It is a lot, honestly.', set: { tone: 'overwhelmed' }, next: 'bayo_intro2' }, { id: 'who', label: 'Who told you about me?', set: { tone: 'suspicious' }, next: 'bayo_intro2' }] },
+    lines: ['Ah ah! Na you be the fresher wey everybody don dey look since morning?', 'Relax, relax. Na Bayo be my name. Senior Bayo for people wey get respect. Just Bayo for people wey get sense.', 'I see you dey register just now. First day for this school na wahala, I know. Wetin you think so far?'],
+    choices: [{ id: 'fine', label: 'E dey go small small, Senior.', set: { tone: 'friendly' }, next: 'bayo_intro2' }, { id: 'lot', label: 'Omo, e too much. I no sabi anything.', set: { tone: 'overwhelmed' }, next: 'bayo_intro2' }, { id: 'who', label: 'Who tell you about me?', set: { tone: 'suspicious' }, next: 'bayo_intro2' }] },
   { id: 'bayo_intro2', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['Good. Campus is easier when you know people.', 'Come, let me introduce you to some friends. They are sitting just over there.'],
-    alt: [{ flag: 'tone_overwhelmed', lines: ['I understand. We all felt like that. That is why people here look out for each other.', 'Come, let me introduce you to some friends. They are sitting just over there.'] }, { flag: 'tone_suspicious', lines: ['Ha, sharp eye. Nobody told me. I just notice people. It is a habit.', 'Come, let me introduce you to some friends. They are sitting just over there.'] }],
+    lines: ['Make you no worry. Campus no hard when you know the right people.', 'Come, make I show you my guys. Dem dey siddon for there.'],
+    alt: [{ flag: 'tone_overwhelmed', lines: ['I hear you. All of us pass through that one. Na why we dey look each other back for here.', 'Come, make I show you my guys. Dem dey siddon for there.'] }, { flag: 'tone_suspicious', lines: ['Ha! Sharp eye. Nobody tell me anything. I just dey observe, na my talent. Person wey dey observe, e dey live long.', 'Come, make I show you my guys. Dem dey siddon for there.'] }],
     then: 'meetOthers' },
   // ---------------- stage 4: meeting the others (a real group scene)
   { id: 'group_chat', speaker: B, style: 'cinematic', shot: 'group', where: 'campus',
-    lines: [{ who: 'seaman', text: 'Bayo! You did not tell me you were bringing company. Sit, sit. Rice dey.' }, { who: B, text: 'Seaman, Pablo, Baron. This is our new friend.' }, { who: 'pablo', text: 'Welcome, welcome! Let me guess your course. Business. No? Engineering? Law?' }, { who: 'baron', text: 'Let the person breathe, Pablo.' }],
-    choices: [{ id: 'hello', label: 'Nice to meet you all.', next: 'g_hello' }, { id: 'course', label: 'Which courses are you all in?', next: 'g_course' }, { id: 'here', label: 'Do you always sit here?', next: 'g_here' }] },
+    lines: [L('seaman', 'Bayo! You no tell me say you dey come with person o. Siddon, siddon! Rice still dey.'), L(B, 'Seaman, Pablo, Baron. Na our new guy be this.'), L('pablo', 'Ahn ahn! Welcome o! Make I guess your course. Law? No be Law. Business? Eh eh, you get face of Accounting!'), L('baron', 'Pablo, calm down. Make the person breathe.')],
+    choices: [{ id: 'hello', label: 'Una well done. Nice to meet una.', next: 'g_hello' }, { id: 'course', label: 'Which course una dey read?', next: 'g_course' }, { id: 'here', label: 'Una dey siddon here every day?', next: 'g_here' }] },
   { id: 'g_hello', speaker: 'seaman', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
-    lines: [{ who: 'seaman', text: 'The pleasure is ours. A person who greets properly is a rare thing.' }, { who: 'pablo', text: 'See? Politeness. I like this one.' }, { who: 'baron', text: 'Hm. Good.' }] },
+    lines: [L('seaman', 'Chai! Person wey sabi greet! Na respect be that.'), L('pablo', 'Gbam! I like this one.'), L('baron', 'Hm. E good.')] },
   { id: 'g_course', speaker: 'pablo', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
-    lines: [{ who: 'pablo', text: 'Seaman is Mass Comm, I am Law, Baron is Engineering. Bayo is a professional senior.' }, { who: B, text: 'Somebody has to be.' }, { who: 'seaman', text: 'Do not mind them. We argue about everything. It is how we like each other.' }] },
+    lines: [L('pablo', 'Seaman na Mass Comm, I dey do Law, Baron na Engineering. Bayo na professional senior.'), L(B, 'Somebody must do am.'), L('seaman', 'No mind dem. We dey argue everything, na so we dey take love ourselves.')] },
   { id: 'g_here', speaker: 'seaman', style: 'cinematic', shot: 'group', where: 'campus', next: 'invite_start',
-    lines: [{ who: 'seaman', text: 'Every day. This is our bench. Rent free, view of the cafeteria.' }, { who: 'baron', text: 'Seaman picked it. For the view of the jollof.' }, { who: 'pablo', text: 'He is not lying.' }] },
+    lines: [L('seaman', 'Everyday! Na our bench be this. Free rent, with view of jollof.'), L('baron', 'Seaman choose am. For the jollof.'), L('pablo', 'E no lie.')] },
   // ---------------- stage 5: the invitation (the player decides)
   { id: 'invite_start', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['You know, we are not just friends who sit around and eat rice.', 'There is a group of people I think you should meet. Serious people. People who look out for each other.'],
-    choices: [{ id: 'what', label: 'What kind of people?', action: 'more', hideIf: 'more_maxed' }, { id: 'yes', label: 'I am interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'I am not interested.', action: 'decline', next: 'invite_decline' }] },
+    lines: ['You know say we no be just guys wey dey siddon dey eat rice.', 'Some people dey wey I think say make you meet. Serious people. Wey dey look each other back when things hard.'],
+    choices: [{ id: 'what', label: 'Which kind people be that?', action: 'more', hideIf: 'more_maxed' }, { id: 'yes', label: 'I dey interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'No be my thing. I no dey interested.', action: 'decline', next: 'invite_decline' }] },
   { id: 'invite_more1', speaker: B, style: 'cinematic', shot: 'two', where: 'campus', next: 'invite_start',
-    lines: ['People who have been through this place and came out the other side.', 'Parties, connections, somebody to call when things go wrong.'] },
+    lines: ['People wey don waka this street reach the end, come back. Parties, connection, person to call when wahala show.', 'But e no be place for everybody.'] },
   { id: 'invite_more2', speaker: B, style: 'cinematic', shot: 'two', where: 'campus', next: 'invite_start',
-    lines: ['I cannot say too much out here. There is a private meeting. After that, you decide.', 'And one thing. Whatever you decide, nobody will hold it against you.'] },
+    lines: ['I no fit talk plenty here. Wall get ear. Small meeting dey. After that one, na you go decide.', 'Whatever you decide, nobody go vex. Na promise. But if you enter, you don enter o.'] },
   { id: 'invite_accept', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['Good. I knew you had sense.', 'I will send you a message with the time and the place. Come alone. Wear black if you can.'] },
+    lines: ['Good. I know say you get sense.', 'I go text you the time and the place. Come alone. Wear black. No tell anybody, even your roommate.'] },
   { id: 'invite_decline', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['No problem, my guy. No pressure at all.', 'The seat stays open if you change your mind. I am around the cafeteria most days.'] },
+    lines: ['No wahala, my guy. No pressure at all.', 'The seat still dey for you if you change mind. Na cafeteria I dey most days.'] },
   { id: 'reoffer', speaker: B, style: 'standard', where: 'campus',
-    lines: ['Back again. Did you think about it?'],
-    choices: [{ id: 'yes', label: 'Yes, I am interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'Still not interested.', next: 'reoffer_no' }] },
-  { id: 'reoffer_no', speaker: B, style: 'standard', where: 'campus', lines: ['Fair enough. The door stays open. Enjoy school.'] },
+    lines: ['Look who come back. You don think am?'],
+    choices: [{ id: 'yes', label: 'Yes, I dey interested.', action: 'accept', next: 'invite_accept' }, { id: 'no', label: 'Still no be my thing.', next: 'reoffer_no' }] },
+  { id: 'reoffer_no', speaker: B, style: 'standard', where: 'campus', lines: ['Fair enough. Door still dey open. Enjoy school.'] },
   { id: 'missed', speaker: B, style: 'standard', where: 'campus',
-    lines: ['You did not show up. I waited.', 'These things do not wait for people. But I can try again, once.'],
-    choices: [{ id: 'again', label: 'Give me another chance.', action: 'rebook', next: 'invite_accept' }, { id: 'forget', label: 'Forget it.', action: 'endStory', next: 'missed_end' }] },
+    lines: ['You no show. I wait you o.', 'These things no dey wait for person. But I fit try again, one time.'],
+    choices: [{ id: 'again', label: 'Abeg, give me another chance.', action: 'rebook', next: 'invite_accept' }, { id: 'forget', label: 'Forget am.', action: 'endStory', next: 'missed_end' }] },
   { id: 'missed_end', speaker: B, style: 'standard', where: 'campus', lines: ['Alright. Take care of yourself.'] },
-  // ---------------- stage 7: the walk to the forest
+  // ---------------- stage 7: the walk to the gate
   { id: 'follow_intro', speaker: B, style: 'cinematic', shot: 'two', where: 'campus',
-    lines: ['You came. Good.', 'From here we walk. No phone, no questions. Stay close to me.'],
-    choices: [{ id: 'lead', label: 'Lead the way.', action: 'startFollow' }, { id: 'back', label: 'I changed my mind.', action: 'backOut', next: 'backout' }] },
-  { id: 'backout', speaker: B, style: 'standard', where: 'campus', lines: ['Alright. Go back to class. No hard feelings.'] },
-  // ---------------- stage 8: the initiation (in the forest)
+    lines: ['You come. Good boy.', 'From here we dey waka. No phone, no question, no look back. Stay close to me.'],
+    choices: [{ id: 'lead', label: 'Lead the way.', action: 'startFollow' }, { id: 'back', label: 'Ah, I don change mind.', action: 'backOut', next: 'backout' }] },
+  { id: 'backout', speaker: B, style: 'standard', where: 'campus', lines: ['Alright. Go back class. No bad feelings.'] },
+  // ---------------- stage 8a: the jump at the gate
+  { id: 'jump1', speaker: B, style: 'cinematic', shot: 'group', where: 'campus', staging: 'jump',
+    lines: [N('The gate. Dark. Bayo suddenly stops walking.'), L(B, 'Siddon small. Make you no turn.'), N('Footsteps behind you. Many. Fast.'), L('rambo', 'Na am! Hold am!'), L('dragon', 'Cover im eye! Quick!')],
+    choices: [{ id: 'bayo', label: 'Bayo! Wetin be this?!', next: 'jump2a' }, { id: 'run', label: 'Run!', next: 'jump2b' }, { id: 'still', label: 'Stay still.', next: 'jump2c' }] },
+  { id: 'jump2a', speaker: B, style: 'cinematic', shot: 'group', where: 'campus', next: 'jump_blind', staging: 'jump',
+    lines: [L(B, 'Relax. Na part of the process. Make you no fight am.'), L('rambo', 'Shut your mouth! Who tell you say you fit talk?')] },
+  { id: 'jump2b', speaker: 'rambo', style: 'cinematic', shot: 'group', where: 'campus', next: 'jump_blind', staging: 'jump',
+    lines: [L('rambo', 'Ah ah! E wan run! Where you wan go?'), L('konji', 'Hahaha! Hold am well! Na Olympic!')] },
+  { id: 'jump2c', speaker: 'dragon', style: 'cinematic', shot: 'group', where: 'campus', next: 'jump_blind', staging: 'jump',
+    lines: [L('dragon', 'Good. Na so.'), L('konji', 'This one dey cool. We go see if e go last.')] },
+  { id: 'jump_blind', speaker: B, style: 'cinematic', shot: 'group', where: 'campus', scene: 'jump', action: 'blindfold', then: 'enterForest',
+    lines: [N('A black cloth drops over your eyes.'), N('Hands everywhere. A fist drives into your ribs. You fold.'), N('They drag you. Gravel under your knees. Engine noise. Then cold air and wood smoke.')] },
+  // ---------------- stage 8b: the forest
+  { id: 'forest_wake', speaker: B, style: 'cinematic', shot: 'close', where: 'forest', staging: 'wake', action: 'unblind',
+    lines: [N('Cold water crashes over your head. You gasp.'), N('Somebody rips off the blindfold. Fire. Robes. Twelve shapes staring at you.'), L('konji', 'Wake up! You dey sleep for where?'), L(B, 'Gerrup, fresher. Welcome to the real school.')],
+    next: 'forest_start' },
   { id: 'forest_start', speaker: B, style: 'cinematic', shot: 'two', where: 'forest',
-    lines: ['This is the place.', 'Twelve of us stand in this ring. Every one of us stood where you are standing.'],
-    choices: [{ id: 'on', label: 'Step into the circle.', action: 'stepIn', next: 'oath' }, { id: 'leave', label: 'Try to leave.', action: 'tryLeave' }] },
-  { id: 'oath', speaker: B, style: 'cinematic', shot: 'group', where: 'forest',
-    lines: ['Repeat after me. I will be loyal to my brothers.', 'I will keep what I see here. I will answer when I am called.', 'Anybody who breaks this oath answers to the fire.'],
-    choices: [{ id: 'swear', label: 'Swear the oath.', next: 'test1' }, { id: 'leave', label: 'Try to leave.', action: 'tryLeave' }] },
-  { id: 'test1', speaker: B, style: 'cinematic', shot: 'close', where: 'forest', lines: ['First test. Show us what you are made of.'],
-    choices: [{ id: 'still', label: 'Stay still.', fx: { energy: -5 }, set: { t1: 'still' }, next: 'test2' }, { id: 'answer', label: 'Answer the question.', fx: { energy: -3, charisma: 1 }, set: { t1: 'answer' }, next: 'test2' }, { id: 'stick', label: 'Hold the fire stick.', fx: { health: -5, charisma: 1 }, set: { t1: 'stick' }, next: 'test2' }] },
-  { id: 'test2', speaker: B, style: 'cinematic', shot: 'close', where: 'forest', lines: ['Second test. Silence is also an answer.'],
-    choices: [{ id: 'steady', label: 'Keep your eyes on the fire.', fx: { energy: -4 }, set: { t2: 'steady' }, next: 'beating' }, { id: 'nod', label: 'Nod and say nothing.', fx: { energy: -3 }, set: { t2: 'nod' }, next: 'beating' }, { id: 'hold', label: 'Hold your ground.', fx: { health: -3 }, set: { t2: 'hold' }, next: 'beating' }] },
-  { id: 'beating', speaker: B, style: 'cinematic', shot: 'group', where: 'forest', scene: 'beating', action: 'beating', next: 'named',
-    lines: [{ who: 'narrator', text: 'The drum speeds up. The circle tightens.' }, { who: 'narrator', text: 'Blow after blow. You hold on.' }, { who: 'narrator', text: 'Then silence. The fire pops. You are still standing.' }] },
-  { id: 'named', speaker: B, style: 'cinematic', shot: 'two', where: 'forest', action: 'becomeMember', then: 'giveBracelet',
-    lines: ['Welcome, brother. From tonight your name is {nick}.', 'Rank one. Everything starts here. The circle cheers.', 'Take this. Wear it. Everybody who knows will know.'] },
+    lines: ['Look well. Na for here we dey make men.', 'Anybody wey step inside this circle no dey come out the same.'],
+    choices: [{ id: 'on', label: 'Step into the circle.', action: 'stepIn', next: 'oath' }, { id: 'leave', label: 'Ah, make I comot.', action: 'tryLeave' }] },
+  { id: 'oath', speaker: B, style: 'cinematic', shot: 'group', where: 'forest', staging: 'oath',
+    lines: [L(B, 'Kneel for the fire. Talk am after me. Make e come from your belle.'), L(B, 'Na me Babylon! No be small boy!'), L('seaman', 'From Odego to Shawama, na we dey run am!'), L('pablo', 'Obara! Wida! No be by force, na by blood!'), L('baron', 'Who open mouth, mouth go close. Who run, fire go catch am.'), L(B, 'Swear for fire, for smoke, for the street wey born you. You no go sell your brother. You no go carry story. When dem call you, you go answer.')],
+    choices: [{ id: 'swear', label: 'Swear the oath. Shout am.', next: 'test1' }, { id: 'leave', label: 'Ah, make I comot.', action: 'tryLeave' }] },
+  { id: 'test1', speaker: B, style: 'cinematic', shot: 'close', where: 'forest',
+    lines: [L(B, 'First test. Na for fire dem dey test gold.'), L('baron', 'Make you no flinch.')],
+    choices: [{ id: 'still', label: 'Stand like wall.', fx: { energy: -5 }, set: { t1: 'still' }, next: 'test2' }, { id: 'answer', label: 'Answer the question.', fx: { energy: -3, charisma: 1 }, set: { t1: 'answer' }, next: 'test2' }, { id: 'stick', label: 'Hold the fire stick.', fx: { health: -5, charisma: 1 }, set: { t1: 'stick' }, next: 'test2' }] },
+  { id: 'test2', speaker: 'baron', style: 'cinematic', shot: 'close', where: 'forest',
+    lines: [L('baron', 'Second test. Silence na also answer.'), L('dragon', 'Even if your body wan shake, make your mouth stay shut.')],
+    choices: [{ id: 'steady', label: 'Look the fire for eye.', fx: { energy: -4 }, set: { t2: 'steady' }, next: 'gauntlet' }, { id: 'nod', label: 'Nod. Talk nothing.', fx: { energy: -3 }, set: { t2: 'nod' }, next: 'gauntlet' }, { id: 'hold', label: 'Hold your ground.', fx: { health: -3 }, set: { t2: 'hold' }, next: 'gauntlet' }] },
+  { id: 'gauntlet', speaker: 'dragon', style: 'cinematic', shot: 'group', where: 'forest', staging: 'gauntlet',
+    lines: [N('Two lines of men. One path to the fire. Nobody is smiling.'), L('dragon', 'Run the line, small boy. Make you reach the fire.'), L('rambo', 'If you fall, you go crawl!')],
+    choices: [{ id: 'run', label: 'Run the line.', fx: { energy: -4 }, set: { g1: 'run' }, next: 'gauntlet2' }, { id: 'walk', label: 'Walk am slowly.', fx: { charisma: 1 }, set: { g1: 'walk' }, next: 'gauntlet2' }, { id: 'cover', label: 'Cover your head. Move.', set: { g1: 'cover' }, next: 'gauntlet2' }] },
+  { id: 'gauntlet2', speaker: 'dragon', style: 'cinematic', shot: 'group', where: 'forest', scene: 'gauntlet', staging: 'gauntlet', next: 'beating',
+    lines: [N('Fists from both sides. Shoulders, ribs, back. Your legs nearly fold.'), L('rambo', 'Hold am! No let am stop!'), N('You reach the fire on your knees.')] },
+  { id: 'beating', speaker: B, style: 'cinematic', shot: 'group', where: 'forest', scene: 'beating', staging: 'beating', action: 'beating', next: 'named',
+    player: { 0: 'kneel', 1: 'beaten', 2: 'beaten', 3: 'beaten', 4: 'kneel' },
+    lines: [N('The drum speeds up. The circle tightens.'), L('dragon', 'Make e hard! Make e no forget!'), N('Boots and fists. You curl up and count the drum.'), L('konji', 'Hahaha! E still dey breathe!'), L(B, 'Ehen! Enough!')] },
+  { id: 'named', speaker: B, style: 'cinematic', shot: 'two', where: 'forest', staging: 'named', action: 'becomeMember', then: 'giveBracelet',
+    lines: [L(B, 'Gerrup. Look me. You do well.'), L(B, 'From tonight, your name na {nick}. Rank one. Everything start from here.'), L('seaman', 'Welcome, brother! Chai, this one strong!'), L(B, 'Take this. Wear am. Anybody wey know, go know.')] },
 ];
 export const NODE = (id: string): Node | undefined => NODES.find((n) => n.id === id);
 export const lineText = (l: Line): string => (typeof l === 'string' ? l : l.text);

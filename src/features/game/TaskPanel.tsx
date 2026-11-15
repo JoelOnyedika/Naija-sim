@@ -1,4 +1,6 @@
-import { InitiationNote } from './CampusCard';
+import { ImportantTasks } from './ImportantTasks';
+import { useObjectiveStore } from '@/stores/objectiveStore';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, ListChecks, X } from 'lucide-react';
 import { sfx } from '@/audio/sfx';
@@ -20,6 +22,8 @@ export function TaskPanel() {
   const open = useUiStore((s) => s.taskPanelOpen);
   const toggle = useUiStore((s) => s.toggleTasks);
   const top = useTasksTop();
+  const important = useObjectiveStore((s) => !!s.current), unseen = useObjectiveStore((s) => s.unseen);
+  useEffect(() => { if (open) useObjectiveStore.getState().markSeen(); }, [open, important]); // opening the menu is looking at it
   const badge = useDailyBadge();
   const topStyle = { top: `calc(env(safe-area-inset-top,0px) + ${top}rem)` };
   const tasks = active.map((id) => TASKS.find((t) => t.id === id)!).filter(Boolean);
@@ -43,7 +47,8 @@ export function TaskPanel() {
                 <span className="min-w-0 flex-1"><span className="block text-[13px] font-bold leading-tight">Daily rewards</span><span className="block text-[11px] text-amber-100/70">{badge > 0 ? `${badge} waiting for you` : 'Quests and your streak'}</span></span>
                 {badge > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-hibiscus px-1.5 text-[11px] font-extrabold tabular-nums">{badge}</span> : <ChevronRight size={16} className="text-white/40" />}
               </button>
-              <InitiationNote />
+              <ImportantTasks />
+              {important && <h3 className="px-1 pb-0.5 pt-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Everyday</h3>}
               <AnimatePresence initial={false}>
                 {tasks.map((t) => {
                   const go = t.action ? () => { sfx.open(); const ph = usePhoneStore.getState(); ph.openPhone(); ph.openApp(t.action!.app); } : undefined;
@@ -65,8 +70,10 @@ export function TaskPanel() {
       <AnimatePresence>
         {!open && (
           <motion.button key="pill" initial={{ x: -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -24, opacity: 0 }} onClick={() => { sfx.open(); toggle(); }} aria-label="Show tasks" style={topStyle}
-            className="absolute left-3 z-30 flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-ink/85 pl-2.5 pr-3 text-[12px] font-bold shadow-lg backdrop-blur-md active:bg-white/10">
-            <ListChecks size={15} className="text-accent-glow" />Tasks<span className="tabular-nums text-white/60">{tasks.length}</span>
+            className={`absolute left-3 z-30 flex h-9 items-center gap-1.5 rounded-full border bg-ink/85 pl-2.5 pr-3 text-[12px] font-bold shadow-lg backdrop-blur-md active:bg-white/10 ${unseen ? 'border-amber-300 shadow-[0_0_18px_rgba(252,211,77,0.55)]' : important ? 'border-amber-300/50' : 'border-white/10'}`}>
+            {unseen && <span className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-amber-300/40" aria-hidden />}
+            <ListChecks size={15} className={unseen || important ? 'text-amber-300' : 'text-accent-glow'} />Tasks<span className="tabular-nums text-white/60">{tasks.length + (important ? 1 : 0)}</span>
+            {important && <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-black text-slate-900 ${unseen ? 'bg-amber-300' : 'bg-amber-300/70'}`} aria-label="Important task">!</span>}
             {badge > 0 && <span className="h-2 w-2 rounded-full bg-hibiscus" aria-label="Daily rewards waiting" />}
           </motion.button>
         )}

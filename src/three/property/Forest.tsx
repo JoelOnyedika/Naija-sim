@@ -41,7 +41,7 @@ export function Forest({ layout }: { layout: PropertyLayout }) {
   const ring = useRef<Group>(null), light = useRef<PointLight>(null), flames = useRef<Group>(null), trees = useRef<InstancedMesh>(null), crowns = useRef<InstancedMesh>(null);
   const arms = useRef<{ g: Group; side: number }[]>([]);
   // the ring of robed figures: gaps for the entrance (where the player arrives) and for the named members, who are real characters (StoryActors)
-  const members = useMemo(() => Array.from({ length: ROBES }, (_, i) => ({ i, a: (i / ROBES) * Math.PI * 2 })).filter((m) => m.i !== 0 && !Object.values(FOREST.named).includes(m.i)), []);
+  const members = useMemo(() => Array.from({ length: ROBES }, (_, i) => ({ i, a: (i / ROBES) * Math.PI * 2 })).filter((m) => m.i !== 0 && !Object.values(FOREST.named).includes(m.i) && !Object.values(FOREST.goons).includes(m.i)), []);
   const spots = useMemo(() => {
     const r = rng(777), out: { x: number; z: number; s: number }[] = [];
     for (let i = 0; i < 90; i++) { const a = r() * Math.PI * 2, d = 10.5 + r() * 14; out.push({ x: cx + Math.cos(a) * d, z: cz + Math.sin(a) * d, s: 0.8 + r() * 0.9 }); }

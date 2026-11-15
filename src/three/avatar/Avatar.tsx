@@ -1,3 +1,5 @@
+import { armPose, bodyPose, cadence, legPose } from './gait';
+import { isReaction, reactionPose } from './reaction';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { MathUtils } from 'three';
@@ -8,8 +10,10 @@ import { buildCharacter, toSpec } from '../character/build';
 export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash'
   | 'work' | 'lift' | 'hammer' | 'sweep' | 'talk' | 'pray' | 'cheer' | 'swing' | 'curl'
   // social and ceremony poses, used by the character-interaction system (game/interact.ts)
-  | 'listen' | 'handshake' | 'give' | 'chant' | 'wave' | 'crossed' | 'gesture';
-export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean; bubble?: string | null }
+  | 'listen' | 'handshake' | 'give' | 'chant' | 'wave' | 'crossed' | 'gesture'
+  // hard-scene body language (three/avatar/reaction.ts)
+  | 'stagger' | 'cower' | 'shiver' | 'kneel' | 'beaten' | 'punch' | 'kick' | 'point' | 'brace';
+export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean; bubble?: string | null; /** metres per second while moving: sets the stride (default 1.7, a normal walk) */ speed?: number }
 
 /**
  * The low-poly person (see ../character/build.ts). The model is rebuilt only when the appearance changes; `motion` lets a
@@ -21,13 +25,19 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
   useEffect(() => () => rig.dispose(), [rig]);
   useEffect(() => { const f = a.frame; rig.root.scale.set(f?.w ?? 1, f?.h ?? 1, f?.w ?? 1); }, [rig, a.frame?.w, a.frame?.h]); // NPC body proportions (one scale, no extra geometry)
   const smooth = useRef([{ x: 0, f: -0.18, z: 0.06 }, { x: 0, f: -0.18, z: -0.06 }]);
-  const legs = [rig.hipL, rig.hipR], knees = [rig.kneeL, rig.kneeR], arms = [rig.shoulderL, rig.shoulderR], fores = [rig.elbowL, rig.elbowR];
+  const seedOf = useRef(Math.random() * 10); // so two people in the same scene never move in step
+  const gait = useRef({ phase: 0, blend: 0 }); // phase in cycles; blend 0 (standing) .. 1 (walking), so starting and stopping ease in and out
+  const legs = [rig.hipL, rig.hipR], knees = [rig.kneeL, rig.kneeR], feet = [rig.footL, rig.footR], arms = [rig.shoulderL, rig.shoulderR], fores = [rig.elbowL, rig.elbowR];
   const body = { current: rig.body };
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dtRaw) => {
     const b = body.current; if (!b) return;
     const m = motion?.current ?? { moving: false, lying: false, sitting: false };
-    const t = clock.getElapsedTime();
-    const swing = m.moving ? Math.sin(t * 9) * 0.6 : 0;
+    const t = clock.getElapsedTime(), dt = Math.min(dtRaw, 0.1);
+    const sp = m.speed ?? 1.7, g = gait.current, walking = m.moving && !m.sitting && !m.lying;
+    g.blend += ((walking ? 1 : 0) - g.blend) * (1 - Math.exp(-dt * 9));
+    if (walking) g.phase = (g.phase + dt * cadence(sp)) % 1;
+    const gb = g.blend;
+    const rx = !m.moving && !m.lying && isReaction(m.action) ? reactionPose(m.action, t, seedOf.current) : null; // a hard-scene pose, if one is playing
     // hands: an action only shows while standing still or sitting (never mid-stride, never lying down)
     const act: ActionKind | undefined = m.moving || m.lying ? undefined : m.action;
     const lp = Math.sin(t * 2) * 0.5 + 0.5; // 0..1 and back, the rhythm of lifting
@@ -35,10 +45,13 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
       const s = i === 0 ? 1 : -1; // legs[0] is the left leg (-x)
       const l = legs[i], k = knees[i], r = arms[i], fo = fores[i];
       const side = i === 0 ? -1 : 1; // arms[0] is the left arm (x < 0), arms[1] the right
-      if (l) l.rotation.x = m.sitting ? -1.4 : swing * s;
-      if (k) k.rotation.x = m.sitting ? 1.45 : m.moving ? Math.max(0, Math.sin(t * 9 + (i === 0 ? 1.6 : 4.7))) * 0.7 : 0;
+      const u = (g.phase + (i === 0 ? 0 : 0.5)) % 1, lp2 = legPose(u, sp), ap = armPose(u, sp);
+      if (l) l.rotation.x = rx ? rx.hip[i] : m.sitting ? -1.4 : lp2.hip * gb;
+      if (k) k.rotation.x = rx ? rx.knee[i] : m.sitting ? 1.45 : lp2.knee * gb;
+      const ft = feet[i]; if (ft) ft.rotation.x = rx ? -(rx.hip[i] + rx.knee[i]) * 0.6 : m.sitting ? 0 : lp2.ankle * gb;
       // target arm pose: relaxed by default, overridden per action
-      let tx = m.sitting ? -0.55 : m.lying ? 0 : -swing * s * 0.8, tf = -0.18, tz = side * 0.06;
+      let tx = m.sitting ? -0.55 : m.lying ? 0 : ap.swing * gb, tf = -0.18 + (ap.elbow + 0.18) * gb, tz = side * 0.06;
+      void s;
       const ph = i * Math.PI;
       switch (act) {
         case 'eat': if (side === 1) { tx = -0.95; tf = -1.65 - Math.sin(t * 2.6) * 0.45; } else { tx = -0.35; tf = -0.5; } break;
@@ -70,7 +83,8 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
         case 'pushup': tx = -1.3; tf = -0.05 - (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.9; break;
         default: break;
       }
-      const sm = smooth.current[i], k2 = m.moving ? 0.5 : 0.18;
+      if (rx) { tx = rx.arm[i][0]; tf = rx.arm[i][1]; tz = rx.arm[i][2]; }
+      const sm = smooth.current[i], k2 = rx ? 0.35 : m.moving ? 0.35 : 0.18;
       sm.x += (tx - sm.x) * k2; sm.f += (tf - sm.f) * k2; sm.z += (tz - sm.z) * k2;
       if (r) { r.rotation.x = sm.x; r.rotation.z = sm.z; }
       if (fo) fo.rotation.x = sm.f;
@@ -80,11 +94,15 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
     const lean = act === 'lift' ? 0.32 * (1 - lp) : act === 'sweep' ? 0.2 : act === 'pray' ? 0.2 + Math.sin(t * 0.8) * 0.04 : act === 'hammer' ? 0.08 : 0;
     const nod = act === 'listen' ? Math.sin(t * 1.4) * 0.04 : act === 'chant' ? -0.12 : 0;
     const sway = act === 'dance' ? Math.sin(t * 2.5) * 0.1 : act === 'sweep' ? Math.sin(t * 3) * 0.1 : act === 'talk' ? Math.sin(t * 1.8) * 0.03 : act === 'cheer' ? Math.sin(t * 6) * 0.05 : act === 'swing' ? Math.sin(t * 4) * 0.06 : 0;
-    b.rotation.x = MathUtils.lerp(b.rotation.x, m.lying ? -Math.PI / 2 : pushing ? 1.3 : lean + nod, 0.15);
-    b.rotation.z = MathUtils.lerp(b.rotation.z, sway, 0.2);
-    const y = m.lying ? 0.7 : m.sitting ? -0.3 : pushing ? 0.17 + (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.09 : 0;
+    const bp = bodyPose(g.phase, sp), kk = rx ? 0.4 : 0.15;
+    b.rotation.x = MathUtils.lerp(b.rotation.x, rx ? rx.body.x : m.lying ? -Math.PI / 2 : pushing ? 1.3 : lean + nod + bp.lean * gb, kk);
+    b.rotation.z = MathUtils.lerp(b.rotation.z, rx ? rx.body.z : sway + bp.roll * gb, rx ? 0.4 : 0.2);
+    b.rotation.y = MathUtils.lerp(b.rotation.y, rx ? rx.body.rotY : 0, 0.3);
+    b.position.x = MathUtils.lerp(b.position.x, rx ? rx.body.posX : bp.x * gb, 0.25);
+    if (rig.head) { rig.head.rotation.x = MathUtils.lerp(rig.head.rotation.x, rx ? rx.head.x : 0, 0.35); rig.head.rotation.z = MathUtils.lerp(rig.head.rotation.z, rx ? rx.head.z : 0, 0.35); }
+    const y = rx ? rx.body.posY : m.lying ? 0.7 : m.sitting ? -0.3 : pushing ? 0.17 + (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.09 : 0;
     const bob = act === 'cheer' ? Math.abs(Math.sin(t * 6)) * 0.04 : act === 'lift' ? -0.06 * (1 - lp) : act === 'dance' ? Math.abs(Math.sin(t * 5)) * 0.07 : m.moving || m.lying || pushing ? 0 : Math.sin(t * 1.6) * 0.006;
-    b.position.y = MathUtils.lerp(b.position.y, y + bob, 0.15);
+    b.position.y = MathUtils.lerp(b.position.y, y + (rx ? 0 : bob + bp.y * gb), rx ? 0.4 : 0.3);
   });
   return <primitive object={rig.root} />;
 }

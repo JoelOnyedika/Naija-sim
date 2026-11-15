@@ -15,6 +15,8 @@ export interface Directive {
   action?: ActionKind;
   /** Jump straight to `goal` (used when a scene would otherwise wait forever for someone stuck). */
   snap?: boolean;
+  /** The action is set by the scene's staging (a fighter keeps punching) and the speaker/listener animation must not replace it. */
+  pinned?: boolean;
 }
 export interface ActorRuntime { x: number; z: number; yaw: number; moving: boolean; arrived: boolean; pose: 'stand' | 'sit' }
 

@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { CLOSE, DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
-import { useViewStore } from '@/stores/viewStore';
+import { effectiveView, useViewStore } from '@/stores/viewStore';
 import { livePlayer } from '@/world/npcLive';
 import { clampToBounds } from '@/world/cameraShots';
 import { PLACE_FOCUS } from '@/data/balance';
@@ -121,7 +121,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     let lx = (fp ? tx + (fp[0] - tx) * bl : tx) + px, ly = fp ? ty + (fp[1] - ty) * bl : ty, lz = (fp ? tz + (fp[2] - tz) * bl : tz) + pz;
     let r = fit * st.zoom * (1 - (1 - PLACE_FOCUS.zoomFactor) * bl), pol2 = pol;
     // ---- Close View: the same orbit, but around the player and much closer (elevated, never over-the-shoulder). The choice is remembered in viewStore.
-    const wantClose = useViewStore.getState().view === 'close' && !useEditorStore.getState().dragging && livePlayer.set ? 1 : 0;
+    const wantClose = effectiveView(useViewStore.getState().view) === 'close' && !useEditorStore.getState().dragging && livePlayer.set ? 1 : 0;
     closeBlend.current += (wantClose - closeBlend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 4.5));
     if (Math.abs(wantClose - closeBlend.current) < 1e-3) closeBlend.current = wantClose;
     const cb = closeBlend.current;

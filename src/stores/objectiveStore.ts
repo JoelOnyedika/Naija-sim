@@ -26,6 +26,10 @@ interface ObjectiveState {
   screen: ScreenMark | null;
   /** Transient: the player is close enough to interact with the target. */
   near: boolean;
+  /** Transient: a new or newly-ready important task the player has not looked at yet. Makes the Tasks button glow and ping until the menu is opened. */
+  unseen: boolean;
+  ping: () => void;
+  markSeen: () => void;
   set: (o: Objective | null) => void;
   complete: (banner?: string) => void;
   clearBanner: () => void;
@@ -34,11 +38,13 @@ interface ObjectiveState {
   reset: () => void;
 }
 export const useObjectiveStore = create<ObjectiveState>()(persist((set, get) => ({
-  current: null, doneBanner: null, screen: null, near: false,
-  set: (current) => set({ current, near: false, screen: null }),
-  complete: (banner) => set({ current: null, doneBanner: banner ?? (get().current ? get().current!.title : null), near: false, screen: null }),
+  current: null, doneBanner: null, screen: null, near: false, unseen: false,
+  ping: () => set({ unseen: !!get().current }),
+  markSeen: () => { if (get().unseen) set({ unseen: false }); },
+  set: (current) => set({ current, near: false, screen: null, unseen: !!current }),
+  complete: (banner) => set({ current: null, doneBanner: banner ?? (get().current ? get().current!.title : null), near: false, screen: null, unseen: false }),
   clearBanner: () => set({ doneBanner: null }),
   setScreen: (screen) => set({ screen }),
   setNear: (near) => { if (get().near !== near) set({ near }); },
-  reset: () => set({ current: null, doneBanner: null, screen: null, near: false }),
+  reset: () => set({ current: null, doneBanner: null, screen: null, near: false, unseen: false }),
 }), { name: 'nigerialife.objective', version: 1, storage: safeJsonStorage, partialize: ({ current }) => ({ current }) as never }));

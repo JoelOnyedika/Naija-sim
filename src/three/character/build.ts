@@ -26,6 +26,7 @@ export interface Spec {
   bag: BagStyle; bagColor: string;
   gun?: boolean;
   bro?: 'plain' | 'beret';
+  mask?: boolean; blind?: boolean;
 }
 
 // ------------------------------------------------------------------ style presets
@@ -173,7 +174,7 @@ function headShell(R: number, seg: number, keep: (x: number, y: number, z: numbe
 }
 
 // ------------------------------------------------------------------ builder
-export interface Rig { dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number }
+export interface Rig { dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; footL: Group; footR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number }
 
 export function buildCharacter(spec: Spec): Rig {
   const st = POLY, fem = spec.body === 'femme';
@@ -241,7 +242,10 @@ export function buildCharacter(spec: Spec): Rig {
   const hc = mat(spec.hairColor, 0.38);
   const above = (tilt: number, c: number) => (_x: number, y: number, z: number) => y * Math.cos(tilt) - z * Math.sin(tilt) > c * R; // hairline plane
   const shellHair = (c: number, tilt: number, o: number) => mesh(headShell(R, hseg, above(tilt, c), () => o * R, jawK), hc, head);
-  const strands = (n: number, len: number, r: number, spread: number, y: number, rad: number, tilt = -0.1) => {
+  // hair stops above the shoulders (higher under a hood), so locks never poke through the clothes underneath
+  const hairFloor = shoulderY + (spec.top === 'hoodie' ? 0.105 : spec.top === 'jacket' || spec.top === 'kaftan' ? 0.05 : 0.03) - headY;
+  const strands = (n: number, len0: number, r: number, spread: number, y: number, rad: number, tilt = -0.1) => {
+    const len = Math.max(0.05, Math.min(len0, (y - hairFloor) / Math.max(0.5, Math.cos(tilt))));
     for (let i = 0; i < n; i++) {
       const a = Math.PI + ((i + 0.5) / n - 0.5) * spread * 2, l = len * (0.82 + 0.18 * Math.sin(i * 2.3)), g = grp(head); g.rotation.y = a;
       mesh(lathe(limbPts(l, r, r * 0.95, r * 0.6), 6), hc, g, [0, y, rad], [tilt, 0, 0]);
@@ -251,7 +255,7 @@ export function buildCharacter(spec: Spec): Rig {
     case 'bald': break;
     case 'lowcut': shellHair(0.15, 0.5, 0.045); break;
     case 'bowl': // a rounded bowl: full on top, a straight fringe over the brows, cut level above the ears all the way round
-      mesh(headShell(R, hseg, (x, y, z) => (y > R * 0.34) || (y > -R * 0.12 && z < R * 0.2 && Math.abs(x) > -1), (_x, y) => R * (y > R * 0.34 ? 0.085 : 0.07), jawK), hc, head); break;
+      mesh(headShell(R, hseg, (x, y, z) => (y > R * 0.44) || (y > -R * 0.12 && z < R * 0.2 && Math.abs(x) > -1), (_x, y) => R * (y > R * 0.44 ? 0.085 : 0.07), jawK), hc, head); break;
     case 'fade': shellHair(0.3, 0.45, 0.07); mesh(headShell(R, hseg, above(0.45, 0.0), () => 0.02 * R, jawK), mat(mix(spec.skin, spec.hairColor, 0.45), 0.9), head); break;
     case 'afro': {
       const g = new IcosahedronGeometry(R * 1.55, 1); const p = g.attributes.position;
@@ -276,7 +280,8 @@ export function buildCharacter(spec: Spec): Rig {
       mesh(headShell(R, hseg, (x, y, z) => y > 0.52 * R && z > 0.2 * R && x < 0.1 * R, () => 0.085 * R, jawK), hc, head);
       mesh(ico(R * 0.34), hc, head, [0, R * 0.62, -R * 0.98], undefined, [1, 1, 1.1]); // the tie
       mesh(new TorusGeometry(R * 0.2, R * 0.05, 5, 10), mat('#E5B93C', 0.3, { metal: 0.7 }), head, [0, R * 0.55, -R * 1.06], [0.5, 0, 0]);
-      [[0, 0.36, 0.5, 0.075], [0.2, 0.3, 0.62, 0.062], [-0.2, 0.3, 0.62, 0.062]].forEach(([yaw, len, tilt, r]) => {
+      [[0, 0.36, 0.5, 0.075], [0.2, 0.3, 0.62, 0.062], [-0.2, 0.3, 0.62, 0.062]].forEach(([yaw, len0, tilt, r]) => {
+        const len = Math.max(0.08, Math.min(len0, (R * 0.55 - hairFloor) / Math.cos(tilt)));
         const gg = grp(head, 0, R * 0.55, -R * 1.02); gg.rotation.y = yaw;
         mesh(lathe(limbPts(len, r, r * 1.05, r * 0.28), 6), hc, gg, undefined, [tilt, 0, 0]);
       });
@@ -291,7 +296,8 @@ export function buildCharacter(spec: Spec): Rig {
       mesh(headShell(R, hseg, (x, y, z) => y < 0.4 * R && y > -0.6 * R && (z < 0.2 * R || Math.abs(x) > 0.75 * R), () => 0.14 * R, jawK), hc, head);
       mesh(headShell(R, hseg, (_x, y, z) => y > 0.5 * R && z > 0.15 * R, () => 0.075 * R, jawK), hc, head);
       // the length: an open sheet of hair behind the head and shoulders, down to the shoulder blades
-      const sheet = lathe([[R * 1.12, -R * 0.4], [R * 1.1, -R * 1.2], [R * 1.0, -R * 2.0], [R * 1.12, -R * 2.9], [R * 0.7, -R * 3.1]], 9);
+      const lowest = Math.max(-R * 3.1, hairFloor - 0.12), wide = (shr + 0.045) / R; // wide enough to clear the shoulders and the garment on them
+      const sheet = lathe([[R * 1.12, -R * 0.4], [R * Math.min(wide, 1.5), Math.max(lowest * 0.45, -R * 1.5)], [R * wide, Math.max(lowest * 0.8, -R * 2.2)], [R * wide * 0.96, lowest], [R * wide * 0.7, lowest - 0.01]], 9);
       const sg = new LatheGeometry(sheet.parameters.points, 9, 0.95, Math.PI * 2 - 1.9);
       mesh(sg, mat(spec.hairColor, 0.38, { double: true }), head, [0, -R * 0.05, -R * 0.05], undefined, [1, 1, 0.95]);
       break; }
@@ -314,6 +320,18 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(new CylinderGeometry(0.026, 0.026, 0.008, 12), mat('#B91C1C', 0.5), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.02], [Math.PI / 2, 0, 0]);
     mesh(new CylinderGeometry(0.013, 0.013, 0.01, 8), mat('#E5B93C', 0.3, { metal: 0.8 }), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.024], [Math.PI / 2, 0, 0]);
     if (spec.bro === 'beret') mesh(new SphereGeometry(R * 1.08, seg, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#0B0B0E', 0.9), head, [R * 0.12, R * 0.2, -R * 0.02], [0.1, 0, -0.22], [1.08, 0.5, 1.1]);
+  }
+
+  // ---- masked men and the blindfolded initiate: plain black cloth that wraps the head (open tubes, so nothing can poke through)
+  if (spec.mask) {
+    const cloth = mat('#0A0A0C', 0.95, { double: true });
+    mesh(new CylinderGeometry(R * 1.06, R * 0.98, R * 0.62, 16, 1, true, -Math.PI * 0.7, Math.PI * 1.4), cloth, head, [0, -R * 0.55, R * 0.02]); // bandana over nose and mouth, tied behind
+    mesh(new SphereGeometry(R * 0.16, 8, 6), cloth, head, [0, -R * 0.5, -R * 1.0]); // the knot
+  }
+  if (spec.blind) {
+    const cloth = mat('#0D0D10', 0.95, { double: true });
+    mesh(new CylinderGeometry(R * 1.055, R * 1.055, R * 0.34, 18, 1, true), cloth, head, [0, R * 0.1, R * 0.015]); // a band across the eyes
+    mesh(new SphereGeometry(R * 0.14, 8, 6), cloth, head, [R * 0.3, R * 0.06, -R * 1.0]); // the knot
   }
 
   // ---- accessories
@@ -405,6 +423,8 @@ export function buildCharacter(spec: Spec): Rig {
       mesh(lathe(tubePts(len, r0 + (baggy ? 0.026 : 0.012), (r0 + r1) / 2 + (baggy ? 0.03 : 0.013), spec.bottom === 'shorts' ? r1 + 0.03 : r1 + 0.012), 12), botC, hip);
       if (spec.bottom !== 'shorts') mesh(lathe(tubePts(calf, r1 + (baggy ? 0.03 : 0.012), 0.056 * lk + (baggy ? 0.03 : 0.012), (skinny ? 0.036 * lk + 0.012 : 0.036 * lk + 0.03)), 12), botC, knee);
     }
+    // a trouser knee: the thigh and shin tubes are separate, so a deep bend (kneeling, running) used to open a gap; this covers the joint
+    if (trousers && spec.bottom !== 'shorts') mesh(new SphereGeometry((0.056 * lk) + (baggy ? 0.03 : 0.0135), 12, 9), botC, knee);
     mesh(new SphereGeometry(r1 * 0.5, 10, 8), skinM, knee);
     const foot = grp(knee, 0, -calf, 0);  // ankle joint, 0.075 above the ground
     const fs = st.foot, sneaker = spec.shoes === 'sneakers', boots = spec.shoes === 'boots', sandal = spec.shoes === 'sandals';
@@ -416,16 +436,16 @@ export function buildCharacter(spec: Spec): Rig {
       const slab = sideExtrude([[-0.062, GY], [0.15, GY], [0.162, GY + 0.006], [0.164, GY + 0.016], [-0.06, GY + 0.016]], fw * 1.04, 0.004); slab.scale(1, 1, fs); mesh(slab, sole, foot);
       for (const z of [0.02, 0.085]) mesh(new BoxGeometry(fw * 1.06, 0.012, 0.016), sc, foot, [0, z < 0.05 ? -0.012 : -0.036, z * fs], [z < 0.05 ? 0.2 : 0.35, 0, 0]);
     }
-    return { hip, knee };
+    return { hip, knee, foot };
   };
   const L = mkLeg(-1), Rr = mkLeg(1);
 
   // ---- arms
   const mkArm = (s: number) => {
     const r0 = 0.05 * lk;
-    const sh = grp(body, s * (shr * 0.98 + r0 * 0.42), shoulderY - 0.05, 0); sh.rotation.z = s * 0.06;
+    const sh = grp(body, s * (shr * 0.96 + r0 * 0.34), shoulderY - 0.058, 0); sh.rotation.z = s * 0.06;
     const r1 = 0.043 * lk, r2 = 0.033 * lk;
-    mesh(new SphereGeometry(r0 * 1.08, 8, 6), skinM, sh, [-s * 0.004, 0.012, 0], undefined, [1.02, 1.2, 1]); // deltoid
+    mesh(new SphereGeometry(r0 * 1.06, 8, 6), skinM, sh, [-s * 0.004, 0.008, 0], undefined, [1.0, 1.05, 1]); // deltoid (kept under the sleeve cap)
     mesh(lathe(limbPts(upper, r0, r1, r1 * 0.92), 10), skinM, sh);
     const elbow = grp(sh, 0, -upper, 0); elbow.rotation.x = -0.18;
     mesh(new SphereGeometry(r1 * 0.5, 10, 8), skinM, elbow);
@@ -436,7 +456,8 @@ export function buildCharacter(spec: Spec): Rig {
     // sleeves
     const sleeveLen = B === 'tee' || B === 'jersey' ? upper * 0.45 : B === 'kaftan' ? upper * 1.1 : upper;
     const so = { tee: 0.008, shirt: 0.008, hoodie: 0.016, jacket: 0.022, kaftan: 0.022, jersey: 0.01 }[B], flare = B === 'kaftan' ? 0.06 : 0.006;
-    mesh(lathe([[0.001, r0 * 1.2 + so + 0.006], [(r0 + so) * 0.8, r0 * 1.1 + so], [(r0 + so) * 1.04, r0 * 0.42], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 12), shirtC, sh);
+    // a rounded dome over the shoulder (not a square pad), always above the skin deltoid, then the sleeve
+    mesh(lathe([[0.001, r0 * 1.22 + so + 0.004], [(r0 + so) * 0.58, r0 * 1.16 + so], [(r0 + so) * 0.9, r0 * 0.82], [(r0 + so) * 1.0, r0 * 0.4], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 14), shirtC, sh);
     if (B === 'shirt' || B === 'hoodie' || B === 'jacket') {
       mesh(lathe(tubePts(fore * 0.92, r1 * 0.95 + so, r1 * 0.9 + so, r2 + so + 0.002), 10), topC, elbow);
       mesh(new TorusGeometry(r2 + so + 0.002, 0.007, 5, 12), T0 === 'shirt' ? topTrim : topDark, elbow, [0, -fore * 0.92, 0], [Math.PI / 2, 0, 0]);
@@ -487,7 +508,7 @@ export function buildCharacter(spec: Spec): Rig {
 
   const total = headY + R * 1.14;
   const dispose = () => root.traverse((o) => { const g = (o as Mesh).geometry as BufferGeometry | undefined; if (g) g.dispose(); });
-  return { dispose, root, body, head, hipL: L.hip, hipR: Rr.hip, kneeL: L.knee, kneeR: Rr.knee, shoulderL: AL.sh, shoulderR: AR.sh, elbowL: AL.elbow, elbowR: AR.elbow, height: total };
+  return { dispose, root, body, head, hipL: L.hip, hipR: Rr.hip, kneeL: L.knee, kneeR: Rr.knee, footL: L.foot, footR: Rr.foot, shoulderL: AL.sh, shoulderR: AR.sh, elbowL: AL.elbow, elbowR: AR.elbow, height: total };
 }
 
 export const DEFAULT_EYE = '#2A1A10';
@@ -495,6 +516,6 @@ export const DEFAULT_EYE = '#2A1A10';
 export function toSpec(a: Appearance): Spec {
   return {
     body: a.body ?? 'masc', skin: a.skin, eye: a.eye ?? DEFAULT_EYE, hair: a.hairStyle, hairColor: a.hairColor, beard: a.beard ?? 'none',
-    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A', gun: !!a.gun, bro: a.bro,
+    top: a.top, topColor: a.topColor, bottom: a.bottom, bottomColor: a.bottomColor, shoes: a.shoes, shoeColor: a.shoeColor, accessory: a.accessory, bag: a.bag ?? 'none', bagColor: a.bagColor ?? '#8A4B2A', gun: !!a.gun, bro: a.bro, mask: !!a.mask, blind: !!a.blind,
   };
 }

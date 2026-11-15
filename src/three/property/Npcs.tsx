@@ -97,7 +97,7 @@ function NpcActor({ p, grid, w, d }: { p: NpcProfile; grid: NavGrid; w: number; 
     const b = brain.current; if (!g.current) return;
     stepPet(b, 'npc', dt, { grid: gridRef.current, ball: null, avoid });
     g.current.position.set(b.x, 0, b.z); g.current.rotation.y = b.yaw;
-    motion.current.moving = b.mode === 'walk';
+    motion.current.moving = b.mode === 'walk'; motion.current.speed = 1.25; // a relaxed pace: short unhurried steps
     liveNpcs.set(p.id, { x: b.x, z: b.z });
   });
   useEffect(() => () => { liveNpcs.delete(p.id); }, [p.id]);

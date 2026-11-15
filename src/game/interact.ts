@@ -106,6 +106,7 @@ export function setSpeaker(who: string | 'player' | null) {
   if (!run) return;
   const everyone = [...run.ids];
   for (const id of everyone) {
+    if (directives.get(id)?.pinned) continue; // staged fighters keep their moves
     const d = castDef(id), sitting = directives.get(id)?.pose === 'sit';
     direct(id, { action: who === id ? (d?.talk ?? 'talk') : who === null ? idleFor(id) : 'listen', face: who === id || who === null ? directives.get(id)?.face ?? null : who === 'player' ? io.player() : (io.actor(who) ?? null) as Pt | null, ...(sitting ? {} : {}) });
   }

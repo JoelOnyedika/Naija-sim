@@ -1,3 +1,4 @@
+import { usePwaStore } from '@/pwa/pwaStore';
 import { ChevronRight } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { sfx } from '@/audio/sfx';
@@ -72,6 +73,7 @@ export function SettingsApp() {
   const s = useSettingsStore();
   const session = useAuthStore((a) => a.session);
   const hasLife = useLifeStore((l) => !!l.lifeType);
+  const pwa = usePwaStore();
   const [view, setView] = useState<'main' | 'password' | 'privacy'>('main');
   const [confirm, setConfirm] = useState(false);
   const logout = () => { usePhoneStore.getState().closePhone(); useAuthStore.getState().logout(); useFlowStore.getState().go('landing'); };
@@ -81,6 +83,14 @@ export function SettingsApp() {
 
   return (
     <div className="p-3">
+      <Section title="App">
+        <Card>
+          {pwa.installed ? <p className="text-sm font-bold">Installed ✓<span className="mt-1 block text-xs font-normal text-slate-500">You are playing the installed app. It also works offline once it has loaded.</span></p>
+            : pwa.canInstall ? <><p className="mb-2 text-sm font-bold">Install Nigeria Life</p><p className="mb-2 text-xs leading-snug text-slate-500">Add it to your home screen: full screen, its own icon, and it keeps working without a connection.</p><Btn onClick={() => { void pwa.promptInstall(); }}>Install app</Btn></>
+            : <p className="text-sm font-bold">Install Nigeria Life<span className="mt-1 block text-xs font-normal leading-snug text-slate-500">{pwa.ios ? 'In Safari tap Share, then Add to Home Screen.' : 'Use your browser menu: Install app, or Add to Home screen.'}</span></p>}
+          {pwa.updateReady && <div className="mt-3 border-t border-slate-200 pt-3"><p className="mb-2 text-sm font-bold">A new version is ready</p><Btn onClick={pwa.applyUpdate}>Refresh now</Btn></div>}
+        </Card>
+      </Section>
       <Section title="Appearance">
         <Card><p className="mb-2 text-sm font-bold">Theme</p><Segmented label="Theme" value={s.theme} onChange={s.setTheme} options={[['light', 'Light'], ['dark', 'Dark'], ['system', 'System']]} />
           <p className="mt-2 text-xs leading-snug text-slate-500">Changes how phone apps look. The game world is always shown as it is.</p></Card>

@@ -1,3 +1,12 @@
+## v40: Naija story, hard-scene animation, real walking, PWA
+
+- Story rewritten in Pidgin with menace; new scenes: the jump at the gate (masked men, blindfold), cold-water shivering, the gauntlet, a longer beating; the oath is now a street call-and-response.
+- New walking and running cycle; new stagger, cower, shiver, kneel, beaten, punch, kick, point and brace poses.
+- Clothing and hair clipping fixed (shoulders, hair through hoods and jackets, trouser knee gap, bowl cut over the eyes).
+- Important tasks moved into the Tasks menu (button pings when something is ready; tap goes to the map). The on-screen objective card is gone.
+- Camera switch hidden from players for now.
+- Installable PWA with offline play.
+
 ## v39: camera, dialogue and interaction overhaul; guided Bayo storyline
 
 - **Camera:** Normal View (unchanged), new Close View (elevated, follows the player) and a temporary cinematic camera. Toggle button and `V` key; the choice is saved.

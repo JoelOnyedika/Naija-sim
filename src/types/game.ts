@@ -52,6 +52,8 @@ export interface Appearance {
   gun?: boolean;
   /** Brotherhood look: black bracelet and a small insignia on the chest, plus an optional beret. Optional, so older saves and other NPCs have none. */
   bro?: 'plain' | 'beret';
+  /** A black cloth over the nose and mouth (the masked men) and a blindfold over the eyes (the initiate). Optional; never saved. */
+  mask?: boolean; blind?: boolean;
   /** Body proportions of an NPC: width and height multipliers on the whole figure (about 0.9 to 1.12). Cheap: one scale on the root, no extra geometry. */
   frame?: { w: number; h: number };
 }

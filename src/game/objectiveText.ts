@@ -9,3 +9,11 @@ export function timeStatus(o: Objective, now: number): string | null {
   if (o.until !== undefined && now <= o.until) return `Open now. Closes in ${fmtSpan(o.until - now)}`;
   return 'Missed';
 }
+
+/** What tapping the important task does: talk to the person (when you are already there), look at the marker, or open the map at the place. */
+export type ObjectiveRoute = { kind: 'talk'; castId: string } | { kind: 'marker' } | { kind: 'map'; landmarkId: string | null };
+export function objectiveRoute(o: Objective, here: string | undefined): ObjectiveRoute {
+  const t = o.target;
+  if (here && (t.kind === 'npc' || t.kind === 'point') && t.venue === here) return t.kind === 'npc' ? { kind: 'talk', castId: t.castId } : { kind: 'marker' };
+  return { kind: 'map', landmarkId: o.landmarkId ?? (t.kind === 'landmark' ? t.landmarkId : null) };
+}

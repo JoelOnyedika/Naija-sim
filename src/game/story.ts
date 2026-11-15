@@ -199,6 +199,7 @@ export function requestTalkTo(id: string): boolean {
 
 // ------------------------------------------------------------------------------------------------ dialogue
 function focusLine(n: Node, line: number) {
+  const pose = n.player?.[line]; if (pose) { playerDirective.hold = true; playerDirective.lock = true; playerDirective.action = pose; }
   const who = lineSpeaker(n, line);
   setSpeaker(who === 'player' ? 'player' : who === 'narrator' ? null : who);
   if (n.style === 'cinematic') frame(n.shot === 'close' ? 'close' : n.shot ?? 'auto', who === 'player' ? undefined : who);
@@ -208,7 +209,8 @@ export function openNode(id: string): boolean {
   S().set({ dialogue: { nodeId: id, line: 0 } });
   if (n.set) S().setFlags(n.set);
   if (n.fx) useStatsStore.getState().apply(n.fx);
-  if (n.scene === 'beating') showBeating();
+  if (n.staging) stageScene(n.staging);
+  if (n.scene === 'beating') showBeating(); else if (n.scene === 'jump' || n.scene === 'gauntlet') showHit(n.scene);
   if (n.action) runAction(n.action);
   focusLine(n, 0);
   return true;
@@ -264,6 +266,8 @@ function runAction(a: StoryAction, rnd: () => number = Math.random, _c?: Choice)
     case 'beating': break; // the effect is shown by the scene node, the numbers are applied once in showBeating
     case 'handshake': break;
     case 'becomeMember': becomeMember(rnd); break;
+    case 'blindfold': s.setFlags({ blindfolded: true }); break;
+    case 'unblind': s.setFlags({ blindfolded: false }); break;
     case 'giveBracelet': playBeat('give', 'bayo', 1800, () => { endInteraction(); returnToCampus(); }); break;
   }
 }
@@ -315,7 +319,42 @@ function settleGroup() {
 
 function followToForest() {
   S().set({ dialogue: null });
-  startFollow('bayo', SPOTS.gateOut, { onArrive: () => enterForest(), onCancel: () => { toast('You stopped following Bayo.', 'info'); } });
+  startFollow('bayo', SPOTS.gateOut, { onArrive: () => jumpScene(), onCancel: () => { toast('You stopped following Bayo.', 'info'); } });
+}
+const GOONS = ['dragon', 'rambo', 'konji'] as const;
+/** At the gate the masked men step out of the dark. The scene itself is the dialogue plus the staging below; it ends by taking the player to the forest. */
+export function jumpScene() {
+  S().set({ dialogue: null }); endInteraction(); goStage('initiation');
+  const me = { x: livePlayer.x, z: livePlayer.z }, c = useCastStore.getState();
+  GOONS.forEach((id, i) => { const a = 1.2 + i * 2.1, from = { x: me.x + Math.sin(a) * 6, z: me.z + Math.cos(a) * 6 }; c.spawn(id, 'university', from, yawTo(from, me)); });
+  beginScene(['bayo', ...GOONS]);
+  openNode('jump1');
+}
+/** Where people stand and what they do while a node is open. Poses are body language only: flinching, guarding, trembling. */
+function stageScene(name: NonNullable<Node['staging']>) {
+  const me = { x: livePlayer.x, z: livePlayer.z }, here = venueKind() ?? 'university', c = useCastStore.getState();
+  const ring = (ids: readonly string[], r: number, start = 0.4, speed = 3.2) => ids.forEach((id, i) => { const a = start + (i / ids.length) * Math.PI * 2, p = { x: me.x + Math.sin(a) * r, z: me.z + Math.cos(a) * r }; if (!c.present[id]) c.spawn(id, here, { x: p.x + Math.sin(a) * 5, z: p.z + Math.cos(a) * 5 }, 0); direct(id, { goal: p, face: me, speed, action: 'idle', snap: false, pinned: false }); });
+  const hold = (pose: 'brace' | 'shiver' | 'kneel' | 'stagger' | 'idle') => { playerDirective.hold = true; playerDirective.lock = true; playerDirective.action = pose; playerDirective.face = null; };
+  switch (name) {
+    case 'jump': ring(GOONS, 1.5); direct('bayo', { face: me, action: 'crossed' }); GOONS.forEach((id) => direct(id, { action: 'point', pinned: true })); hold('brace'); break;
+    case 'wake': ring(GOONS, 1.9, 2.4, 6); GOONS.forEach((id) => direct(id, { action: 'crossed' })); hold('shiver'); break;
+    case 'oath': hold('kneel'); break;
+    case 'gauntlet': {
+      const rows: [string, number, number][] = [['dragon', 8.7, 10.6], ['rambo', 8.7, 11.9], ['konji', 8.7, 13.2], ['seaman', 11.3, 10.6], ['pablo', 11.3, 11.9], ['baron', 11.3, 13.2]];
+      rows.forEach(([id, x, z]) => { const p = { x, z }; if (!c.present[id]) c.spawn(id, here, p, 0); const fights = !(id === 'baron' || id === 'seaman'); direct(id, { goal: p, face: { x: 10, z }, speed: 2.5, action: fights ? 'punch' : 'crossed', pinned: fights }); });
+      hold('stagger'); break;
+    }
+    case 'beating': {
+      const all = [...GOONS, 'seaman', 'pablo', 'baron'];
+      all.forEach((id, i) => { const a = (i / all.length) * Math.PI * 2, p = { x: me.x + Math.sin(a) * 1.55, z: me.z + Math.cos(a) * 1.55 }; direct(id, { goal: p, face: me, speed: 3, action: i % 3 === 0 ? 'kick' : 'punch', pinned: true }); });
+      hold('kneel'); break;
+    }
+    case 'named': {
+      GOONS.forEach((id, i) => { const p = ringPoint(FOREST.goons[id] ?? i * 4 + 3); direct(id, { goal: p, yaw: p.yaw, action: 'crossed', speed: 1.6, pinned: false }); });
+      Object.entries(FOREST.named).forEach(([id, i]) => { const p = ringPoint(i); direct(id, { goal: p, yaw: p.yaw, action: 'chant', speed: 1.6, pinned: false }); });
+      hold('brace'); break;
+    }
+  }
 }
 function enterForest() {
   S().set({ dialogue: null }); endInteraction(); goStage('initiation');
@@ -324,18 +363,19 @@ function enterForest() {
 function returnToCampus() { import('./interiors').then(({ enterInterior }) => enterInterior('university', { force: true, landmarkId: 'lagos.unilag' })); }
 
 // ------------------------------------------------------------------------------------------------ the forest
-export const FOREST = { cx: 10, cz: 10, ringR: 5.2, named: { seaman: 2, pablo: 5, baron: 9 } as Record<string, number>, ringCount: 12 };
+export const FOREST = { cx: 10, cz: 10, ringR: 5.2, named: { seaman: 2, pablo: 5, baron: 9 } as Record<string, number>, /** the masked men's places in the ring */ goons: { dragon: 3, rambo: 7, konji: 11 } as Record<string, number>, ringCount: 12 };
 export const ringPoint = (i: number, r = FOREST.ringR): { x: number; z: number; yaw: number } => { const a = (i / FOREST.ringCount) * Math.PI * 2; const x = FOREST.cx + Math.sin(a) * r, z = FOREST.cz + Math.cos(a) * r; return { x, z, yaw: Math.atan2(FOREST.cx - x, FOREST.cz - z) }; };
 export function startForestScene() {
   if (!inForest()) return;
   const c = useCastStore.getState();
   c.spawn('bayo', 'initiation', { x: FOREST.cx, z: FOREST.cz - 3.6 }, 0);
   for (const [id, i] of Object.entries(FOREST.named)) { const p = ringPoint(i); c.spawn(id, 'initiation', p, p.yaw); direct(id, { action: 'chant', yaw: p.yaw }); }
-  beginScene(['bayo', ...Object.keys(FOREST.named)], { x: FOREST.cx, z: FOREST.cz }); // shots keep the fire behind the people
+  for (const [id, i] of Object.entries(FOREST.goons)) { const p = ringPoint(i); c.spawn(id, 'initiation', p, p.yaw); direct(id, { action: 'crossed', yaw: p.yaw }); }
+  beginScene(['bayo', ...Object.keys(FOREST.named), ...Object.keys(FOREST.goons)], { x: FOREST.cx, z: FOREST.cz }); // shots keep the fire behind the people
   // Bayo walks up to the player (inside the circle) to begin
   const me = { x: livePlayer.x || FOREST.cx, z: livePlayer.z || FOREST.cz + 4 };
   direct('bayo', { goal: standoff({ x: me.x, z: me.z }, { x: FOREST.cx, z: FOREST.cz - 3.6 }, 2.1), face: me, action: 'idle', speed: 1.4 });
-  setTimeout(() => { if (inForest() && !S().dialogue) openNode('forest_start'); }, 2200);
+  setTimeout(() => { if (inForest() && !S().dialogue) openNode(S().flags.blindfolded ? 'forest_wake' : 'forest_start'); }, 2200);
 }
 function stepIntoCircle() {
   import('@/stores/actorStore').then(({ useActorStore }) => useActorStore.getState().walkTo(FOREST.cx, FOREST.cz + 1.9));
@@ -353,11 +393,15 @@ export function tryLeave(rnd: () => number = Math.random): 'stay' | void {
   toast('The circle closes. You cannot get out.', 'bad'); sfx.error();
   S().set({ dialogue: { nodeId: 'oath', line: 0 } }); return 'stay';
 }
+/** A shorter hard moment (the jump at the gate, the gauntlet): the screen shakes for a few seconds and the stats take a hit. */
+function showHit(kind: 'jump' | 'gauntlet') {
+  const h = STORY[kind]; useStatsStore.getState().apply({ health: h.health, energy: h.energy, happiness: h.happiness });
+  S().set({ beating: true }); sfx.error(); setTimeout(() => S().set({ beating: false }), kind === 'jump' ? 3000 : 3600);
+}
 /** A stylised, non-graphic scene: the screen shakes and a red vignette pulses (features/game/StoryDialogue.tsx), the circle tightens, health and energy drop. */
 function showBeating() {
   useStatsStore.getState().apply({ health: STORY.beating.health, energy: STORY.beating.energy, happiness: STORY.beating.happiness });
   S().set({ beating: true }); sfx.error(); setTimeout(() => S().set({ beating: false }), 4200);
-  for (const [id, i] of Object.entries(FOREST.named)) { const p = ringPoint(i, 3.5); direct(id, { goal: p, yaw: p.yaw, action: 'chant', speed: 2 }); }
 }
 function becomeMember(rnd: () => number = Math.random) {
   const alias = ALIASES[Math.floor(rnd() * ALIASES.length)];
@@ -377,7 +421,7 @@ const blocked = () => !!S().dialogue || !!S().exam || isJailed() || !!useAgberoS
 /** Put a saved game back into a state it can continue from (scenes are not saved: a reload in the forest returns to the invitation). */
 export function restoreStory() {
   restored = true; const s = S();
-  s.set({ dialogue: null, exam: null, beating: false });
+  s.set({ dialogue: null, exam: null, beating: false }); s.setFlags({ blindfolded: false });
   if (s.stage === 'initiation' && !inForest()) goStage(s.initiationAt !== null ? 'follow' : 'meeting' as Stage);
   else if (s.stage === 'initiation' && s.initiationAt === null) goStage('declined');
   else syncObjective();
@@ -409,7 +453,7 @@ export function stepStory(nowMs = Date.now(), nowMin = nowGame()) {
 /** Called from the game loop even off campus: the meeting time, its reminder and what happens if it is missed. */
 export function stepStoryClock(nowMin = nowGame()) {
   const s = S(); if ((s.stage !== 'meeting' && s.stage !== 'follow') || s.initiationAt === null) return;
-  if (s.stage === 'meeting' && nowMin >= s.initiationAt && !s.flags.notified_time) { s.setFlags({ notified_time: true }); notify({ title: 'Senior Bayo', body: `Time reach. Come to ${INITIATION_PIN} now.`, icon: '💬', appId: 'messages' }); }
+  if (s.stage === 'meeting' && nowMin >= s.initiationAt && !s.flags.notified_time) { s.setFlags({ notified_time: true }); useObjectiveStore.getState().ping(); notify({ title: 'Senior Bayo', body: `Time reach. Come to ${INITIATION_PIN} now.`, icon: '💬', appId: 'messages' }); }
   if (nowMin > s.initiationAt + STORY.initiationWindowMinutes) {
     const missed = s.missed + 1; registerPeers();
     s.setFlags({ follow_shown: false, notified_time: false });

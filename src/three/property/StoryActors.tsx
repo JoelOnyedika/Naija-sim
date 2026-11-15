@@ -67,7 +67,7 @@ function CastActor({ p, grid }: { p: Placed; grid: NavGrid }) {
     const sitting = d?.pose === 'sit' && s.arrived;
     s.y += ((sitting ? (d?.seatY ?? 0) : 0) - s.y) * (1 - Math.exp(-dt * 10));
     o.position.set(s.x, s.y, s.z); o.rotation.y = s.yaw;
-    const m = motion.current; m.moving = moving; m.sitting = sitting;
+    const m = motion.current; m.moving = moving; m.sitting = sitting; m.speed = d?.speed && d.speed > 0 ? d.speed : 1.6;
     // no scripted pose: their own idle fidgets, in turn, offset per person so no two match
     const want: ActionKind | undefined = d?.action && d.action !== 'idle' ? d.action : def.idle[Math.floor((performance.now() / 1000 + hash(p.id) % 7) / 6) % def.idle.length];
     m.action = moving ? undefined : want;

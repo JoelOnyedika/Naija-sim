@@ -30,5 +30,10 @@ export const CAST: Record<string, CastDef> = {
   baron: { id: 'baron', name: 'Baron', role: '500 Level', description: 'Rarely speaks. When he does, everyone listens.', greeting: 'Hm.',
     appearance: look({ skin: '#4E3020', hairStyle: 'lowcut', beard: 'moustache', accessory: 'stud', top: 'vest', bro: 'beret', frame: { w: 1.0, h: 0.97 } }), idle: ['idle', 'crossed'], talk: 'talk', personality: 'serious, measured, the elder of the group' },
 };
+const MASKED = (o: Partial<Appearance>): Appearance => ({ ...BASE, top: 'hoodie', topColor: '#0D0E11', mask: true, bro: 'plain', ...o });
+/** The masked enforcers of the initiation. They have street names, not portraits of friendly faces. */
+CAST.dragon = { id: 'dragon', name: 'Dragon', role: 'Enforcer', description: 'Never speaks twice. Never needs to.', greeting: '...', appearance: MASKED({ skin: '#3E2A1D', hairStyle: 'bald', frame: { w: 1.14, h: 1.06 } }), idle: ['crossed', 'brace'], talk: 'point', personality: 'huge, silent, cracks his knuckles' };
+CAST.rambo = { id: 'rambo', name: 'Rambo', role: 'Enforcer', description: 'Short temper. Shorter patience.', greeting: '...', appearance: MASKED({ skin: '#7A4A2E', hairStyle: 'lowcut', frame: { w: 1.04, h: 0.98 } }), idle: ['crossed', 'punch'], talk: 'point', personality: 'jumpy, loud, always first to swing' };
+CAST.konji = { id: 'konji', name: 'Konji', role: 'Enforcer', description: 'Smiles under the cloth. That is the worst part.', greeting: '...', appearance: MASKED({ skin: '#5A3825', hairStyle: 'dreads', top: 'jacket', frame: { w: 0.96, h: 1.08 } }), idle: ['gesture', 'crossed'], talk: 'gesture', personality: 'laughs while he works' };
 export const castDef = (id: string): CastDef | undefined => CAST[id];
 export const BROTHERHOOD_IDS = ['bayo', 'tobi', 'seaman', 'pablo', 'baron'] as const;

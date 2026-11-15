@@ -10,7 +10,7 @@
 | `declined` | normal university life, no objective, no pressure | one soft phone message after the next mission (max 2 per decline); talking to Bayo again re-opens the offer |
 | `meeting` | real phone message from Bayo, objective **MEET SENIOR BAYO** with 22:00, a countdown, "Open now" and the back-gate marker | be at the gate in the 4-hour window |
 | `follow` | Bayo walks up to the player, objective **FOLLOW BAYO** | prompt, short cinematic, then he leads the way; "Stop following" is always on screen |
-| `initiation` | fade into the forest, circle, oath, two tests, stylised beating, new name, handshake, bracelet | rank 1 |
+| `initiation` | **the jump** at the gate (three masked men, a blindfold, a fist to the ribs, dragged off), **cold water and shivering** in the forest, the circle, the **call-and-response oath**, two tests, **the gauntlet** between two lines of men, **the beating** (kneel, then curled on the ground), new name, handshake, bracelet | rank 1 |
 | `member` / `ended` | Brotherhood app unlocked in Phone > App Library > More, bracelet in Inventory | |
 
 Missed meeting: one friendly message and an optional objective to reschedule; missed twice, the story ends quietly. There are no random rolls, no hidden timers, no harassment and no threats any more.
@@ -27,3 +27,12 @@ Stage, objective, flags, view mode and membership are saved. Scenes are never sa
 
 ## Not built / limits
 See the end-of-task report in the chat; the short version: no new 3D models or animation clips (poses are procedural), no real hand clasp in the handshake, props are not ray-cast for camera clipping (only the venue bounds), movement is tap-to-walk (the game never had WASD).
+
+## v40 additions
+- **Tasks menu:** the objective, its instruction and its timer live in an **Important** section at the top of the Tasks menu (separate from Everyday tasks). The Tasks button glows and pings while a new or newly ready important task is unseen (also when the meeting window opens). Tapping the task opens the map at the place, or starts the conversation if you are already there. There is no objective card over the game view any more.
+- **Camera toggle:** hidden from players (`VIEW_TOGGLE_ENABLED = false` in `stores/viewStore.ts`); everyone gets Normal View. The code, saving and the cinematic camera are unchanged for when a controller exists.
+- **Writing:** all lines are in Naija Pidgin with a menacing edge; the oath uses street-confraternity call-and-response ("Na me Babylon", "From Odego to Shawama", "Obara", "Wida"). Review the spellings and meanings with someone from Port Harcourt before shipping.
+- **Cast:** Dragon, Rambo and Konji, masked enforcers (black cloth over the face, hooded or jacketed, different builds).
+- **Animation:** a real gait (`three/avatar/gait.ts`: heel strike, knee flexion in the swing, foot roll, pelvis bob and sway, arm counter-swing, stride tied to speed) and hard-scene poses (`three/avatar/reaction.ts`: stagger, cower, shiver, kneel, beaten, punch, kick, point, brace). Both are pure maths with tests (`npm run test:anim`).
+- **Clothing fit:** rounded sleeve caps (no skin through the shoulder), hair locks stop above the shoulders (higher under a hood), long hair drapes over the shoulders, a trouser knee covers the gap when the knee bends hard, and the bowl cut sits above the brows.
+- **PWA:** `public/manifest.webmanifest`, icons, `public/sw.js` (offline shell, cached bundles and models, versioned caches), install and update handling in Settings. `npm run test:pwa` plus a real-browser check (service worker activated, offline reload shows the game).
