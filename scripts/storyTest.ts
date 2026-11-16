@@ -145,10 +145,12 @@ ok(lineSpeaker(NODE('group_chat')!, 0) === 'seaman' && lineSpeaker(NODE('group_c
 
 console.log('Guided storyline');
 fresh(); enterInterior('university', { landmarkId: 'lagos.unilag', force: true }); useStoryStore.setState({ campusSince: Date.now() });
-ok(S().stage === 'arrival' && useObjectiveStore.getState().current === null && !useCastStore.getState().present.tobi, 'stage 1: the player arrives; the existing university tasks are all there is');
-stepStory(Date.now() + 60 * 60_000); ok(S().stage === 'arrival', 'nothing happens until the introductory tasks are done: no timer, no dice');
+ok(S().stage === 'arrival' && useObjectiveStore.getState().current === null, 'before the first step on campus the stage is arrival');
+stepStory(Date.now()); stepStory(Date.now());
+ok(S().stage === 'watcher' && !!useCastStore.getState().present.tobi, 'stage 2: the story starts the moment the player is on campus, with no intro missions done');
+ok(S().mission === 0, 'the intro missions are untouched; they stay as ordinary tasks');
 ev('meet_adviser'); ev('reg_queue'); ev('register_courses'); ev('attend_lecture');
-ok(S().stage === 'watcher' && !!useCastStore.getState().present.tobi, 'stage 2: finishing the introductory tasks puts the watching student on campus right away');
+ok(S().stage === 'watcher', 'finishing the intro missions later does not disturb the story');
 ok(CAST.tobi.appearance.bro === 'plain' && CAST.tobi.appearance.topColor === '#101216', 'he wears the black Brotherhood look with the bracelet');
 const w0 = Date.now(); stepStory(w0, 0);
 ok(usePhoneStore.getState().notifications.some((n) => n.body.includes('Someone seems to have noticed you around campus.')), 'the subtle notification appears');

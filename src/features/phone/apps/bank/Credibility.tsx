@@ -40,7 +40,7 @@ export function CredibilityTab() {
         <li>Pay weekly bills when they fall due, and clear overdue ones.</li>
         <li>Hold bonds until they mature.</li>
       </ul></Card>
-      <Note>Repeating the same transfer, or moving money back and forth, does not farm points: counted transfers are capped per contact. This score only exists inside Nigeria Life and does not affect any real credit or financial eligibility.</Note>
+      <Note>Repeating the same transfer, or moving money back and forth, does not farm points: counted transfers are capped per contact. This score only exists inside One Naija and does not affect any real credit or financial eligibility.</Note>
     </div>
   );
 }

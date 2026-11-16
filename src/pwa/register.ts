@@ -12,7 +12,7 @@ export function registerPwa() {
   const st = usePwaStore.getState();
   st.set({ installed: isStandalone(), ios: /iphone|ipad|ipod/i.test(navigator.userAgent) });
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); usePwaStore.getState().set({ prompt: e as BeforeInstallPromptEvent, canInstall: true }); });
-  window.addEventListener('appinstalled', () => { usePwaStore.getState().set({ installed: true, canInstall: false, prompt: null }); toast('Nigeria Life is installed', 'good'); });
+  window.addEventListener('appinstalled', () => { usePwaStore.getState().set({ installed: true, canInstall: false, prompt: null }); toast('One Naija is installed', 'good'); });
   if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((reg) => {

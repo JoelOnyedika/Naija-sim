@@ -6,7 +6,6 @@ import { useFlowStore } from '@/stores/flowStore';
 import { useStateId } from '@/stores/mapStore';
 import { useUiStore } from '@/stores/uiStore';
 import { WorldView } from '@/three/world/WorldView';
-import { Button } from '@/ui/Button';
 import { Logo } from '@/ui/Logo';
 import { SocialLinks } from '@/ui/SocialLinks';
 import { formatNaira } from '@/core/format';
@@ -52,25 +51,21 @@ export function LandingScreen() {
       <div className={`absolute inset-0 transition duration-700 ${authOpen ? 'scale-105 blur-[3px] brightness-75' : ''}`}>
         <WorldView stateId={stateId} mode="landing" calm={authOpen} onSelectLandmark={(id) => { sfx.pop(); setPicked(id); }} />
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-night/70 via-transparent to-night/85" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-night/70 via-transparent to-night/90" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[25] h-[52%] bg-gradient-to-t from-night via-night/85 to-transparent" />
+      <div className="hero-orb -left-16 bottom-24 h-56 w-56 bg-naija/40" /><div className="hero-orb -right-16 bottom-40 h-48 w-48 bg-danfo/25" />
 
       {/* top bar */}
-      <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 pt-safe">
-        <Logo />
-        <div className="flex flex-col items-end gap-2">
-          <div className="glass flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
-            <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /></span>
-            {(online / 1000).toFixed(0)}K Online
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="glass" onClick={() => go('login')}>Login</Button>
-            <Button size="sm" onClick={() => go('signup')}>Sign Up</Button>
-          </div>
+      <div className="absolute inset-x-0 top-0 z-[30] flex items-start justify-between gap-3 px-4 pt-safe">
+        <div className="glass flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
+          <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /></span>
+          {(online / 1000).toFixed(0)}K Online
         </div>
+        <button onClick={() => go('login')} className="cta-ghost h-9 rounded-full px-4 text-sm font-bold">Login</button>
       </div>
 
       {/* featured card */}
-      <div className="absolute inset-x-0 top-[5.6rem] z-10 flex justify-center px-4">
+      <div className="absolute inset-x-0 top-[5.6rem] z-[30] flex justify-center px-4">
         <AnimatePresence mode="wait">
           <motion.div key={card.key} initial={{ opacity: 0, y: 14, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }} transition={{ type: 'spring', stiffness: 260, damping: 24 }}
             className="relative flex w-full max-w-sm items-center gap-3 overflow-hidden rounded-3xl p-3 pr-4 shadow-glass" style={{ background: `linear-gradient(135deg, ${card.from}, ${card.to})` }}>
@@ -83,12 +78,12 @@ export function LandingScreen() {
           </motion.div>
         </AnimatePresence>
       </div>
-      <div className="absolute inset-x-0 top-[10.6rem] z-10 flex justify-center gap-1.5">
+      <div className="absolute inset-x-0 top-[11.4rem] z-[30] flex justify-center gap-1.5">
         {cards.map((c, i) => <button key={c.key} aria-label={`Card ${i + 1}`} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-danfo' : 'w-1.5 bg-white/40'}`} />)}
       </div>
 
       {/* hero + CTAs */}
-      <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-safe">
+      <div className="absolute inset-x-0 bottom-0 z-[30] px-5 pb-safe">
         <AnimatePresence>
           {landmark && (
             <motion.div key={landmark.id} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}
@@ -104,13 +99,17 @@ export function LandingScreen() {
           )}
         </AnimatePresence>
         <div className="mx-auto max-w-md text-center">
-          <h1 className="font-display text-3xl font-extrabold leading-tight drop-shadow sm:text-4xl"><span className="text-gradient-naija">{tagline}</span></h1>
-          <p className="mt-1 text-sm text-white/80">Hustle, hang out at Quilox, own a home, and see how far you go. Tap a landmark to explore.</p>
-          <div className="mt-4 flex gap-3">
-            <Button size="lg" className="flex-[1.6]" onClick={() => go('signup')}>Sign Up Free</Button>
-            <Button size="lg" variant="glass" className="flex-1" onClick={() => go('login')}>Login</Button>
+          <motion.div initial={{ opacity: 0, y: 20, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 180, damping: 18, delay: 0.1 }}><Logo size="xl" center /></motion.div>
+          <h1 className="mt-3 font-display text-xl font-extrabold leading-tight drop-shadow"><span className="text-gradient-naija">{tagline}</span></h1>
+          <p className="mt-1 text-sm text-white/80">Hustle, hang out at Quilox, join a brotherhood, own a home, and see how far you go.</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+            {['🏙️ Lagos world', '💼 Hustle', '🕴️ Brotherhood', '🚗 Cars', '🏠 Homes'].map((t) => <span key={t} className="feature-chip rounded-full px-3 py-1 text-[12px] font-semibold">{t}</span>)}
           </div>
-          <SocialLinks className="mt-4 justify-center" />
+          <div className="mt-4 flex gap-3">
+            <button onClick={() => { sfx.click(); go('signup'); }} className="cta-naija h-14 flex-[1.6] rounded-2xl font-display text-lg font-extrabold">Play Free</button>
+            <button onClick={() => { sfx.click(); go('login'); }} className="cta-ghost h-14 flex-1 rounded-2xl font-display text-lg font-bold">Login</button>
+          </div>
+          <SocialLinks className="mt-3 justify-center" />
         </div>
       </div>
 

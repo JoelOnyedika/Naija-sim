@@ -24,9 +24,9 @@ export const isRun = (speed: number) => speed > 3.4;
 export interface LegPose { hip: number; knee: number; ankle: number }
 export function legPose(u: number, speed: number): LegPose {
   const A = stride(speed), run = isRun(speed) ? 1 : 0;
-  const hip = -(0.12 + 0.36 * A * Math.cos(TAU * u)) - run * 0.08;
+  const hip = -(0.14 + 0.4 * Math.pow(A, 0.8) * Math.cos(TAU * u)) - run * 0.1;
   // knee: slight give after heel strike, then a big bend as the leg swings through (u about 0.7), more when running
-  const knee = 0.07 + 0.2 * A * bump(u, 0.13, 0.07) + (0.78 + 0.35 * (A - 1) + run * 0.35) * bump(u, 0.72, 0.11);
+  const knee = 0.08 + 0.3 * A * bump(u, 0.13, 0.09) + (0.95 + 0.3 * (A - 1) + run * 0.4) * bump(u, 0.72, 0.15);
   // ankle: heel strike (toes up), foot flat in stance, push off (toes down) at about u = 0.58, then lift to clear the ground
   const flat = -(hip + knee);
   const ankle = flat * 0.85 - 0.14 * bump(u, 0.02, 0.05) + 0.42 * bump(u, 0.6, 0.07) - 0.1 * bump(u, 0.85, 0.08);
@@ -36,11 +36,11 @@ export interface ArmPose { swing: number; elbow: number }
 /** `u` is the phase of the SAME-side leg; the arm moves against it. */
 export function armPose(u: number, speed: number): ArmPose {
   const A = stride(speed), c = Math.cos(TAU * u), run = isRun(speed) ? 1 : 0;
-  return { swing: 0.42 * A * c * (1 - run * 0.1), elbow: -(0.22 + 0.4 * Math.max(0, -c) * A + run * 0.55) };
+  return { swing: 0.62 * A * c * (1 - run * 0.1), elbow: -(0.3 + 0.55 * Math.max(0, -c) * A + run * 0.6) };
 }
 export interface BodyPose { y: number; x: number; roll: number; lean: number }
 /** The pelvis: bob (twice per cycle), side shift and roll (once per cycle), and a forward lean that grows with speed. */
 export function bodyPose(u: number, speed: number): BodyPose {
   const A = stride(speed), run = isRun(speed) ? 1 : 0;
-  return { y: 0.024 * A * (0.5 - 0.5 * Math.cos(2 * TAU * u)) - 0.012 * A, x: 0.014 * Math.sin(TAU * u), roll: 0.03 * Math.sin(TAU * u), lean: 0.035 * A + run * 0.1 };
+  return { y: 0.045 * A * (0.5 - 0.5 * Math.cos(2 * TAU * u)) - 0.022 * A, x: 0.022 * Math.sin(TAU * u), roll: 0.055 * Math.sin(TAU * u), lean: 0.06 * A + run * 0.12 };
 }

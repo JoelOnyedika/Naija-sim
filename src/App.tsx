@@ -2,6 +2,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { CharacterScreen } from '@/features/character/CharacterScreen';
 import { GameScreen } from '@/features/game/GameScreen';
+import { OpenWorldScreen } from '@/features/openworld/OpenWorldScreen';
 import { LandingScreen } from '@/features/landing/LandingScreen';
 import { RouletteScreen } from '@/features/roulette/RouletteScreen';
 import { SummaryScreen } from '@/features/summary/SummaryScreen';
@@ -32,6 +33,7 @@ export default function App() {
     if (!session && !inGate) go('landing');
     else if (session && (phase === 'game' || phase === 'summary') && (!lifeType || !activeHome)) go(created ? 'roulette' : 'character');
     else if (session && phase === 'roulette' && !created) go('character');
+    else if (session && phase === 'openworld' && !created) go('character');
   }, [phase, session, created, lifeType, activeHome, go]);
 
   return (
@@ -46,6 +48,7 @@ export default function App() {
         {phase === 'character' && <CharacterScreen key="character" />}
         {phase === 'roulette' && <RouletteScreen key="roulette" />}
         {phase === 'summary' && <SummaryScreen key="summary" />}
+        {phase === 'openworld' && <OpenWorldScreen key="openworld" />}
       </AnimatePresence>
       </ErrorBoundary>
     </div>

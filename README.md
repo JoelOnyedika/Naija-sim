@@ -1,4 +1,4 @@
-# Nigeria Life
+# One Naija
 
 A mobile-first 3D Nigerian life-simulation prototype. React + TypeScript + Vite + React Three Fiber + Zustand + Tailwind + Framer Motion. No backend; everything runs locally with mock data and saves to `localStorage`.
 

@@ -297,8 +297,7 @@ function softReoffer() {
 }
 function onMissionDone() {
   const s = S();
-  if (s.stage === 'arrival' && s.mission >= 1) goStage('watcher');
-  else if (s.stage === 'declined' && s.reoffers < STORY.maxReoffers && !s.flags.soft_reoffer) softReoffer();
+  if (s.stage === 'declined' && s.reoffers < STORY.maxReoffers && !s.flags.soft_reoffer) softReoffer();
 }
 
 /** The group scene: Bayo introduces the others. They walk to their places (benches first), some sit, some stand, and the camera frames them. */
@@ -432,8 +431,8 @@ export function stepStory(nowMs = Date.now(), nowMin = nowGame()) {
   if (!restored) restoreStory();
   syncCampusClock(nowMs);
   const s = S(); if (!onCampus() || blocked()) return;
-  // arrival: the introductory tasks are done, so someone starts to notice the player. No waiting.
-  if (s.stage === 'arrival' && s.mission >= 1) { goStage('watcher'); }
+  // arrival: the story starts the moment the player first steps onto campus. It does not wait for the intro missions; those stay in the Tasks list.
+  if (s.stage === 'arrival') { goStage('watcher'); }
   if (S().stage === 'watcher') {
     const t = useCastStore.getState().present.tobi; if (!t) { ensureCast(); return; }
     if (!watcherStart) { watcherStart = nowMs; notify({ title: 'Campus', body: 'Someone seems to have noticed you around campus.', icon: '👀' }); direct('tobi', { face: { x: livePlayer.x, z: livePlayer.z }, action: 'crossed' }); glanceAt('tobi', 2600); }

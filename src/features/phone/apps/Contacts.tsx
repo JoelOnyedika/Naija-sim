@@ -42,7 +42,7 @@ export function ContactsApp() {
           {results.map((p) => <PlayerCard key={p.id} p={p} />)}
         </div>
       )}
-      <Note>Nigeria Life has no other real players yet. Every player here is a simulated character.</Note>
+      <Note>One Naija has no other real players yet. Every player here is a simulated character.</Note>
 
       {added.length > 0 && (<><Title>My contacts</Title><div className="space-y-2">{added.map((id) => getPlayer(id)).filter((p): p is PlayerDef => !!p).map((p) => <PlayerCard key={p.id} p={p} />)}</div></>)}
       {GROUPS.map(([g, label]) => {

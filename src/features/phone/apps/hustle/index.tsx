@@ -36,7 +36,7 @@ export function HustleApp() {
         <div className="mt-2"><Progress label="Hustle rating" value={rating.score} max={100} /></div>
         <p className="mt-2 text-xs text-white/85">{rating.completed} job{rating.completed === 1 ? '' : 's'} completed. Based on finished jobs only (up to 3 per client count). There are no reviews.</p>
       </div>
-      <p className="mt-3 px-1 text-[13px] leading-snug text-slate-600">Players hire players to decorate houses, DJ parties, drive, cook, organise events and more around Nigeria Life. Everyone else here is a simulated player.</p>
+      <p className="mt-3 px-1 text-[13px] leading-snug text-slate-600">Players hire players to decorate houses, DJ parties, drive, cook, organise events and more around One Naija. Everyone else here is a simulated player.</p>
       <div className="mt-3 grid grid-cols-2 gap-2">{MENU.map((m) => <button key={m.title} onClick={() => go(m.to)} className="rounded-2xl bg-white p-3 text-left shadow-sm active:bg-slate-50"><span className="text-2xl" aria-hidden>{m.glyph}</span><span className="mt-1 block text-[14px] font-bold">{m.title}</span><span className="block text-[11.5px] leading-snug text-slate-500">{m.sub}</span></button>)}</div>
     </div>
   );

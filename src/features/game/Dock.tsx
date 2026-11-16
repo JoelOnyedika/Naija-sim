@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { House, Map, Menu, ShoppingBag, Smartphone, type LucideIcon } from 'lucide-react';
+import { Footprints, House, Map, Menu, ShoppingBag, Smartphone, type LucideIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { sfx } from '@/audio/sfx';
 import { exitBuild } from '@/game/buy';
@@ -8,11 +8,12 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useFinishStore } from '@/stores/finishStore';
 import { usePhoneStore } from '@/stores/phoneStore';
 import { useInteriorStore } from '@/stores/interiorStore';
+import { useFlowStore } from '@/stores/flowStore';
 import { useUiStore } from '@/stores/uiStore';
 
-type Id = 'home' | 'buy' | 'map' | 'phone';
+type Id = 'home' | 'buy' | 'map' | 'outside' | 'phone';
 const ITEMS: { id: Id; label: string; Icon: LucideIcon }[] = [
-  { id: 'home', label: 'Home', Icon: House }, { id: 'buy', label: 'Buy', Icon: ShoppingBag }, { id: 'map', label: 'Map', Icon: Map }, { id: 'phone', label: 'Phone', Icon: Smartphone },
+  { id: 'home', label: 'Home', Icon: House }, { id: 'buy', label: 'Buy', Icon: ShoppingBag }, { id: 'map', label: 'Map', Icon: Map }, { id: 'outside', label: 'Outside', Icon: Footprints }, { id: 'phone', label: 'Phone', Icon: Smartphone },
 ];
 
 /** Bottom navigation. The active destination is always blue. Nothing here navigates away from the 3D world. */
@@ -37,6 +38,7 @@ export function Dock() {
       return;
     }
     if (phone.open) phone.closePhone();
+    if (id === 'outside') { if (ui.mode === 'buy') exitBuild(); sfx.open(); useFlowStore.getState().go('openworld'); return; }
     if (id === 'home') { if (ui.mode === 'buy') exitBuild(); else { ui.setMode('home'); sfx.open(); } return; }
     if (id === 'buy') { if (ui.mode === 'buy') exitBuild(); else { useEditorStore.setState({ draft: null }); ui.startBuy(useEconomyStore.getState().money); sfx.open(); } return; }
     if (ui.mode === 'buy') useEditorStore.setState({ draft: null, dragging: false });

@@ -1,4 +1,4 @@
-/* Nigeria Life service worker: makes the game installable and playable offline after the first visit.
+/* One Naija service worker: makes the game installable and playable offline after the first visit.
  *  - install: caches the app shell and every script/style the shell references (found by reading index.html)
  *  - pages: network first (so players always get the newest version when online), the cached shell when offline
  *  - assets (hashed scripts, styles, 3D models, icons, images, audio): cache first, refreshed in the background

@@ -51,6 +51,8 @@
     "test:story": "tsx scripts/storyTest.ts",
     "test:interact": "tsx scripts/interactTest.ts",
     "test:anim": "tsx scripts/animTest.ts",
+    "test:openworld": "tsx scripts/openWorldTest.ts",
+    "test:shooting": "tsx scripts/shootingTest.ts",
     "test:pwa": "tsx scripts/pwaTest.ts"
   },
   "dependencies": {

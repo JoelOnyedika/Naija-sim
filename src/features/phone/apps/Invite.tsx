@@ -23,8 +23,8 @@ export function InviteApp() {
     try { await navigator.clipboard?.writeText(text); sfx.pop(); toast(`${what} copied`, 'good'); } catch { toast('Could not copy. Select the text and copy it yourself.', 'bad'); }
   };
   const share = async () => {
-    const text = `Join me on Nigeria Life! Use my invite code ${code}.`;
-    try { if (navigator.share) await navigator.share({ title: 'Nigeria Life', text, url: link }); else await copy(`${text} ${link}`, 'Invite'); } catch { /* the player closed the share sheet */ }
+    const text = `Join me on One Naija! Use my invite code ${code}.`;
+    try { if (navigator.share) await navigator.share({ title: 'One Naija', text, url: link }); else await copy(`${text} ${link}`, 'Invite'); } catch { /* the player closed the share sheet */ }
   };
   const apply = (raw: string) => { const x = useReferralStore.getState().redeem(raw, code); setMsg({ ok: x.ok, text: x.message }); if (x.ok) { sfx.reward(); setEntry(''); } else sfx.error(); };
   const qualified = !!r.qualifiedAt;

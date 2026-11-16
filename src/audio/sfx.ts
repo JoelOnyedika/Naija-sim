@@ -50,6 +50,11 @@ const arp = (notes: number[], step = 0.08, type: OscillatorType = 'triangle', vo
 
 export const sfx = {
   click: () => tone(720, 0.05, 'triangle', 0.1),
+  gunshot: (loud = 1) => { noise(0.16, 0.2 * loud, 5200, 300); tone(110, 0.12, 'sawtooth', 0.12 * loud, 0, 50); },
+  dryFire: () => tone(1400, 0.03, 'square', 0.06),
+  reload: () => { tone(500, 0.04, 'square', 0.06); tone(320, 0.05, 'square', 0.07, 0.35); tone(700, 0.04, 'square', 0.07, 0.6); },
+  hitMarker: () => tone(1800, 0.05, 'triangle', 0.1),
+  siren: () => { tone(760, 0.3, 'sawtooth', 0.05, 0, 980); tone(980, 0.3, 'sawtooth', 0.05, 0.3, 760); },
   pop: () => tone(480, 0.09, 'sine', 0.16, 0, 900),
   open: () => tone(380, 0.14, 'sine', 0.13, 0, 760),
   close: () => tone(700, 0.14, 'sine', 0.12, 0, 340),

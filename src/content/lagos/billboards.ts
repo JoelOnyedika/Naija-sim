@@ -18,11 +18,11 @@ export const BILLBOARDS: Base[] = [
   { id: 'lagos.bb.ikoyi', areaId: 'lagos.ikoyi', position: [15.2, 3.2], rotationY: 0.5, format: 'standard',
     content: { advertiser: 'Eko Trust Bank', headline: 'Your money, safe', subline: 'Open an account in minutes', bg: '#1D4ED8', fg: '#FFFFFF', accent: '#DCE8FF' } },
   { id: 'lagos.bb.vi', areaId: 'lagos.victoria-island', position: [4.2, 13.8], rotationY: 0.5, format: 'wide',
-    content: { advertiser: 'Nigeria Life', headline: 'New homes, new life', subline: 'Six homes. Your style.', bg: '#2F6BFF', fg: '#FFFFFF', accent: '#FFC21A' } },
+    content: { advertiser: 'One Naija', headline: 'New homes, new life', subline: 'Six homes. Your style.', bg: '#2F6BFF', fg: '#FFFFFF', accent: '#FFC21A' } },
   { id: 'lagos.bb.lekki-east', areaId: 'lagos.lekki', position: [30.2, 9.6], rotationY: 0.5, format: 'wide',
     content: { advertiser: 'Danfo Pay', headline: 'Pay with a tap', subline: 'Zero queue, zero wahala', bg: '#0B8F4D', fg: '#FFFFFF', accent: '#FFC21A' } },
   { id: 'lagos.bb.lekki-west', areaId: 'lagos.lekki', position: [19.4, 14.2], rotationY: 0.5, format: 'standard',
-    content: { advertiser: 'Your ad here', headline: 'Advertise on Nigeria Life', subline: 'Placeholder board', bg: '#20262F', fg: '#FFFFFF', accent: '#5B93FF', meta: { placeholder: 'true' } } },
+    content: { advertiser: 'Your ad here', headline: 'Advertise on One Naija', subline: 'Placeholder board', bg: '#20262F', fg: '#FFFFFF', accent: '#5B93FF', meta: { placeholder: 'true' } } },
   // ---- Expanded map: boards along the new roads. All are open inventory ("Your ad here") until a player buys them.
   ...([
     ['airport-road', 'lagos.ikeja', [-15.8, -30], 'wide'], ['airport-gate', 'lagos.ikeja', [-21.5, -36], 'standard'],
@@ -32,7 +32,7 @@ export const BILLBOARDS: Base[] = [
     ['lekki-epe', 'lagos.lekki', [36, 10], 'wide'], ['ajah', undefined, [49, 12], 'standard'],
   ] as const).map(([k, areaId, position, format]): Base => ({
     id: `lagos.bb.${k}`, areaId, position: [position[0], position[1]], rotationY: 0.5, format,
-    content: { advertiser: 'Your ad here', headline: 'Advertise on Nigeria Life', subline: 'Open billboard', bg: '#20262F', fg: '#FFFFFF', accent: '#5B93FF', meta: { placeholder: 'true' } },
+    content: { advertiser: 'Your ad here', headline: 'Advertise on One Naija', subline: 'Open billboard', bg: '#20262F', fg: '#FFFFFF', accent: '#5B93FF', meta: { placeholder: 'true' } },
   })),
   { id: 'lagos.bb.oshodi', areaId: 'lagos.mushin', position: [-16.4, -9.6], rotationY: 0.5, format: 'wide',
     content: { advertiser: 'Spark Power', headline: 'Light up your street', subline: 'Prepaid meters, no stress', bg: '#10243E', fg: '#FFFFFF', accent: '#FFC21A' } },

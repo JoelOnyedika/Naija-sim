@@ -111,7 +111,7 @@ export function InteriorChat() {
     try {
       const blob = await captureScene(); if (!blob) { toast('Could not take a picture here.', 'bad'); return; }
       const file = new File([blob], `nigeria-life-${Date.now()}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: here?.name ?? 'Nigeria Life' }); }
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: here?.name ?? 'One Naija' }); }
       else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Picture saved', 'good'); }
     } catch { /* the person closed the share sheet */ }
   };

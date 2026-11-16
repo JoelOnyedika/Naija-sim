@@ -46,7 +46,7 @@ interface Style {
   seg: number;         // radial segments
   femWaist: number;    // how strongly the femme body is shaped
 }
-const POLY: Style = { name: 'Low-Poly Faceted', head: 0.112, legs: 0.84, torso: 0.52, shoulder: 0.21, limb: 1.05, arm: 1.0, hand: 1.0, foot: 1.0, eye: 1.0, face: 'simple', shade: 'flat', rough: 0.82, seg: 10, femWaist: 1.5 };
+const POLY: Style = { name: 'Low-Poly Faceted', head: 0.124, legs: 0.84, torso: 0.53, shoulder: 0.235, limb: 1.2, arm: 1.0, hand: 1.0, foot: 1.0, eye: 1.0, face: 'simple', shade: 'flat', rough: 0.9, seg: 7, femWaist: 1.5 };
 
 // ------------------------------------------------------------------ helpers
 type Pt = [number, number];
@@ -137,20 +137,20 @@ function shoeGeo(kind: 'sneaker' | 'boot', width: number, fs: number): { upper: 
  * a tapering jaw and a chin that sits forward). Units are head radii; y runs from the chin (-1.15) to the crown (+1.14), the
  * face looks along +z. `jaw` is wider for a masculine face and narrower for a feminine one.
  */
-const HEAD_RING = 16;
+const HEAD_RING = 10;
 function headSlices(jaw: number) {
   const j = jaw, wide = jaw > 1;
   return [
     { y: 1.14, hw: 0.04, hd: 0.06, cz: -0.06 }, { y: 1.07, hw: 0.46, hd: 0.58, cz: -0.07 }, { y: 0.92, hw: 0.72, hd: 0.84, cz: -0.06 }, { y: 0.68, hw: 0.8, hd: 0.92, cz: -0.05 },
     { y: 0.4, hw: 0.82, hd: 0.96, cz: -0.04 }, { y: 0.1, hw: 0.8, hd: 0.95, cz: 0 }, { y: -0.2, hw: 0.78 + (wide ? 0.02 : 0), hd: 0.88, cz: 0.0 },
-    { y: -0.5, hw: 0.68 * j, hd: 0.8, cz: 0.03 }, { y: -0.78, hw: 0.5 * j, hd: 0.66, cz: 0.08 }, { y: -0.98, hw: (wide ? 0.34 : 0.24) * j, hd: 0.48, cz: 0.2 },
+    { y: -0.5, hw: 0.7 * j, hd: 0.8, cz: 0.03 }, { y: -0.78, hw: 0.5 * j, hd: 0.64, cz: 0.1 }, { y: -0.98, hw: (wide ? 0.34 : 0.26) * j, hd: 0.46, cz: 0.2 },
     { y: -1.1, hw: 0.14 * j, hd: 0.3, cz: 0.24 }, { y: -1.15, hw: 0.04, hd: 0.1, cz: 0.24 },
   ];
 }
 /** Front of the face (z) at height y, in head radii: where the nose, glasses and the like sit. */
 const faceZ = (jaw: number, y: number) => { const sl = headSlices(jaw); for (let i = 0; i < sl.length - 1; i++) { const a = sl[i], b = sl[i + 1]; if (y <= a.y && y >= b.y) { const t = (a.y - y) / (a.y - b.y); return (a.cz + a.hd) + ((b.cz + b.hd) - (a.cz + a.hd)) * t; } } return 0.9; };
 function headGeo(R: number, _seg: number, jaw = 1): BufferGeometry {
-  const sl = headSlices(jaw), pos: number[] = [], idx: number[] = [], N = HEAD_RING, n = 2.35;
+  const sl = headSlices(jaw), pos: number[] = [], idx: number[] = [], N = HEAD_RING, n = 3.2;
   const sp = (v: number) => Math.sign(v) * Math.pow(Math.abs(v), 2 / n);
   for (const st of sl) for (let j = 0; j <= N; j++) { const f = (j / N) * Math.PI * 2; pos.push(sp(Math.sin(f)) * st.hw * R, st.y * R, (st.cz + sp(Math.cos(f)) * st.hd) * R); }
   for (let i = 0; i < sl.length - 1; i++) for (let j = 0; j < N; j++) { const a = i * (N + 1) + j, b = a + 1, c = a + N + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
@@ -203,11 +203,11 @@ export function buildCharacter(spec: Spec): Rig {
   // ---- torso, neck
   const torsoG = lathe(torsoProf, seg); torsoG.scale(1, 1, depth);
   mesh(torsoG, skinM, body);
-  const neckR = 0.052 * lk * (fem ? 0.9 : 1.05);
+  const neckR = 0.055 * lk * (fem ? 0.9 : 1.08);
   mesh(lathe([[neckR * 1.1, shoulderY - 0.02], [neckR, shoulderY + 0.03], [neckR * 0.96, shoulderY + neckLen + 0.03]], Math.max(6, seg / 2)), skinM, body);
 
   // ---- head + face
-  const hseg = 16; // the head is built finer than the rest, so the face has enough facets to read as a face
+  const hseg = 10; // the head is built finer than the rest, so the face has enough facets to read as a face
   const head = grp(body, 0, headY, 0);
   const jawK = fem ? 0.85 : 1.05;
   mesh(headGeo(R, hseg, jawK), skinM, head);
@@ -232,19 +232,25 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(ico(R * 0.22), skinM, head, [s * R * 0.8, R * 0.0, -R * 0.1], [0, 0, s * 0.12], [0.36, 1.1, 0.72]);
     mesh(ico(R * 0.07), skinM, head, [s * R * 0.8, -R * 0.24, -R * 0.06], undefined, [0.5, 1, 0.8]);
   }
+  // brow ridge: two heavy slanted slabs, angry and angular like the reference
+  for (const s of [-1, 1]) mesh(new BoxGeometry(R * 0.5, R * 0.1, R * 0.16), mat(shade(spec.skin, -0.12), 0.9), head, [s * R * 0.37, R * 0.3, surf(s * R * 0.37, R * 0.3) - R * 0.02], [0.1, 0, s * -0.22]);
   // nose: bridge, tip and two nostril wings
   const nz = (y: number) => surf(0, y);
-  mesh(new CylinderGeometry(R * 0.055, R * 0.1, R * 0.36, 4), skinM, head, [0, -R * 0.04, nz(-R * 0.04) + R * 0.03], [-0.28, Math.PI / 4, 0], [1, 1, 0.75]);
-  mesh(ico(R * 0.125), skinM, head, [0, -R * 0.215, nz(-R * 0.2) + R * 0.085], undefined, [1, 0.85, 1.1]);
+  mesh(new CylinderGeometry(R * 0.05, R * 0.15, R * 0.5, 4), skinM, head, [0, -R * 0.05, nz(-R * 0.04) + R * 0.05], [-0.3, Math.PI / 4, 0], [0.85, 1, 1.15]);
+  mesh(ico(R * 0.15), skinM, head, [0, -R * 0.25, nz(-R * 0.2) + R * 0.11], undefined, [1, 0.8, 1.2]);
   for (const s of [-1, 1]) mesh(ico(R * 0.08), skinM, head, [s * R * 0.115, -R * 0.235, nz(-R * 0.22) + R * 0.035]);
 
+  // ---- headwear rules: a cap, headwrap or beret covers the hair volume (no bun, puffs or afro poking through), headphones need clear sides
+  const tucked = spec.accessory === 'cap' || spec.accessory === 'gele' || spec.bro === 'beret', phones = spec.accessory === 'headphones';
   // ---- hair + facial hair (shells that hug the skull)
   const hc = mat(spec.hairColor, 0.38);
   const above = (tilt: number, c: number) => (_x: number, y: number, z: number) => y * Math.cos(tilt) - z * Math.sin(tilt) > c * R; // hairline plane
   const shellHair = (c: number, tilt: number, o: number) => mesh(headShell(R, hseg, above(tilt, c), () => o * R, jawK), hc, head);
   // hair stops above the shoulders (higher under a hood), so locks never poke through the clothes underneath
   const hairFloor = shoulderY + (spec.top === 'hoodie' ? 0.105 : spec.top === 'jacket' || spec.top === 'kaftan' ? 0.05 : 0.03) - headY;
-  const strands = (n: number, len0: number, r: number, spread: number, y: number, rad: number, tilt = -0.1) => {
+  const strands = (n: number, len0: number, r: number, spread0: number, y: number, rad: number, tilt = -0.1) => {
+    const spread = phones || tucked ? Math.min(spread0, 1.0) : spread0; // locks stay behind the head under headwear, clear of the ear cups
+
     const len = Math.max(0.05, Math.min(len0, (y - hairFloor) / Math.max(0.5, Math.cos(tilt))));
     for (let i = 0; i < n; i++) {
       const a = Math.PI + ((i + 0.5) / n - 0.5) * spread * 2, l = len * (0.82 + 0.18 * Math.sin(i * 2.3)), g = grp(head); g.rotation.y = a;
@@ -258,11 +264,12 @@ export function buildCharacter(spec: Spec): Rig {
       mesh(headShell(R, hseg, (x, y, z) => (y > R * 0.44) || (y > -R * 0.12 && z < R * 0.2 && Math.abs(x) > -1), (_x, y) => R * (y > R * 0.44 ? 0.085 : 0.07), jawK), hc, head); break;
     case 'fade': shellHair(0.3, 0.45, 0.07); mesh(headShell(R, hseg, above(0.45, 0.0), () => 0.02 * R, jawK), mat(mix(spec.skin, spec.hairColor, 0.45), 0.9), head); break;
     case 'afro': {
+      if (tucked || phones) { shellHair(0.3, 0.4, 0.07); break; } // a closely shaped afro under headwear
       const g = new IcosahedronGeometry(R * 1.55, 1); const p = g.attributes.position;
       for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), d = 1 + 0 * noise3(x * 6, y * 6, z * 6); p.setXYZ(i, x * d, y * d, z * d); }
       g.computeVertexNormals(); g.scale(0.8, 0.8, 0.8); mesh(g, mat(spec.hairColor, 1), head, [0, R * 0.42, -R * 0.34], undefined, [1.0, 0.95, 1.0]);
       shellHair(0.42, 0.35, 0.05); break; }
-    case 'bun': shellHair(0.12, 0.55, 0.045); mesh(new SphereGeometry(R * 0.5, 14, 10), hc, head, [0, R * 1.0, -R * 0.55]); break;
+    case 'bun': shellHair(0.12, 0.55, 0.045); if (!tucked) mesh(new SphereGeometry(R * 0.5, 14, 10), hc, head, [0, R * 1.0, -R * 0.55]); break;
     case 'cornrows': {
       shellHair(0.12, 0.55, 0.012);
       for (let i = -3; i <= 3; i++) {
@@ -278,6 +285,7 @@ export function buildCharacter(spec: Spec): Rig {
       // sleek cap with a swept fringe, and a high tail of chunky tapered locks
       shellHair(0.02, 0.5, 0.055);
       mesh(headShell(R, hseg, (x, y, z) => y > 0.52 * R && z > 0.2 * R && x < 0.1 * R, () => 0.085 * R, jawK), hc, head);
+      if (tucked) break;
       mesh(ico(R * 0.34), hc, head, [0, R * 0.62, -R * 0.98], undefined, [1, 1, 1.1]); // the tie
       mesh(new TorusGeometry(R * 0.2, R * 0.05, 5, 10), mat('#E5B93C', 0.3, { metal: 0.7 }), head, [0, R * 0.55, -R * 1.06], [0.5, 0, 0]);
       [[0, 0.36, 0.5, 0.075], [0.2, 0.3, 0.62, 0.062], [-0.2, 0.3, 0.62, 0.062]].forEach(([yaw, len0, tilt, r]) => {
@@ -303,7 +311,7 @@ export function buildCharacter(spec: Spec): Rig {
       break; }
     case 'puffs': {
       shellHair(0.1, 0.5, 0.05);
-      for (const sd of [-1, 1]) mesh(new IcosahedronGeometry(R * 0.56, 1), hc, head, [sd * R * 0.82, R * 0.88, -R * 0.12]);
+      if (!tucked && !phones) for (const sd of [-1, 1]) mesh(new IcosahedronGeometry(R * 0.56, 1), hc, head, [sd * R * 0.82, R * 0.88, -R * 0.12]);
       break; }
   }
   // facial hair
@@ -319,30 +327,31 @@ export function buildCharacter(spec: Spec): Rig {
   if (spec.bro) {
     mesh(new CylinderGeometry(0.026, 0.026, 0.008, 12), mat('#B91C1C', 0.5), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.02], [Math.PI / 2, 0, 0]);
     mesh(new CylinderGeometry(0.013, 0.013, 0.01, 8), mat('#E5B93C', 0.3, { metal: 0.8 }), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.024], [Math.PI / 2, 0, 0]);
-    if (spec.bro === 'beret') mesh(new SphereGeometry(R * 1.08, seg, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#0B0B0E', 0.9), head, [R * 0.12, R * 0.2, -R * 0.02], [0.1, 0, -0.22], [1.08, 0.5, 1.1]);
+    if (spec.bro === 'beret') mesh(new SphereGeometry(R * 1.2, seg, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#0B0B0E', 0.9), head, [R * 0.12, R * 0.16, -R * 0.02], [0.1, 0, -0.22], [1.08, 0.55, 1.1]);
   }
 
   // ---- masked men and the blindfolded initiate: plain black cloth that wraps the head (open tubes, so nothing can poke through)
   if (spec.mask) {
     const cloth = mat('#0A0A0C', 0.95, { double: true });
-    mesh(new CylinderGeometry(R * 1.06, R * 0.98, R * 0.62, 16, 1, true, -Math.PI * 0.7, Math.PI * 1.4), cloth, head, [0, -R * 0.55, R * 0.02]); // bandana over nose and mouth, tied behind
+    mesh(new CylinderGeometry(R * 1.12, R * 1.04, R * 0.62, 16, 1, true, -Math.PI * 0.7, Math.PI * 1.4), cloth, head, [0, -R * 0.55, R * 0.02]); // bandana over nose and mouth, tied behind
     mesh(new SphereGeometry(R * 0.16, 8, 6), cloth, head, [0, -R * 0.5, -R * 1.0]); // the knot
   }
   if (spec.blind) {
     const cloth = mat('#0D0D10', 0.95, { double: true });
-    mesh(new CylinderGeometry(R * 1.055, R * 1.055, R * 0.34, 18, 1, true), cloth, head, [0, R * 0.1, R * 0.015]); // a band across the eyes
-    mesh(new SphereGeometry(R * 0.14, 8, 6), cloth, head, [R * 0.3, R * 0.06, -R * 1.0]); // the knot
+    mesh(new CylinderGeometry(R * 1.14, R * 1.14, R * 0.34, 18, 1, true), cloth, head, [0, R * 0.1, R * 0.015]); // a band across the eyes
+    mesh(new SphereGeometry(R * 0.14, 8, 6), cloth, head, [R * 0.3, R * 0.06, -R * 1.1]); // the knot
   }
 
-  // ---- accessories
-  if (spec.accessory === 'glasses') {
+  // ---- accessories (each rule below keeps it clear of the hair, the face and the other accessories)
+  const coversEars = spec.hair === 'bob' || spec.hair === 'long' || spec.hair === 'bowl';
+  if (spec.accessory === 'glasses' && !spec.mask && !spec.blind) {
     const f = mat('#15181D', 0.3, { metal: 0.4 });
-    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.7, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY, surf(s * eyeX, eyeY) + R * 0.06]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 0.9), f, head, [s * R * 0.9, eyeY + R * 0.02, R * 0.36]); }
-    mesh(new BoxGeometry(R * 0.2, R * 0.025, R * 0.025), f, head, [0, eyeY + R * 0.05, surf(0, eyeY) + R * 0.06]);
+    for (const s of [-1, 1]) { mesh(new TorusGeometry(er * 1.5, R * 0.025, 6, 20), f, head, [s * eyeX, eyeY - R * 0.03, surf(s * eyeX, eyeY) + R * 0.14]); mesh(new BoxGeometry(R * 0.02, R * 0.02, R * 1.0), f, head, [s * R * 1.0, eyeY, R * 0.4], [0, s * 0.06, 0]); }
+    mesh(new BoxGeometry(R * 0.2, R * 0.025, R * 0.025), f, head, [0, eyeY + R * 0.02, surf(0, eyeY) + R * 0.14]);
   }
   if (spec.accessory === 'cap') {
-    mesh(new SphereGeometry(R * 1.1, seg, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(spec.topColor, 0.8), head, [0, R * 0.12, -R * 0.02], [-0.18, 0, 0], [1, 1.1, 1.05]);
-    mesh(new CylinderGeometry(R * 1.1, R * 1.1, R * 0.05, 14, 1, false, -Math.PI / 2, Math.PI), mat(shade(spec.topColor, -0.15), 0.8), head, [0, R * 0.5, R * 0.95], [0.12, 0, 0]);
+    mesh(new SphereGeometry(R * 1.2, seg, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(spec.topColor, 0.8), head, [0, R * 0.08, -R * 0.03], [-0.16, 0, 0], [1, 1.02, 1.04]);
+    mesh(new CylinderGeometry(R * 1.2, R * 1.2, R * 0.05, 14, 1, false, -Math.PI / 2, Math.PI), mat(shade(spec.topColor, -0.15), 0.8), head, [0, R * 0.5, R * 1.0], [0.12, 0, 0]);
   }
   if (spec.accessory === 'gele') {
     // a Nigerian headwrap: a folded band round the forehead and a big fan tied up behind it, in a rich colour
@@ -358,8 +367,8 @@ export function buildCharacter(spec: Spec): Rig {
     mesh(new TorusGeometry(R * 1.18, R * 0.07, 6, 18, Math.PI), hp, head, [0, R * 0.15, 0], [0, 0, 0]);
     for (const sd of [-1, 1]) { mesh(new CylinderGeometry(R * 0.36, R * 0.36, R * 0.26, 10), hp, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); mesh(new CylinderGeometry(R * 0.28, R * 0.28, R * 0.3, 10), pad, head, [sd * R * 1.14, R * 0.05, 0], [0, 0, Math.PI / 2]); }
   }
-  if (spec.accessory === 'stud') mesh(new SphereGeometry(R * 0.055, 8, 6), mat('#F2C94C', 0.25, { metal: 0.85 }), head, [R * 0.93, -R * 0.26, -R * 0.07]);
-  if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * 0.82, -R * 0.3, -R * 0.06], [0, Math.PI / 2, 0]);
+  if (spec.accessory === 'stud') { const gm = mat('#F2C94C', 0.25, { metal: 0.85 }); mesh(new TorusGeometry(R * 0.11, R * 0.028, 5, 8), gm, head, [R * 0.9, -R * 0.26, -R * 0.07], [0, Math.PI / 2, 0]); mesh(new SphereGeometry(R * 0.05, 6, 5), gm, head, [R * 0.93, -R * 0.2, -R * 0.07]); }
+  if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * (coversEars ? 1.0 : 0.82), -R * 0.3, -R * 0.06], [0, Math.PI / 2, 0]);
 
   // ---- garments (shells built from the same silhouette so every style fits)
   const topC = mat(spec.topColor, 0.82, { double: true }), topTrim = mat(shade(spec.topColor, 0.35), 0.7, { double: true }), topDark = mat(shade(spec.topColor, -0.4), 0.8, { double: true });
@@ -386,7 +395,8 @@ export function buildCharacter(spec: Spec): Rig {
       const vp: Pt[] = []; for (const [r, y] of torsoProf) if (y >= h(0.0) && y < h(1.0) + 0.05) vp.push([r + off + 0.016, y]);
       vp.unshift([profileAt(torsoProf, h(0.0)) + off + 0.016, h(0.0)]);
       const vg = new LatheGeometry(vp.map(([r, y]) => new Vector2(r, y)), seg, 0.52, Math.PI * 2 - 1.04); vg.scale(1, 1, depth); mesh(vg, topC, body);
-      mesh(new TorusGeometry(neckR * 1.75, 0.014, 6, 16, Math.PI * 2 - 1.0), topDark, body, [0, h(1.0) + 0.052, 0.0], [Math.PI / 2, 0, Math.PI / 2 + 0.5]);
+      const col = new CylinderGeometry(neckR * 2.15, neckR * 1.6, 0.085, 8, 1, true, 0.55, Math.PI * 2 - 1.1); mesh(col, topDark, body, [0, h(1.0) + 0.06, -0.012], [-0.12, 0, 0]);
+      mesh(new BoxGeometry(0.004, T * 0.8, 0.012), topDark, body, [0, h(0.45), (profileAt(torsoProf, h(0.45)) + off + 0.02) * depth]); // zip line
     }
     mesh(new TorusGeometry(neckR * 1.55, 0.008, 6, 16), B === 'shirt' ? topTrim : topDark, body, [0, h(1.0) + 0.04, 0.0], [Math.PI / 2, 0, 0]);
     if (B === 'hoodie') mesh(new SphereGeometry(0.13, 14, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.6), topC, body, [0, shoulderY + 0.07, -0.07], [0.35, 0, 0], [1.15, 0.9, 0.8]);
@@ -395,7 +405,7 @@ export function buildCharacter(spec: Spec): Rig {
   }
 
   // ---- chain: lies ON the garment (its radius follows the body plus the garment's thickness), never inside it
-  if (spec.accessory === 'chain') {
+  if (spec.accessory === 'chain' && spec.bag !== 'crossbody' && spec.bag !== 'backpack') {
     const g = mat('#E5B93C', 0.25, { metal: 0.85 }), cy = shoulderY - 0.035, thick = onePiece ? 0.008 : ({ tee: 0.01, shirt: 0.009, hoodie: 0.022, jacket: 0.03, kaftan: 0.028, jersey: 0.012 }[B]) + (VEST ? 0.016 : 0);
     const cr = profileAt(torsoProf, cy) + thick + 0.014;
     mesh(new TorusGeometry(cr, 0.006, 6, 24), g, body, [0, cy, 0], [Math.PI / 2, 0, 0], [1, depth, 1]);
@@ -442,14 +452,14 @@ export function buildCharacter(spec: Spec): Rig {
 
   // ---- arms
   const mkArm = (s: number) => {
-    const r0 = 0.05 * lk;
+    const r0 = 0.052 * lk;
     const sh = grp(body, s * (shr * 0.96 + r0 * 0.34), shoulderY - 0.058, 0); sh.rotation.z = s * 0.06;
-    const r1 = 0.043 * lk, r2 = 0.033 * lk;
-    mesh(new SphereGeometry(r0 * 1.06, 8, 6), skinM, sh, [-s * 0.004, 0.008, 0], undefined, [1.0, 1.05, 1]); // deltoid (kept under the sleeve cap)
-    mesh(lathe(limbPts(upper, r0, r1, r1 * 0.92), 10), skinM, sh);
+    const r1 = 0.047 * lk, r2 = 0.034 * lk;
+    mesh(new SphereGeometry(r0 * 1.18, 7, 5), skinM, sh, [-s * 0.004, 0.006, 0], undefined, [1.0, 1.1, 1.0]); // deltoid (kept under the sleeve cap)
+    mesh(lathe(limbPts(upper, r0, r1 * 1.18, r1 * 0.9), 7), skinM, sh);
     const elbow = grp(sh, 0, -upper, 0); elbow.rotation.x = -0.18;
     mesh(new SphereGeometry(r1 * 0.5, 10, 8), skinM, elbow);
-    mesh(lathe(limbPts(fore, r1 * 0.95, r1 * 0.9, r2), 10), skinM, elbow);
+    mesh(lathe(limbPts(fore, r1 * 0.98, r1 * 1.0, r2), 7), skinM, elbow);
     const hand = grp(elbow, 0, -fore, 0), hs = st.hand;
     mesh(handGeo(s, hs), skinM, hand);
     if (spec.bro && s === -1) mesh(new CylinderGeometry(r2 + 0.009, r2 + 0.009, 0.034, 12), mat('#0A0A0C', 0.5), elbow, [0, -fore * 0.9, 0]); // the black Brotherhood bracelet, on the left wrist
@@ -457,7 +467,7 @@ export function buildCharacter(spec: Spec): Rig {
     const sleeveLen = B === 'tee' || B === 'jersey' ? upper * 0.45 : B === 'kaftan' ? upper * 1.1 : upper;
     const so = { tee: 0.008, shirt: 0.008, hoodie: 0.016, jacket: 0.022, kaftan: 0.022, jersey: 0.01 }[B], flare = B === 'kaftan' ? 0.06 : 0.006;
     // a rounded dome over the shoulder (not a square pad), always above the skin deltoid, then the sleeve
-    mesh(lathe([[0.001, r0 * 1.22 + so + 0.004], [(r0 + so) * 0.58, r0 * 1.16 + so], [(r0 + so) * 0.9, r0 * 0.82], [(r0 + so) * 1.0, r0 * 0.4], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 14), shirtC, sh);
+    if (!VEST) mesh(lathe([[0.001, r0 * 1.22 + so + 0.004], [(r0 + so) * 0.58, r0 * 1.16 + so], [(r0 + so) * 0.9, r0 * 0.82], [(r0 + so) * 1.0, r0 * 0.4], [r0 + so, 0], [r1 + so + flare * 0.4, -sleeveLen * 0.5], [r1 * 0.92 + so + flare, -sleeveLen]], 14), shirtC, sh);
     if (B === 'shirt' || B === 'hoodie' || B === 'jacket') {
       mesh(lathe(tubePts(fore * 0.92, r1 * 0.95 + so, r1 * 0.9 + so, r2 + so + 0.002), 10), topC, elbow);
       mesh(new TorusGeometry(r2 + so + 0.002, 0.007, 5, 12), T0 === 'shirt' ? topTrim : topDark, elbow, [0, -fore * 0.92, 0], [Math.PI / 2, 0, 0]);

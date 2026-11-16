@@ -86,8 +86,8 @@ export function SettingsApp() {
       <Section title="App">
         <Card>
           {pwa.installed ? <p className="text-sm font-bold">Installed ✓<span className="mt-1 block text-xs font-normal text-slate-500">You are playing the installed app. It also works offline once it has loaded.</span></p>
-            : pwa.canInstall ? <><p className="mb-2 text-sm font-bold">Install Nigeria Life</p><p className="mb-2 text-xs leading-snug text-slate-500">Add it to your home screen: full screen, its own icon, and it keeps working without a connection.</p><Btn onClick={() => { void pwa.promptInstall(); }}>Install app</Btn></>
-            : <p className="text-sm font-bold">Install Nigeria Life<span className="mt-1 block text-xs font-normal leading-snug text-slate-500">{pwa.ios ? 'In Safari tap Share, then Add to Home Screen.' : 'Use your browser menu: Install app, or Add to Home screen.'}</span></p>}
+            : pwa.canInstall ? <><p className="mb-2 text-sm font-bold">Install One Naija</p><p className="mb-2 text-xs leading-snug text-slate-500">Add it to your home screen: full screen, its own icon, and it keeps working without a connection.</p><Btn onClick={() => { void pwa.promptInstall(); }}>Install app</Btn></>
+            : <p className="text-sm font-bold">Install One Naija<span className="mt-1 block text-xs font-normal leading-snug text-slate-500">{pwa.ios ? 'In Safari tap Share, then Add to Home Screen.' : 'Use your browser menu: Install app, or Add to Home screen.'}</span></p>}
           {pwa.updateReady && <div className="mt-3 border-t border-slate-200 pt-3"><p className="mb-2 text-sm font-bold">A new version is ready</p><Btn onClick={pwa.applyUpdate}>Refresh now</Btn></div>}
         </Card>
       </Section>
@@ -118,7 +118,7 @@ export function SettingsApp() {
         <Card><p className="text-sm font-bold">Start a new life</p><p className="text-xs text-slate-500">Your current life is deleted. The roulette decides who you become.</p>
           {confirm ? <div className="mt-2 flex gap-2"><Btn tone="light" onClick={() => setConfirm(false)}>Keep playing</Btn><Btn tone="red" onClick={() => { usePhoneStore.getState().closePhone(); restartLife(); }}>Spin again</Btn></div> : <Btn tone="red" className="mt-2" onClick={() => setConfirm(true)} disabled={!hasLife}>Start New Life</Btn>}</Card>
       </Section>
-      <p className="pt-2 text-center text-xs text-slate-400">Nigeria Life · prototype 0.2</p>
+      <p className="pt-2 text-center text-xs text-slate-400">One Naija · prototype 0.2</p>
     </div>
   );
 }

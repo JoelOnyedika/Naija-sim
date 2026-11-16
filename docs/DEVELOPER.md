@@ -1,4 +1,4 @@
-# Nigeria Life: Developer Guide
+# One Naija: Developer Guide
 
 This guide explains how the project is organised and how to extend it. For adding a new Nigerian state see [ADDING_A_STATE.md](ADDING_A_STATE.md).
 

@@ -1,3 +1,36 @@
+## v44: shooting system (open world)
+
+- Armed players can draw their equipped gun (button or F), aim and fire (Fire button or Space) and reload (button or R) in the open world. Uses the existing weapon stats: damage, range, clip size, cooldown, noise and heat per shot; the hit chance falls with distance and a headshot does double damage. Bullets stop at buildings; light aim assist for thumbs.
+- Ammo: a full clip plus two spare clips each time you step outside, shown beside the weapon name. Dry fire and "out of ammo" are handled.
+- Effects: gunshot sound, tracer, muzzle flash, impact puffs, hit marker, a gun in hand while aiming.
+- People: shots scare everyone nearby (they run away); a person who is hit falls down and gets up after a while. Nobody bleeds and nothing graphic is shown.
+- Law: each shot adds heat; hurting a person makes you wanted for a minute. Stars 1 to 3 send 1, 2 or 4 police officers running at you from a distance. If one reaches you, you are arrested (existing arrest rules: weapon taken, sentence doubled) and taken to the cell. Get over 110 m away for a few seconds to lose them. Heat cools when you stop shooting.
+- New test: npm run test:shooting (ray hits, walls, headshots, aim assist, ammo, stars, arrest).
+- Not yet: buying ammo, enemies that shoot back, shooting police, rifle (still locked), shooting from interiors, recoil animation.
+
+## v43: new login and character screens, open world
+
+- Landing, login/signup, loading and character screens redesigned in the One Naija look: big animated wordmark, readable hero over the map (map pins no longer cover the text), Sign Up/Login tabs with show-password, a loading screen with rotating Naija tips, a spotlight stage for the character, one-tap Quick Looks (Street, Campus, Big Man, Sporty, Fine Girl), emoji tabs, bigger swatches and chips.
+- Open world: new "Outside" button in the dock opens a walkable Lagos street city (flow phase 'openworld'). 9x9 blocks with roads, houses, towers, trees; every landmark has its own building and a pin; third-person camera (drag the right side to look), left joystick or WASD, Run button, collision with buildings, a minimap, a card that names the landmark you are near, walking pedestrians and driving cars (danfo yellow included), landscape requested (installed app) with a hint in portrait. A city picker lists Lagos plus Abuja, Port Harcourt and Benin City as coming-soon placeholders.
+- Code: features/openworld/ (worldGen.ts pure and tested, WorldScene.tsx, OpenWorldScreen.tsx). Buildings and trees are instanced meshes (few draw calls); pedestrians and cars hide when far.
+- New test: npm run test:openworld.
+- Not yet: entering venues from the street, street events and missions in the open world, other cities, car driving, real phone performance tuning.
+
+## v42: accessory overlap fixes, One Naija name, livelier walk
+
+- Accessories no longer overlap: caps, headwraps and berets are larger and hide hair volume (afro, bun, puffs, ponytail) so nothing pokes through; headphones keep braids/locks and puffs clear of the ear cups; glasses sit in front of the brow ridge with temples outside the hair and are hidden under a mask or blindfold; earrings move out when hair covers the ears; blindfold and mask cloth clear the hair; the chain is skipped under a crossbody or backpack strap.
+- Game renamed to One Naija (title, logo, PWA manifest, share text, receipts, billboards).
+- Walk and run exaggerated: deeper knee bend, bigger stride, stronger arm swing, more body bob, roll and lean.
+- New docs/MISSIONS_PROPOSAL.md: project summary, storylines per venue, street events, retention ideas, open world plan.
+- Not yet done: login and customization screen redesign, open world.
+
+## v41: Unilag story starts on arrival, faceted characters
+
+- The Unilag storyline now starts the moment the player first enters campus. It no longer waits for the four intro missions (meet adviser, queue, register, lecture); those stay ordinary tasks. Existing saves stuck at the arrival stage start the story on their next campus visit.
+- Every character (player, NPCs, crowd, cast) is rebuilt in the faceted look of the reference: bigger boxier head, wedge nose, heavy slanted brows, hooded eyes, flat-plane face (no airbrushing), 7-sided limbs so facets show, heavier arms, thicker neck. The vest look has a tall standing collar, no sleeves (bare arms), and a gold ear ring.
+- storyTest updated for the new start; test:story, test:anim and smoke pass.
+- Known: the full beard looks patchy on the coarser head.
+
 ## v40: Naija story, hard-scene animation, real walking, PWA
 
 - Story rewritten in Pidgin with menace; new scenes: the jump at the gate (masked men, blindfold), cold-water shivering, the gauntlet, a longer beating; the oath is now a street call-and-response.

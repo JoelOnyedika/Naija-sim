@@ -1,4 +1,4 @@
-# Nigeria Life: systems reference
+# One Naija: systems reference
 
 What the code **actually does today**. Sections for features that are not built yet say so. Status words are used strictly:
 **Implemented** (works end to end in the local game), **Simulated** (works, but stands in for something that needs a server),

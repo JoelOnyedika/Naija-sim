@@ -20,7 +20,7 @@ export function ReceiptTab({ txId }: { txId: string | null }) {
   return (
     <div className="p-3">
       <div className="mx-auto max-w-sm rounded-2xl bg-white p-5 text-slate-900 shadow-md" style={{ backgroundImage: 'radial-gradient(circle at 10px 100%, transparent 7px, #fff 8px)', backgroundSize: '20px 14px', backgroundRepeat: 'repeat-x', backgroundPosition: 'bottom' }}>
-        <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Nigeria Life · Receipt</p>
+        <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">One Naija · Receipt</p>
         <p className="mt-3 text-center text-xs text-slate-500">{tx.label}</p>
         <p className={`text-center font-display text-4xl font-extrabold tabular-nums ${tx.internal ? 'text-sky-600' : out ? 'text-slate-900' : 'text-emerald-600'}`}>{formatNaira(Math.abs(tx.amount))}</p>
         <dl className="mt-4 space-y-2 border-t border-dashed border-slate-300 pt-4 text-[13px]">

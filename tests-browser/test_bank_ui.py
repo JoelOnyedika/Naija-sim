@@ -64,7 +64,7 @@ with sync_playwright() as p:
     rows = pg.locator("button[aria-label$='open receipt']").count()
     ok(rows >= 1, f"history search finds the bond entries ({rows})")
     pg.locator("button[aria-label$='open receipt']").first.click(); pg.wait_for_timeout(400)
-    ok(pg.get_by_text("Nigeria Life · Receipt").count() == 1, "tapping a history row opens its receipt")
+    ok(pg.get_by_text("One Naija · Receipt").count() == 1, "tapping a history row opens its receipt")
     pg.screenshot(path=f"{SHOTS}/bank_light_receipt_from_history.png")
 
     # --- Settings

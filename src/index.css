@@ -103,3 +103,18 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible { outli
 .ball-gold { border-color: transparent; animation: ball-pulse 2.2s ease-in-out infinite; background: linear-gradient(160deg, rgba(250,204,21,0.22), rgba(255,255,255,0.03)); }
 .ball-fire { border: 2px solid transparent; background: linear-gradient(#1b0f16, #1b0f16) padding-box, linear-gradient(100deg, #ff3d00, #ffd600, #ff1744, #ff9100, #ff3d00) border-box; background-size: 100% 100%, 300% 100%; animation: ball-fire 2.4s linear infinite; box-shadow: 0 0 24px rgba(255,90,0,0.55); }
 @media (prefers-reduced-motion: reduce) { .ball-gold, .ball-fire { animation: none; } }
+
+/* One Naija brand + login/customisation look */
+.logo-naija { background: linear-gradient(90deg,#34D98A,#FFC21A 55%,#34D98A); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 6s linear infinite; filter: drop-shadow(0 2px 8px rgba(11,143,77,0.5)); }
+.stripe-flow i:nth-child(odd) { background: linear-gradient(90deg,#0B8F4D,#34D98A); }
+.cta-naija { background: linear-gradient(135deg,#FFC21A,#FF9A1A); color: #1A1200; box-shadow: 0 10px 30px rgba(255,194,26,0.4), inset 0 1px 0 rgba(255,255,255,0.5); transition: transform .15s; }
+.cta-naija:active { transform: scale(0.97); }
+.cta-ghost { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22); backdrop-filter: blur(14px); transition: transform .15s; }
+.cta-ghost:active { transform: scale(0.97); }
+.feature-chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(10px); }
+.hero-orb { position: absolute; border-radius: 9999px; filter: blur(46px); pointer-events: none; }
+@keyframes float { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+.animate-float { animation: float 3.2s ease-in-out infinite; }
+.stage-bg { background: radial-gradient(ellipse 70% 55% at 50% 62%, rgba(11,143,77,0.42), transparent 70%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(255,194,26,0.22), transparent 70%), linear-gradient(180deg,#101a22,#0b1117); }
+.stage-ring { position: absolute; left: 50%; bottom: 8%; width: 62%; max-width: 20rem; aspect-ratio: 3/1; transform: translateX(-50%); border-radius: 50%; border: 2px solid rgba(255,194,26,0.35); box-shadow: 0 0 40px rgba(255,194,26,0.25), inset 0 0 30px rgba(11,143,77,0.35); pointer-events: none; }
+.tab-pill { transition: background .15s, transform .15s; }

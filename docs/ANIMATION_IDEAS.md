@@ -1,4 +1,4 @@
-# Nigeria Life: animation ideas
+# One Naija: animation ideas
 
 These are suggestions for the next phase (the owner will start on animation). Nothing here is built yet.
 

@@ -1,5 +1,5 @@
 /**
- * SIMULATED players. Nigeria Life has no multiplayer yet, so every "player" you can find, message, hire or be hired by is a
+ * SIMULATED players. One Naija has no multiplayer yet, so every "player" you can find, message, hire or be hired by is a
  * scripted character defined here. The UI labels them "Simulated player". When real accounts exist, this list is replaced
  * by a server lookup and the rest of the code keeps its shape (ids stay `p:<username>`).
  */

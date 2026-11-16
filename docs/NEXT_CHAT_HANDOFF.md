@@ -1,6 +1,6 @@
 > **STATUS: ACTIVE.** When every item in section 5 is finished and verified, the next chat must **delete this file** (`docs/NEXT_CHAT_HANDOFF.md`) and remove any mention of it from `CHANGES.md`. If it cannot delete it, it must change this line to `STATUS: COMPLETED / OBSOLETE. Do not follow this file.`
 
-# Nigeria Life: handoff to the next chat
+# One Naija: handoff to the next chat
 
 You are continuing an existing project. Do not rebuild it. Read this whole file first, then `CHANGES.md` (newest work is at the top) and `docs/SYSTEMS.md`.
 
