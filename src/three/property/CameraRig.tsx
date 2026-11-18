@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { CLOSE, DEFAULT_AZ, DEFAULT_POLAR, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
+import { CLOSE, DEFAULT_AZ, DEFAULT_POLAR, ZOOM_MIN, targetAzimuth, useCameraStore } from '@/stores/cameraStore';
 import { effectiveView, useViewStore } from '@/stores/viewStore';
 import { livePlayer } from '@/world/npcLive';
 import { clampToBounds } from '@/world/cameraShots';
@@ -28,6 +28,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
   const panLimit = useRef(10);
   const blend = useRef(0); // 0 = normal view, 1 = fully focused on the placed item
   const inVenue = useInteriorStore((st) => !!st.current);
+  const closeNow = useRef(false);
   const closeBlend = useRef(0), cineBlend = useRef(0), baseFov = useRef(38), smLook = useRef<[number, number, number] | null>(null), lastShot = useRef<import('@/world/cameraShots').Shot | null>(null);
   const aspect = size.width / Math.max(size.height, 1);
   // MVP framing, applied to every home: distance grows with the house side, pulled back a little on portrait screens.
@@ -69,7 +70,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
       st.panBy(-dx * unit * rx + dy * fore * fx, -dx * unit * rz + dy * fore * fz, panLimit.current);
     };
     const down = (e: PointerEvent) => {
-      useCameraStore.getState().clearFocus();
+      useCameraStore.getState().clearFocus(); useCameraStore.getState().takeControl();
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY, pan: e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.shiftKey) });
       if (pts.size === 2) pinch = dist();
     };
@@ -80,15 +81,15 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
       if (!ready || useEditorStore.getState().dragging) return;
       if (pts.size === 1) {
         if (p.pan) slide(dx, dy);
-        else { useCameraStore.getState().swipe(-dx * SWIPE_RAD_PER_PX); useCameraStore.getState().tiltBy(-dy * TILT_RAD_PER_PX); }
+        else { useCameraStore.getState().takeControl(); const cs = useCameraStore.getState(); if (closeNow.current) cs.swipeFree(-dx * SWIPE_RAD_PER_PX); else cs.swipe(-dx * SWIPE_RAD_PER_PX); cs.tiltBy(-dy * TILT_RAD_PER_PX); }
       } else if (pts.size === 2) {
-        const d = dist(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * Math.pow(pinch / d, 1.35)); pinch = d;
+        const d = dist(); useCameraStore.getState().takeControl(); useCameraStore.getState().setZoom(useCameraStore.getState().zoom * Math.pow(pinch / d, 1.35)); pinch = d;
         const after = mid(); if (before) slide(after.x - before.x, after.y - before.y);
       }
     };
     const up = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
     const wheel = (e: WheelEvent) => {
-      if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); const c = useCameraStore.getState();
+      if (!ready) return; e.preventDefault(); useCameraStore.getState().clearFocus(); useCameraStore.getState().takeControl(); const c = useCameraStore.getState();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; // line-based wheels report lines, not pixels
       if (e.shiftKey) c.tiltBy(dy * 0.0008); else c.setZoom(c.zoom * Math.exp(dy * (e.ctrlKey ? 0.01 : 0.0016)));
     };
@@ -124,14 +125,14 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     const wantClose = effectiveView(useViewStore.getState().view) === 'close' && !useEditorStore.getState().dragging && livePlayer.set ? 1 : 0;
     closeBlend.current += (wantClose - closeBlend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 4.5));
     if (Math.abs(wantClose - closeBlend.current) < 1e-3) closeBlend.current = wantClose;
-    const cb = closeBlend.current;
+    const cb = closeBlend.current; closeNow.current = cb > 0.5;
     if (cb > 0) {
       const hb = houseBounds(layout), narrow = Math.min(hb.x1 - hb.x0, hb.z1 - hb.z0) < CLOSE.narrowBelow;
       const px2 = livePlayer.x, pz2 = livePlayer.z;
       if (!smLook.current) smLook.current = [px2, CLOSE.lookHeight, pz2];
       const k = 1 - Math.exp(-Math.min(dt, 0.1) * CLOSE.follow), sl = smLook.current; // smooth follow: the camera trails the player a little
       sl[0] += (px2 - sl[0]) * k; sl[2] += (pz2 - sl[2]) * k;
-      const rc = Math.min(CLOSE.distance * (narrow ? 0.82 : 1), fit * 0.8) * Math.max(0.5, st.zoom);
+      const rc = Math.min(CLOSE.distance * (narrow ? 0.82 : 1), fit * 0.8) * Math.max(ZOOM_MIN, st.zoom);
       const polc = Math.min(CLOSE.polarMax, Math.max(CLOSE.polarMin, pol + (CLOSE.polar - DEFAULT_POLAR)));
       lx += (sl[0] - lx) * cb; ly += (sl[1] - ly) * cb; lz += (sl[2] - lz) * cb; r += (rc - r) * cb; pol2 += (polc - pol2) * cb;
     } else smLook.current = null;
@@ -144,7 +145,7 @@ export function CameraRig({ layout, ready = true }: { layout: PropertyLayout; re
     if (cine && Date.now() > cine.until) useCameraStore.getState().endCinematic();
     const live = useCameraStore.getState().cinematic;
     if (live) lastShot.current = live.shot;
-    const wantCine = live ? 1 : 0;
+    const wantCine = live && Date.now() > st.controlUntil ? 1 : 0; // the player can always take the camera back
     cineBlend.current += (wantCine - cineBlend.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 3.2));
     if (Math.abs(wantCine - cineBlend.current) < 1e-3) cineBlend.current = wantCine;
     const cn = cineBlend.current, sh = live?.shot ?? lastShot.current;

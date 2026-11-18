@@ -22,6 +22,11 @@ export interface Cinematic { shot: Shot; until: number }
 /** The longest any cinematic shot may be held without being refreshed. */
 export const CINEMATIC_MAX_MS = 120_000;
 interface CameraState {
+  /** Until this time (ms) the player's own input wins over a cinematic shot: any drag, pinch or wheel takes the camera back. */
+  controlUntil: number;
+  takeControl: (ms?: number) => void;
+  /** Close view only: rotate all the way round (the house view keeps its +-90 degree swipe). */
+  swipeFree: (dAz: number) => void;
   /** The temporary cinematic camera (null = the player's own view). Set by game/interact.ts and the story; always ends. */
   cinematic: Cinematic | null;
   setCinematic: (shot: Shot, maxMs?: number) => void;
@@ -51,6 +56,8 @@ interface CameraState {
 }
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const useCameraStore = create<CameraState>((set, get) => ({
+  controlUntil: 0, takeControl: (ms = 7000) => set({ controlUntil: Date.now() + ms }),
+  swipeFree: (dAz) => set((s) => ({ offset: clamp(s.offset + dAz, -Math.PI * 2, Math.PI * 2) })),
   steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null, cinematic: null,
   setCinematic: (shot, maxMs = CINEMATIC_MAX_MS) => set({ cinematic: { shot, until: Date.now() + maxMs } }),
   endCinematic: () => { if (get().cinematic) set({ cinematic: null }); },
@@ -67,7 +74,7 @@ export const useCameraStore = create<CameraState>((set, get) => ({
   panBy: (dx, dz, limit) => set((s) => { let x = s.pan[0] + dx, z = s.pan[1] + dz; const m = Math.hypot(x, z); if (m > limit) { x *= limit / m; z *= limit / m; } return { pan: [x, z] }; }),
   recenter: () => set({ pan: [0, 0] }),
   tiltBy: (d) => set((s) => ({ polar: clamp(s.polar + d, POLAR_MIN, POLAR_MAX) })),
-  reset: () => set({ steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null, cinematic: null }),
+  reset: () => set({ controlUntil: 0, steps: 0, offset: 0, zoom: 1, polar: DEFAULT_POLAR, pan: [0, 0], focus: null, cinematic: null }),
 }));
 /** The azimuth the camera is heading for. */
 export const targetAzimuth = (s: { steps: number; offset: number }) => DEFAULT_AZ + s.steps * STEP + s.offset;

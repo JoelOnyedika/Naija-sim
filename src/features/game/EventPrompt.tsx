@@ -25,7 +25,7 @@ function chipsFor(c: EventChoice) {
  * A street moment: somebody stops you and you pick what to do. A colourful bottom card with a countdown. The 3D world stays visible
  * above it. Letting the time run out (or closing the card) ignores the person, which can have a small cost.
  */
-export function EventPrompt() {
+export function EventPrompt({ placeLabel }: { placeLabel?: string } = {}) {
   const pending = useDailyStore((s) => s.pending);
   const money = useEconomyStore((s) => s.money);
   const place = useInteriorStore((s) => s.current?.name);
@@ -50,7 +50,7 @@ export function EventPrompt() {
               <div className="min-w-0 flex-1 pr-9">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="rounded-full bg-black/35 px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wide text-white">{ev.who}</span>
-                  <span className="truncate text-[10.5px] font-semibold text-white/75">{place ? `📍 ${place}` : '🏠 At home'}</span>
+                  <span className="truncate text-[10.5px] font-semibold text-white/75">{placeLabel ?? (place ? `📍 ${place}` : '🏠 At home')}</span>
                 </div>
                 <div className="mt-1 font-display text-[21px] font-extrabold leading-[1.1] text-white drop-shadow">{ev.title}</div>
               </div>

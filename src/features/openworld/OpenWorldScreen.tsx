@@ -3,6 +3,15 @@ import { ArrowLeft, ChevronsUp, Crosshair, MapPin, RotateCw } from 'lucide-react
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { WEAPONS } from '@/data/weapons';
+import { interiorKindForLandmark } from '@/data/interiors';
+import { getStreetEvent } from '@/data/streetEvents';
+import { travelToVenue } from '@/game/interiors';
+import { ignorePending, showEvent } from '@/game/streetEvents';
+import { EventPrompt } from '@/features/game/EventPrompt';
+import { useDailyStore } from '@/stores/dailyStore';
+import { toast } from '@/stores/uiStore';
+import { getLandmark } from '@/world/registry';
+import { formatNaira } from '@/core/format';
 import { arrestPlayer } from '@/game/crime';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useWeaponStore } from '@/stores/weaponStore';
@@ -47,6 +56,9 @@ export function OpenWorldScreen() {
   const weaponId = useWeaponStore((s) => s.equipped);
   const [hud, setHud] = useState({ drawn: false, loaded: 0, reserve: 0, stars: 0, msg: '', hit: false, reloading: false });
   const [near, setNear] = useState<LandmarkSpot | null>(null);
+  const [atDoor, setAtDoor] = useState<string | null>(null);
+  const pending = useDailyStore((s) => s.pending);
+  const usedAt = useRef(new Map<string, number>());
   const [run, setRun] = useState(false);
   const [picker, setPicker] = useState(false);
   const [portrait, setPortrait] = useState(false);
@@ -62,7 +74,22 @@ export function OpenWorldScreen() {
     chk(); window.addEventListener('resize', chk);
     return () => { window.removeEventListener('resize', chk); try { screen.orientation.unlock(); } catch { /* ignore */ } };
   }, []);
-  useEffect(() => { const t = window.setInterval(() => { const l = nearestLandmark(city, state.current.x, state.current.z); setNear((p) => (p?.id === l?.id ? p : l)); }, 250); return () => window.clearInterval(t); }, [city]);
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const p = state.current, l = nearestLandmark(city, p.x, p.z); setNear((q) => (q?.id === l?.id ? q : l));
+      const door = city.landmarks.find((x) => Math.hypot(x.doorX - p.x, x.doorZ - p.z) < 5.5); setAtDoor((q) => (q === (door?.id ?? null) ? q : door?.id ?? null));
+      // street moments: walk up to someone and they stop you (each person once every two minutes; never while another card is open)
+      const d = useDailyStore.getState(), now = Date.now();
+      if (!d.pending) for (const m of city.moments) {
+        if (Math.hypot(m.x - p.x, m.z - p.z) > 3.4 || now - (usedAt.current.get(m.id) ?? 0) < 120000) continue;
+        const ev = getStreetEvent(m.eventId); if (!ev) continue; usedAt.current.set(m.id, now); showEvent(ev, now); break;
+      }
+      if (d.pending && now - d.pending.startedAt >= d.pending.seconds * 1000) ignorePending(now); // the world has no game loop to time a card out
+    }, 250);
+    return () => window.clearInterval(t);
+  }, [city, state]);
+  useEffect(() => { input.current.frozen = !!pending; if (pending) { input.current.mx = 0; input.current.mz = 0; } }, [pending]);
+  const enter = (id: string) => { const r = travelToVenue(id); if (r.ok) { sfx.open(); go('game'); } else { sfx.error(); toast(r.reason, 'bad'); } };
   useEffect(() => { input.current.run = run; }, [run]);
   // the equipped weapon (set in the Brotherhood app / inventory) arrives with a full clip and two spares each time you step outside
   useEffect(() => { const c = combat.current; c.weapon = weaponId; c.drawn = false; c.clip = weaponId ? newClip(weaponId) : { loaded: 0, reserve: 0 }; }, [weaponId]);
@@ -74,7 +101,7 @@ export function OpenWorldScreen() {
     }, 100);
     return () => window.clearInterval(t);
   }, [go]);
-  useEffect(() => { if (import.meta.env.DEV) (window as unknown as { __naijaCombat?: unknown }).__naijaCombat = combat.current; }, []); // dev only: lets browser tests reach the combat state
+  useEffect(() => { if (import.meta.env.DEV) { (window as unknown as { __naijaCombat?: unknown }).__naijaCombat = combat.current; (window as unknown as { __naijaWorld?: unknown }).__naijaWorld = { state: state.current, input: input.current, city }; } }, [city, state]); // dev only: lets browser tests reach the combat state
   const toggleDraw = () => { const c = combat.current; if (!c.weapon) return; c.drawn = !c.drawn; sfx.click(); };
   const reloadNow = () => { combat.current.reloadReq = true; };
   useEffect(() => {
@@ -125,14 +152,18 @@ export function OpenWorldScreen() {
       </div>
       {hud.drawn && <div className="pointer-events-none absolute left-1/2 top-[36%] z-30 -translate-x-1/2 -translate-y-1/2" aria-hidden><div className={`h-7 w-7 rounded-full border-2 ${hud.hit ? 'scale-125 border-rose-400' : 'border-white/80'} transition`} /><span className={`absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${hud.hit ? 'bg-rose-400' : 'bg-white'}`} /></div>}
 
-      {/* landmark card */}
+      {/* landmark card, with the door */}
       <AnimatePresence>
         {near && (
           <motion.div key={near.id} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3">
-            <div className="glass-dark flex max-w-sm items-center gap-3 rounded-2xl px-4 py-2.5"><span className="text-3xl">{near.icon}</span><span><span className="block font-display text-base font-extrabold">{near.name}</span><span className="block text-[13px] text-white/70">{near.tagline}</span></span></div>
+            <div className="glass-dark pointer-events-auto flex max-w-sm items-center gap-3 rounded-2xl px-4 py-2.5"><span className="text-3xl">{near.icon}</span>
+              <span className="min-w-0"><span className="block font-display text-base font-extrabold">{near.name}</span><span className="block text-[13px] text-white/70">{atDoor === near.id ? (interiorKindForLandmark(near.id) ? (getLandmark(near.id)?.visit.cost ? `Entry ${formatNaira(getLandmark(near.id)!.visit.cost)}` : 'Open to everyone') : 'No inside yet') : near.tagline}</span></span>
+              {atDoor === near.id && interiorKindForLandmark(near.id) && <button onClick={() => enter(near.id)} className="cta-naija ml-1 h-11 shrink-0 rounded-xl px-4 font-display text-sm font-extrabold">Enter</button>}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+      {pending && <div className="absolute inset-x-0 bottom-0 z-40 max-h-[92%] overflow-y-auto"><EventPrompt placeLabel="📍 On the street" /></div>}
 
       {/* joystick */}
       <div className="absolute bottom-6 left-5 z-30 h-36 w-36 touch-none rounded-full bg-white/10 ring-2 ring-white/25 backdrop-blur-sm" aria-label="Move"

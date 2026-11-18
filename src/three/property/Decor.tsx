@@ -4,7 +4,7 @@ import type { Decor } from '@/types/world';
 import { zincTexture } from '../textures';
 import { useEditorStore } from '@/stores/editorStore';
 import { useUiStore } from '@/stores/uiStore';
-import { FadeGroup } from './FadeGroup';
+import { FadeGroup, OccluderFade } from './FadeGroup';
 
 /** Roofs and awnings get out of the way while building and unless the camera is tilted low for an outside view of the home. */
 const roofHidden = () => useUiStore.getState().mode === 'buy' || useEditorStore.getState().cameraPolar < 1.1;
@@ -13,18 +13,18 @@ const GREEN = ['#2F7F3D', '#3F9A4A', '#4BAE55'];
 
 function Tree({ s = 1 }: { s?: number }) {
   return (
-    <group scale={s}>
+    <group scale={s}><OccluderFade radius={1.3} height={3.8}>
       <Cyl r={0.13} r2={0.18} h={2.2} pos={[0, 1.1, 0]} color="#6B4A32" rough={0.9} seg={10} />
       <Sph r={1.0} pos={[0, 2.7, 0]} scale={[1, 0.85, 1]} color={GREEN[0]} rough={0.9} />
       <Sph r={0.75} pos={[0.6, 2.4, 0.3]} color={GREEN[1]} rough={0.9} />
       <Sph r={0.7} pos={[-0.55, 2.5, -0.3]} color={GREEN[2]} rough={0.9} />
-    </group>
+    </OccluderFade></group>
   );
 }
 
 function Palm({ s = 1 }: { s?: number }) {
   return (
-    <group scale={s}>
+    <group scale={s}><OccluderFade radius={1.6} height={5}>
       {Array.from({ length: 7 }, (_, i) => <Cyl key={i} r={0.14 - i * 0.008} h={0.62} pos={[Math.sin(i * 0.22) * 0.18 * i * 0.3, 0.3 + i * 0.58, 0]} rot={[0, 0, -0.08 * i * 0.3]} color={i % 2 ? '#8A6A4A' : '#7A5A3A'} rough={0.95} seg={10} />)}
       <group position={[0.38, 4.2, 0]}>
         {Array.from({ length: 8 }, (_, i) => (
@@ -35,7 +35,7 @@ function Palm({ s = 1 }: { s?: number }) {
         <Sph r={0.1} pos={[0.1, -0.15, 0.1]} color="#6B4A32" />
         <Sph r={0.1} pos={[-0.1, -0.15, -0.05]} color="#6B4A32" />
       </group>
-    </group>
+    </OccluderFade></group>
   );
 }
 

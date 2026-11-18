@@ -94,7 +94,7 @@ function chain(parts: BufferGeometry[], at: [number, number, number], rot: [numb
   }
 }
 /** A hand hanging from the wrist (y = 0): tapered palm, four fingers with two joints each, and a thumb. */
-function handGeo(side: number, hs: number): BufferGeometry {
+export function handGeo(side: number, hs: number): BufferGeometry {
   const parts: BufferGeometry[] = [];
   parts.push(placed(new CylinderGeometry(0.047 * hs, 0.058 * hs, 0.088 * hs, 4), [0, -0.046 * hs, 0], [0, Math.PI / 4, 0], [1, 1, 0.42]));
   const lens = [0.07, 0.078, 0.072, 0.056], xs = [0.03, 0.01, -0.01, -0.03];
@@ -174,9 +174,12 @@ function headShell(R: number, seg: number, keep: (x: number, y: number, z: numbe
 }
 
 // ------------------------------------------------------------------ builder
-export interface Rig { dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; footL: Group; footR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number }
+/** What a rigged body gives the builder, so build.ts only makes the head (face, hair, headwear) and hands the rest over. See rigged.ts. */
+export interface HostCtx { body: Group; head: Group; R: number; mat: (c: string, r?: number, o?: { double?: boolean; metal?: number }) => Material; mesh: (g: BufferGeometry, m: Material, parent: Group, pos?: [number, number, number], rot?: [number, number, number], scale?: [number, number, number]) => Mesh; mix: (a: string, b: string, t: number) => string; shade: (hex: string, amt: number) => string }
+export interface Host { root: Group; body: Group; R: number; headY: number; attachHead: () => Group; finish: (ctx: HostCtx) => Rig }
+export interface Rig { sync?: () => void; headBone?: Group; dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; footL: Group; footR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number }
 
-export function buildCharacter(spec: Spec): Rig {
+export function buildCharacter(spec: Spec, host?: Host): Rig {
   const st = POLY, fem = spec.body === 'femme';
   const mesh = (g: BufferGeometry, m: Material, parent: Group, pos?: [number, number, number], rot?: [number, number, number], scale?: [number, number, number]) => {
     const o = new Mesh(g, m); if (pos) o.position.set(...pos); if (rot) o.rotation.set(...rot); if (scale) o.scale.set(...scale); o.castShadow = true; parent.add(o); return o;
@@ -186,8 +189,8 @@ export function buildCharacter(spec: Spec): Rig {
 
   // ---- proportions
   const hipY = st.legs, thigh = st.legs * 0.5, calf = st.legs - st.legs * 0.5 - 0.075;
-  const shoulderY = hipY + st.torso, R = st.head, neckLen = R * 0.55;
-  const headY = shoulderY + neckLen * 0.5 + R * 1.02 + 0.01;
+  const shoulderY = hipY + st.torso, R = host ? host.R : st.head, neckLen = R * 0.55;
+  const headY = host ? host.headY : shoulderY + neckLen * 0.5 + R * 1.02 + 0.01;
   const lk = st.limb, seg = st.seg, sx = st.shoulder * (fem ? 0.9 : 1), hipX = (fem ? 0.095 : 0.085) * (st.torso > 0.5 ? 1 : 0.95) * Math.max(0.9, lk * 0.9);
   const upper = (shoulderY - hipY) * 0.52 * st.arm, fore = (shoulderY - hipY) * 0.46 * st.arm;
   const T = st.torso, h = (f: number) => hipY + T * f;
@@ -197,18 +200,17 @@ export function buildCharacter(spec: Spec): Rig {
   const torsoProf: Pt[] = [[0.001, h(0)], [hipR * 0.96, h(0.01)], [hipR, h(0.12)], [lerp(hipR, waist, 0.85), h(0.3)], [waist, h(0.42)], [lerp(waist, chest, 0.7), h(0.62)], ...(fem ? ([[chest * 1.07, h(0.72)]] as Pt[]) : []), [chest, h(0.78)], [lerp(chest, shr, 0.65), h(0.88)], [shr, h(0.935)], [shr * 0.9, h(0.975)], [shr * 0.6, h(1.0) + 0.006], [0.088 * lk, h(1.0) + 0.032], [0.066 * lk, h(1.0) + 0.052], [0.056 * lk, h(1.0) + 0.066]];
   const depth = fem ? 0.66 : 0.64;
 
-  const root = new Group(), body = grp(root);
+  const root = host ? host.root : new Group(), body = host ? host.body : grp(root);
   const skinM = mat(spec.skin, st.rough);
 
   // ---- torso, neck
-  const torsoG = lathe(torsoProf, seg); torsoG.scale(1, 1, depth);
-  mesh(torsoG, skinM, body);
   const neckR = 0.055 * lk * (fem ? 0.9 : 1.08);
-  mesh(lathe([[neckR * 1.1, shoulderY - 0.02], [neckR, shoulderY + 0.03], [neckR * 0.96, shoulderY + neckLen + 0.03]], Math.max(6, seg / 2)), skinM, body);
+  if (!host) { const torsoG = lathe(torsoProf, seg); torsoG.scale(1, 1, depth); mesh(torsoG, skinM, body); }
+  if (!host) mesh(lathe([[neckR * 1.1, shoulderY - 0.02], [neckR, shoulderY + 0.03], [neckR * 0.96, shoulderY + neckLen + 0.03]], Math.max(6, seg / 2)), skinM, body);
 
   // ---- head + face
   const hseg = 10; // the head is built finer than the rest, so the face has enough facets to read as a face
-  const head = grp(body, 0, headY, 0);
+  const head = host ? host.attachHead() : grp(body, 0, headY, 0);
   const jawK = fem ? 0.85 : 1.05;
   mesh(headGeo(R, hseg, jawK), skinM, head);
   const surf = (x: number, y: number) => R * faceZ(jawK, y / R) * (1 - Math.min(0.5, Math.abs(x) / R) * 0.28);
@@ -325,8 +327,8 @@ export function buildCharacter(spec: Spec): Rig {
 
   // ---- Brotherhood look: a small red-and-gold insignia over the heart and (optionally) a black beret
   if (spec.bro) {
-    mesh(new CylinderGeometry(0.026, 0.026, 0.008, 12), mat('#B91C1C', 0.5), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.02], [Math.PI / 2, 0, 0]);
-    mesh(new CylinderGeometry(0.013, 0.013, 0.01, 8), mat('#E5B93C', 0.3, { metal: 0.8 }), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.024], [Math.PI / 2, 0, 0]);
+    if (!host) mesh(new CylinderGeometry(0.026, 0.026, 0.008, 12), mat('#B91C1C', 0.5), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.02], [Math.PI / 2, 0, 0]);
+    if (!host) mesh(new CylinderGeometry(0.013, 0.013, 0.01, 8), mat('#E5B93C', 0.3, { metal: 0.8 }), body, [-0.085, shoulderY - 0.13, (profileAt(torsoProf, shoulderY - 0.13) * depth) + 0.024], [Math.PI / 2, 0, 0]);
     if (spec.bro === 'beret') mesh(new SphereGeometry(R * 1.2, seg, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#0B0B0E', 0.9), head, [R * 0.12, R * 0.16, -R * 0.02], [0.1, 0, -0.22], [1.08, 0.55, 1.1]);
   }
 
@@ -370,6 +372,7 @@ export function buildCharacter(spec: Spec): Rig {
   if (spec.accessory === 'stud') { const gm = mat('#F2C94C', 0.25, { metal: 0.85 }); mesh(new TorusGeometry(R * 0.11, R * 0.028, 5, 8), gm, head, [R * 0.9, -R * 0.26, -R * 0.07], [0, Math.PI / 2, 0]); mesh(new SphereGeometry(R * 0.05, 6, 5), gm, head, [R * 0.93, -R * 0.2, -R * 0.07]); }
   if (spec.accessory === 'earrings') for (const s of [-1, 1]) mesh(new TorusGeometry(R * 0.1, R * 0.02, 6, 14), mat('#E5B93C', 0.25, { metal: 0.85 }), head, [s * R * (coversEars ? 1.0 : 0.82), -R * 0.3, -R * 0.06], [0, Math.PI / 2, 0]);
 
+  if (host) return host.finish({ body, head, R, mat, mesh, mix, shade });
   // ---- garments (shells built from the same silhouette so every style fits)
   const topC = mat(spec.topColor, 0.82, { double: true }), topTrim = mat(shade(spec.topColor, 0.35), 0.7, { double: true }), topDark = mat(shade(spec.topColor, -0.4), 0.8, { double: true });
   const botC = mat(spec.bottomColor, 0.85, { double: true }), botBand = mat(shade(spec.bottomColor, -0.3), 0.7, { double: true });

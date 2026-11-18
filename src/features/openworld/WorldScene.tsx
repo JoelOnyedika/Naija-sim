@@ -1,19 +1,20 @@
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
-import { Color, DynamicDrawUsage, Object3D, type Group, type InstancedMesh, type Mesh } from 'three';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { Color, DynamicDrawUsage, MeshStandardMaterial, Object3D, type Group, type InstancedMesh, type Mesh } from 'three';
 import { ACCESSORIES, BOTTOM_STYLES, CLOTH_COLORS, HAIR_COLORS, HAIR_STYLES, SHOE_STYLES, SKIN_TONES, TOP_STYLES } from '@/data/clothing';
 import { sfx } from '@/audio/sfx';
 import { WEAPONS } from '@/data/weapons';
 import { addHeat } from '@/game/weapons';
 import { useWeaponStore } from '@/stores/weaponStore';
+import { getStreetEvent } from '@/data/streetEvents';
 import { Avatar, type Motion } from '@/three/avatar/Avatar';
 import type { Appearance } from '@/types/game';
 import { say, type Combat } from './combat';
 import { assistAim, canFire, officersFor, reload, shoot, spend, stars, type V3 } from './shooting';
 import { BLOCK, EXTENT, GRID, PITCH, blockCentre, resolveMove, type City } from './worldGen';
 
-export interface WorldInput { mx: number; mz: number; run: boolean; yaw: number; pitch: number }
+export interface WorldInput { mx: number; mz: number; run: boolean; yaw: number; pitch: number; frozen?: boolean }
 export interface WorldState { x: number; z: number; heading: number }
 
 const pick = <T,>(a: T[], r: () => number) => a[Math.floor(r() * a.length)];
@@ -59,7 +60,7 @@ function Ground() {
     dashes.current!.instanceMatrix.needsUpdate = true;
   }, []);
   return (<>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}><planeGeometry args={[EXTENT * 6, EXTENT * 6]} /><meshStandardMaterial color="#5E8F55" roughness={1} /></mesh>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.3, 0]}><planeGeometry args={[EXTENT * 6, EXTENT * 6]} /><meshStandardMaterial color="#5E8F55" roughness={1} /></mesh>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}><planeGeometry args={[EXTENT * 2 + 12, EXTENT * 2 + 12]} /><meshStandardMaterial color="#3A3F46" roughness={0.95} /></mesh>
     <instancedMesh ref={slabs} args={[undefined, undefined, GRID * GRID]} frustumCulled={false}><boxGeometry /><meshStandardMaterial color="#CFC8B8" roughness={1} /></instancedMesh>
     <instancedMesh ref={dashes} args={[undefined, undefined, dashN * 1]} frustumCulled={false} instanceMatrix-usage={DynamicDrawUsage}><boxGeometry /><meshBasicMaterial color="#F2E6A8" /></instancedMesh>
@@ -79,32 +80,79 @@ const pathAt = (t: number, half: number, centre: [number, number]): [number, num
   return [centre[0] + lx, centre[1] + lz];
 };
 
-/** A person strolling round the pavement of one block. Shots scare them (they run the other way); a hit person falls and gets up later. Hidden when far away. */
+/** A cheap stand-in for a person who is too far away to see detail: three boxes in the right colours. */
+function Impostor({ look, motion }: { look: Appearance; motion: MutableRefObject<Motion> }) {
+  const mats = useMemo(() => ({ top: new MeshStandardMaterial({ color: look.topColor, roughness: 0.9 }), bottom: new MeshStandardMaterial({ color: look.bottomColor, roughness: 0.9 }), skin: new MeshStandardMaterial({ color: look.skin, roughness: 0.9 }), hair: new MeshStandardMaterial({ color: look.hairColor, roughness: 1 }) }), [look]);
+  const g = useRef<Group>(null);
+  useFrame(({ clock }) => { const o = g.current; if (o) o.position.y = motion.current.moving ? Math.abs(Math.sin(clock.elapsedTime * 7 * ((motion.current.speed ?? 1.7) > 3 ? 1.5 : 1))) * 0.05 : 0; });
+  return (
+    <group ref={g}>
+      <mesh position={[0, 0.45, 0]} material={mats.bottom}><boxGeometry args={[0.3, 0.9, 0.22]} /></mesh>
+      <mesh position={[0, 1.18, 0]} material={mats.top}><boxGeometry args={[0.44, 0.6, 0.25]} /></mesh>
+      <mesh position={[0, 1.62, 0]} material={mats.skin}><boxGeometry args={[0.2, 0.24, 0.22]} /></mesh>
+      <mesh position={[0, 1.76, -0.01]} material={mats.hair}><boxGeometry args={[0.22, 0.08, 0.24]} /></mesh>
+    </group>
+  );
+}
+
+/** The door of every venue: a dark door on the building's south face and a gold ring on the doorstep. */
+function Doors({ city }: { city: City }) {
+  const doors = useRef<InstancedMesh>(null), rings = useRef<InstancedMesh>(null);
+  useEffect(() => {
+    const o = new Object3D();
+    city.landmarks.forEach((l, i) => { const b = city.buildings.find((x) => x.landmark === l.id)!;
+      o.rotation.set(0, 0, 0); o.position.set(l.x, 0.3 + 1.7, b.z + b.d / 2 + 0.12); o.scale.set(2.6, 3.4, 0.3); o.updateMatrix(); doors.current!.setMatrixAt(i, o.matrix);
+      o.rotation.set(-Math.PI / 2, 0, 0); o.position.set(l.doorX, 0.36, l.doorZ); o.scale.set(1, 1, 1); o.updateMatrix(); rings.current!.setMatrixAt(i, o.matrix); });
+    doors.current!.instanceMatrix.needsUpdate = true; rings.current!.instanceMatrix.needsUpdate = true;
+  }, [city]);
+  return (<>
+    <instancedMesh ref={doors} args={[undefined, undefined, city.landmarks.length]} frustumCulled={false}><boxGeometry /><meshStandardMaterial color="#3B2A20" roughness={0.7} /></instancedMesh>
+    <instancedMesh ref={rings} args={[undefined, undefined, city.landmarks.length]} frustumCulled={false}><torusGeometry args={[2.1, 0.16, 6, 24]} /><meshBasicMaterial color="#FFC21A" /></instancedMesh>
+  </>);
+}
+
+/** People on the pavement with something to say: a gold ring, a pin with their icon, and they stop you when you walk up. */
+function Moments({ city, look }: { city: City; look: Appearance }) {
+  const people = useMemo(() => { const r = mulberry(9); return city.moments.map((m) => ({ ...m, look: randomLook(r, look), icon: getStreetEvent(m.eventId)?.icon ?? '❗' })); }, [city, look]);
+  const idle = useRef<Motion>({ moving: false, lying: false, sitting: false, speed: 1 });
+  return (<>{people.map((p) => (
+    <group key={p.id} position={[p.x, 0.3, p.z]} rotation={[0, p.rot, 0]}>
+      <Impostor look={p.look} motion={idle} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}><torusGeometry args={[1.6, 0.1, 6, 20]} /><meshBasicMaterial color="#FFC21A" /></mesh>
+      <Html position={[0, 2.5, 0]} center distanceFactor={26} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}><span className="flex h-14 w-14 items-center justify-center rounded-full bg-night/85 text-[30px] ring-4 ring-danfo">{p.icon}</span></Html>
+    </group>))}</>);
+}
+
+/** A person strolling round the pavement of one block. Full detail only when close; shots scare them (they run the other way); a hit person falls and gets up later. Hidden far away. */
 function Pedestrian({ id, look, centre, seed, player, combat }: { id: string; look: Appearance; centre: [number, number]; seed: number; player: MutableRefObject<WorldState>; combat: MutableRefObject<Combat> }) {
   const g = useRef<Group>(null), motion = useRef<Motion>({ moving: true, lying: false, sitting: false, speed: 1.5 });
-  const st = useRef({ t: seed * 37 % 1, dir: seed % 2 ? 1 : -1, fleeUntil: 0, scaredSeen: 0, downAt: 0 });
+  const st = useRef({ t: seed * 37 % 1, dir: seed % 2 ? 1 : -1, fleeUntil: 0, scaredSeen: 0, downAt: 0, pace: 1.2 + (seed % 5) * 0.25 });
+  const [near, setNear] = useState(false), nearRef = useRef(false);
   const half = BLOCK / 2 + 3.2, per = half * 8;
   useFrame((_, dt) => {
     const o = g.current; if (!o) return; const c = combat.current, s = st.current, now = performance.now();
     let me = c.crowd.get(id); if (!me) { me = { id, x: centre[0], z: centre[1], hp: 40, downed: false, hitAt: 0, scaredAt: 0 }; c.crowd.set(id, me); }
+    const dist = Math.hypot(me.x - player.current.x, me.z - player.current.z), wantNear = dist < (nearRef.current ? 34 : 26);
+    if (wantNear !== nearRef.current) { nearRef.current = wantNear; setNear(wantNear); }
+    o.visible = dist < 150;
+    if (!o.visible) { s.t = (s.t + (s.dir * s.pace * Math.min(dt, 0.1)) / per + 1) % 1; const [ax, az] = pathAt(s.t, half, centre); me.x = ax; me.z = az; return; } // far away: keep walking, cheaply
     if (me.downed) {
       if (!s.downAt) s.downAt = now;
       motion.current.moving = false; o.rotation.x = -Math.PI / 2; o.position.y = 0.55;
       if (now - s.downAt > 14000) { me.downed = false; me.hp = 40; s.downAt = 0; o.rotation.x = 0; o.position.y = 0.3; }
-      o.visible = Math.hypot(me.x - player.current.x, me.z - player.current.z) < 70; return;
+      return;
     }
     if (me.scaredAt > s.scaredSeen) { // a shot nearby, or a hit: run away from the player along the pavement
       s.scaredSeen = me.scaredAt; s.fleeUntil = now + 7000;
       const pp = player.current, d1 = pathAt(s.t + 0.01, half, centre), d2 = pathAt(s.t - 0.01, half, centre);
       s.dir = Math.hypot(d1[0] - pp.x, d1[1] - pp.z) > Math.hypot(d2[0] - pp.x, d2[1] - pp.z) ? 1 : -1;
     }
-    const fleeing = now < s.fleeUntil, speed = fleeing ? 4.4 : 1.5; motion.current.moving = true; motion.current.speed = speed;
+    const fleeing = now < s.fleeUntil, speed = fleeing ? 4.8 : s.pace; motion.current.moving = true; motion.current.speed = speed;
     s.t = (s.t + (s.dir * speed * Math.min(dt, 0.1)) / per + 1) % 1;
     const [ax, az] = pathAt(s.t, half, centre), [bx, bz] = pathAt(s.t + s.dir * 0.002, half, centre);
     me.x = ax; me.z = az; o.position.set(ax, 0.3, az); o.rotation.x = 0; o.rotation.y = Math.atan2(bx - ax, bz - az);
-    o.visible = Math.hypot(ax - player.current.x, az - player.current.z) < 70;
   });
-  return <group ref={g}><Avatar appearance={look} motion={motion} /></group>;
+  return <group ref={g}>{near ? <Avatar appearance={look} motion={motion} /> : <Impostor look={look} motion={motion} />}</group>;
 }
 
 const POLICE_LOOK = (base: Appearance): Appearance => ({ ...base, body: 'masc', beard: 'none', skin: '#7A4E32', hairStyle: 'lowcut', top: 'tee', topColor: '#1B2A4A', bottom: 'trousers', bottomColor: '#1B2A4A', shoes: 'boots', shoeColor: '#111111', accessory: 'cap', bag: 'none', gun: true, bro: undefined, mask: false, blind: false });
@@ -155,26 +203,43 @@ function Effects({ combat }: { combat: MutableRefObject<Combat> }) {
   </>);
 }
 
-const CAR_COLOURS = ['#FFC21A', '#C23B3B', '#F4F1EA', '#2B4C7E', '#1B1F24', '#0B8F4D', '#E4572E'];
-function Car({ lane, axis, offset, speed, colour, player }: { lane: number; axis: 'x' | 'z'; offset: number; speed: number; colour: string; player: MutableRefObject<WorldState> }) {
-  const g = useRef<Group>(null);
-  const t = useRef(offset);
-  useFrame((_, dt) => {
-    const o = g.current; if (!o) return;
-    t.current += speed * Math.min(dt, 0.1); const span = EXTENT * 2 + 20; const p = ((t.current + EXTENT + 10) % span + span) % span - EXTENT - 10;
-    const dir = Math.sign(speed), side = dir * 2.6;
-    if (axis === 'x') { o.position.set(p, 0.3, lane + side); o.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2; } else { o.position.set(lane - side, 0.3, p); o.rotation.y = dir > 0 ? 0 : Math.PI; }
-    o.visible = Math.hypot(o.position.x - player.current.x, o.position.z - player.current.z) < 110;
+const CAR_COLOURS = ['#C23B3B', '#F4F1EA', '#2B4C7E', '#1B1F24', '#0B8F4D', '#E4572E', '#9DB8C7', '#6B4128'];
+interface CarDef { axis: 'x' | 'z'; lane: number; dir: 1 | -1; t: number; speed: number; kind: 'car' | 'danfo' | 'bus'; colour: string }
+/** All the moving traffic in four instanced meshes (bodies, cabins, wheels, stripes): hundreds of cars for a handful of draw calls. Cars keep to their own lane and direction, spaced out so the roads look busy but never pile up. */
+function Traffic({ cars }: { cars: CarDef[] }) {
+  const body = useRef<InstancedMesh>(null), cabin = useRef<InstancedMesh>(null), wheels = useRef<InstancedMesh>(null);
+  const o = useMemo(() => new Object3D(), []), tmp = useMemo(() => new Color(), []);
+  useEffect(() => { cars.forEach((c, i) => { body.current!.setColorAt(i, tmp.set(c.colour)); cabin.current!.setColorAt(i, tmp.set(c.kind === 'danfo' ? c.colour : '#8FA9B8')); }); body.current!.instanceColor!.needsUpdate = true; cabin.current!.instanceColor!.needsUpdate = true; }, [cars, tmp]);
+  useFrame((_, dtRaw) => {
+    const dt = Math.min(dtRaw, 0.1), span = EXTENT * 2 + 24; let w = 0;
+    cars.forEach((c, i) => {
+      c.t += c.speed * c.dir * dt; const p = ((c.t + EXTENT + 12) % span + span) % span - EXTENT - 12, side = c.dir * 2.7;
+      const L = c.kind === 'bus' ? 7.2 : c.kind === 'danfo' ? 4.7 : 4.2, rotY = c.axis === 'x' ? (c.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : c.dir > 0 ? 0 : Math.PI;
+      const x = c.axis === 'x' ? p : c.lane - side, z = c.axis === 'x' ? c.lane + side : p;
+      o.rotation.set(0, rotY, 0); o.position.set(x, 0.3 + 0.65, z); o.scale.set(1.9, 0.9, L); o.updateMatrix(); body.current!.setMatrixAt(i, o.matrix);
+      const cl = c.kind === 'bus' ? L * 0.92 : c.kind === 'danfo' ? 3.4 : 2.2, ch = c.kind === 'bus' ? 1.1 : 0.7;
+      o.position.set(x, 0.3 + 1.1 + ch / 2, z); o.scale.set(1.7, ch, cl); o.position.x += Math.sin(rotY) * (c.kind === 'car' ? -0.2 : 0.2) * 0; o.updateMatrix(); cabin.current!.setMatrixAt(i, o.matrix);
+      const s = Math.sin(rotY), cs = Math.cos(rotY), wz = L * 0.31;
+      for (const [lx, lz] of [[-0.95, wz], [0.95, wz], [-0.95, -wz], [0.95, -wz]]) { o.rotation.set(0, rotY, Math.PI / 2); o.position.set(x + lx * cs + lz * s, 0.62, z - lx * s + lz * cs); o.scale.set(0.68, 0.26, 0.68); o.updateMatrix(); wheels.current!.setMatrixAt(w++, o.matrix); }
+    });
+    for (const m of [body, cabin, wheels]) m.current!.instanceMatrix.needsUpdate = true;
   });
-  const danfo = colour === '#FFC21A';
-  return (
-    <group ref={g}>
-      <mesh position={[0, 0.65, 0]}><boxGeometry args={[1.9, 0.9, danfo ? 4.6 : 4.2]} /><meshStandardMaterial color={colour} roughness={0.5} flatShading /></mesh>
-      <mesh position={[0, 1.4, danfo ? 0.2 : -0.2]}><boxGeometry args={[1.7, 0.7, danfo ? 3.4 : 2.2]} /><meshStandardMaterial color={danfo ? colour : '#9DB8C7'} roughness={0.3} flatShading /></mesh>
-      {danfo && <mesh position={[0, 0.7, 0]}><boxGeometry args={[1.95, 0.18, 4.65]} /><meshStandardMaterial color="#111" /></mesh>}
-      {[[-0.95, 1.3], [0.95, 1.3], [-0.95, -1.3], [0.95, -1.3]].map(([x, z], i) => <mesh key={i} position={[x, 0.32, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.34, 0.34, 0.26, 8]} /><meshStandardMaterial color="#15171A" /></mesh>)}
-    </group>
-  );
+  return (<>
+    <instancedMesh ref={body} args={[undefined, undefined, cars.length]} frustumCulled={false}><boxGeometry /><meshStandardMaterial roughness={0.5} flatShading /></instancedMesh>
+    <instancedMesh ref={cabin} args={[undefined, undefined, cars.length]} frustumCulled={false}><boxGeometry /><meshStandardMaterial roughness={0.3} flatShading /></instancedMesh>
+    <instancedMesh ref={wheels} args={[undefined, undefined, cars.length * 4]} frustumCulled={false}><cylinderGeometry args={[0.5, 0.5, 1, 8]} /><meshStandardMaterial color="#15171A" roughness={0.8} /></instancedMesh>
+  </>);
+}
+
+/** Cars parked along the kerbs: placed once, never updated. */
+function ParkedCars({ city }: { city: City }) {
+  const body = useRef<InstancedMesh>(null), cabin = useRef<InstancedMesh>(null);
+  const spots = useMemo(() => { const r = mulberry(31), out: { x: number; z: number; rot: number; c: string }[] = []; for (const b of city.blockCentres) { if (r() < 0.45) continue; const side = r() < 0.5 ? -1 : 1, along = (r() - 0.5) * 24; out.push(r() < 0.5 ? { x: b.x + along, z: b.z + side * (BLOCK / 2 + 2.1), rot: Math.PI / 2, c: pick(CAR_COLOURS, r) } : { x: b.x + side * (BLOCK / 2 + 2.1), z: b.z + along, rot: 0, c: pick(CAR_COLOURS, r) }); } return out; }, [city]);
+  useEffect(() => { const o = new Object3D(), c = new Color(); spots.forEach((p, i) => { o.rotation.set(0, p.rot, 0); o.position.set(p.x, 0.95, p.z); o.scale.set(1.8, 0.9, 4.0); o.updateMatrix(); body.current!.setMatrixAt(i, o.matrix); body.current!.setColorAt(i, c.set(p.c)); o.position.set(p.x, 1.75, p.z); o.scale.set(1.6, 0.7, 2.1); o.updateMatrix(); cabin.current!.setMatrixAt(i, o.matrix); }); body.current!.instanceMatrix.needsUpdate = true; cabin.current!.instanceMatrix.needsUpdate = true; body.current!.instanceColor!.needsUpdate = true; }, [spots]);
+  return (<>
+    <instancedMesh ref={body} args={[undefined, undefined, spots.length]} frustumCulled={false}><boxGeometry /><meshStandardMaterial roughness={0.5} flatShading /></instancedMesh>
+    <instancedMesh ref={cabin} args={[undefined, undefined, spots.length]} frustumCulled={false}><boxGeometry /><meshStandardMaterial color="#8FA9B8" roughness={0.3} flatShading /></instancedMesh>
+  </>);
 }
 
 function Player({ look, input, city, state, combat }: { look: Appearance; input: MutableRefObject<WorldInput>; city: City; state: MutableRefObject<WorldState>; combat: MutableRefObject<Combat> }) {
@@ -209,16 +274,16 @@ function Player({ look, input, city, state, combat }: { look: Appearance; input:
     const aiming = now < c.aimUntil || (c.drawn && c.firing); motion.current.action = aiming ? 'point' : undefined;
     if (gun.current) gun.current.visible = c.drawn && !!c.weapon;
     // ---- walking
-    const mag = Math.min(1, Math.hypot(i.mx, i.mz)), locked = now < c.aimUntil || c.arrested;
+    const mag = Math.min(1, Math.hypot(i.mx, i.mz)), locked = now < c.aimUntil || c.arrested || !!i.frozen;
     const fx = -Math.sin(i.yaw), fz = -Math.cos(i.yaw), rx = Math.cos(i.yaw), rz = -Math.sin(i.yaw);
     const dx = fx * i.mz + rx * i.mx, dz = fz * i.mz + rz * i.mx;
-    const top = i.run && mag > 0.1 ? 6.2 : 2.6, want = mag > 0.08 && !locked ? top * (i.run ? 1 : Math.max(0.5, mag)) : 0;
+    const top = i.run ? 11.5 : mag > 0.6 ? 7.6 : 3.3, want = mag > 0.08 && !locked ? top : 0; // push the stick part way to walk, all the way to run, press Run to sprint
     vel.current += (want - vel.current) * (1 - Math.exp(-dt * 10));
     if (want > 0) { const len = Math.hypot(dx, dz) || 1; const [nx, nz] = resolveMove(city, s.x + (dx / len) * vel.current * dt, s.z + (dz / len) * vel.current * dt); s.x = nx; s.z = nz; const target = Math.atan2(dx, dz); let d = target - s.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); s.heading += d * (1 - Math.exp(-dt * 12)); }
     motion.current.moving = vel.current > 0.3; motion.current.speed = Math.max(1.2, vel.current);
     o.position.set(s.x, 0.3, s.z); o.rotation.y = s.heading;
     // third-person camera: behind the player, orbiting with yaw and pitch, smoothed
-    const dist = 6.2, cy = 1.5, ph = i.pitch;
+    const dist = 6.2 + Math.min(2.2, vel.current * 0.2), cy = 1.5, ph = i.pitch;
     const tx = s.x + Math.sin(i.yaw) * Math.cos(ph) * dist, tz = s.z + Math.cos(i.yaw) * Math.cos(ph) * dist, ty = cy + 0.3 + Math.sin(ph) * dist;
     const k = 1 - Math.exp(-dt * 8);
     camera.position.x += (tx - camera.position.x) * k; camera.position.y += (ty - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k;
@@ -242,16 +307,22 @@ export function randomLook(r: () => number, base: Appearance): Appearance {
     shoes: pick(SHOE_STYLES, r).id, shoeColor: pick(['#FFFFFF', '#1B1F24', '#6B4128'], r), accessory: r() < 0.7 ? ACCESSORIES[0].id : pick(ACCESSORIES, r).id, bag: 'none', gun: false, bro: undefined };
 }
 
-export function WorldScene({ city, look, input, state, combat, npcCount = 10 }: { city: City; look: Appearance; input: MutableRefObject<WorldInput>; state: MutableRefObject<WorldState>; combat: MutableRefObject<Combat>; npcCount?: number }) {
+export function WorldScene({ city, look, input, state, combat, npcCount = 150 }: { city: City; look: Appearance; input: MutableRefObject<WorldInput>; state: MutableRefObject<WorldState>; combat: MutableRefObject<Combat>; npcCount?: number }) {
   const cops = useMemo(() => POLICE_LOOK(look), [look]);
-  const npcs = useMemo(() => { const r = mulberry(77), free = city.blockCentres.filter((b) => !b.landmark); return Array.from({ length: npcCount }, (_, i) => { const b = free[Math.floor(r() * free.length)]; return { id: i, look: randomLook(r, look), centre: [b.x, b.z] as [number, number] }; }); }, [city, look, npcCount]);
-  const cars = useMemo(() => { const r = mulberry(5); return Array.from({ length: 12 }, (_, i) => ({ id: i, axis: (i % 2 ? 'x' : 'z') as 'x' | 'z', lane: (Math.floor(r() * (GRID + 1)) - GRID / 2) * PITCH, offset: r() * EXTENT * 2, speed: (r() < 0.5 ? -1 : 1) * (7 + r() * 6), colour: i % 3 === 0 ? '#FFC21A' : pick(CAR_COLOURS, r) })); }, []);
+  // a crowd spread over every block, each person on a loop of their own pavement
+  const npcs = useMemo(() => { const r = mulberry(77), free = city.blockCentres; return Array.from({ length: npcCount }, (_, i) => { const b = free[Math.floor(r() * free.length)]; return { id: i, look: randomLook(r, look), centre: [b.x, b.z] as [number, number] }; }); }, [city, look, npcCount]);
+  // traffic: every road has a lane each way, with a few cars per lane spaced well apart; some danfos and buses
+  const cars = useMemo(() => { const r = mulberry(5), out: CarDef[] = []; const span = EXTENT * 2 + 24;
+    for (let road = 0; road <= GRID; road++) for (const axis of ['x', 'z'] as const) for (const dir of [1, -1] as const) {
+      if (r() < 0.12) continue; const n = 2 + (r() < 0.5 ? 1 : 0), gap = span / n, base = r() * span;
+      for (let k = 0; k < n; k++) { const q = r(); out.push({ axis, lane: (road - GRID / 2) * PITCH, dir, t: base + k * gap + (r() - 0.5) * gap * 0.4 - EXTENT, speed: 6 + r() * 6, kind: q < 0.28 ? 'danfo' : q < 0.36 ? 'bus' : 'car', colour: q < 0.28 ? '#FFC21A' : q < 0.36 ? '#F4F1EA' : pick(CAR_COLOURS, r) }); }
+    } return out; }, []);
   return (
-    <Canvas dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.2, far: 700, position: [city.spawn.x, 4, city.spawn.z + 7] }} style={{ touchAction: 'none' }}>
-      <color attach="background" args={['#9CC9F0']} /><fog attach="fog" args={['#BFD9EE', 120, 420]} />
+    <Canvas dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.5, far: 900, position: [city.spawn.x, 4, city.spawn.z + 7] }} style={{ touchAction: 'none' }}>
+      <color attach="background" args={['#9CC9F0']} /><fog attach="fog" args={['#BFD9EE', 160, 520]} />
       <hemisphereLight args={['#FFFFFF', '#7E8C72', 1.15]} /><directionalLight position={[80, 120, 40]} intensity={1.9} color="#FFF1D6" />
       <Ground /><Buildings city={city} /><LandmarkPins city={city} />
-      {cars.map((c) => <Car key={c.id} lane={c.lane} axis={c.axis} offset={c.offset} speed={c.speed} colour={c.colour} player={state} />)}
+      <Traffic cars={cars} /><ParkedCars city={city} /><Doors city={city} /><Moments city={city} look={look} />
       {npcs.map((n) => <Pedestrian key={n.id} id={`p${n.id}`} look={n.look} centre={n.centre} seed={n.id + 3} player={state} combat={combat} />)}
       {[0, 1, 2, 3].map((n) => <Officer key={n} idx={n} look={cops} combat={combat} player={state} city={city} />)}
       <Player look={look} input={input} city={city} state={state} combat={combat} /><Law combat={combat} /><Effects combat={combat} />

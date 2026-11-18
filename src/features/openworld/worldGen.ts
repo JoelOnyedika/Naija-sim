@@ -5,12 +5,16 @@
  */
 import { LANDMARKS } from '@/content/lagos/landmarks';
 
-export const BLOCK = 40, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 9;
+export const BLOCK = 40, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 15;
 export const EXTENT = (GRID * PITCH) / 2; // half the city's width
 export interface Rect { x: number; z: number; w: number; d: number }
 export interface Building extends Rect { h: number; color: string; roof: string; landmark?: string }
-export interface LandmarkSpot { id: string; name: string; tagline: string; icon: string; category: string; x: number; z: number; bi: number; bj: number }
-export interface City { buildings: Building[]; landmarks: LandmarkSpot[]; trees: { x: number; z: number; s: number }[]; blockCentres: { x: number; z: number; landmark: boolean }[]; spawn: { x: number; z: number } }
+export interface LandmarkSpot { id: string; name: string; tagline: string; icon: string; category: string; x: number; z: number; bi: number; bj: number; doorX: number; doorZ: number }
+/** A street moment waiting on the pavement: walk up to the person and they stop you (an event from data/streetEvents.ts). */
+export interface Moment { id: string; eventId: string; x: number; z: number; rot: number }
+/** The street events that make sense outdoors. */
+export const STREET_MOMENT_IDS = ['pure_water', 'suya_boy', 'puff_puff', 'agbero_levy', 'lost_phone', 'excess_change', 'thief', 'checkpoint', 'coconut', 'free_tasting'];
+export interface City { moments: Moment[]; buildings: Building[]; landmarks: LandmarkSpot[]; trees: { x: number; z: number; s: number }[]; blockCentres: { x: number; z: number; landmark: boolean }[]; spawn: { x: number; z: number } }
 
 function rng(seed: number) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const PAINTS = ['#E8DCC4', '#D9C7A3', '#C9B79C', '#E5B99B', '#B9C6A4', '#9DB8C7', '#D9D2C5', '#C8A08A', '#E9E4DA', '#A9B4B8'];
@@ -40,7 +44,7 @@ export function generateCity(seed = 2026): City {
     }
     if (taken.has(key(bi, bj))) continue; // more landmarks than blocks (not the case today)
     taken.add(key(bi, bj));
-    landmarks.push({ id: l.id, name: l.name, tagline: l.tagline, icon: l.icon, category: l.category, x: blockCentre(bi), z: blockCentre(bj), bi, bj });
+    landmarks.push({ id: l.id, name: l.name, tagline: l.tagline, icon: l.icon, category: l.category, x: blockCentre(bi), z: blockCentre(bj), bi, bj, doorX: blockCentre(bi), doorZ: blockCentre(bj) });
   }
   const buildings: Building[] = [], trees: City['trees'] = [], blockCentres: City['blockCentres'] = [];
   for (let i = 0; i < GRID; i++) for (let j = 0; j < GRID; j++) {
@@ -48,7 +52,8 @@ export function generateCity(seed = 2026): City {
     blockCentres.push({ x: cx, z: cz, landmark: !!lm });
     if (lm) {
       const big = lm.category === 'park' || lm.category === 'beach';
-      buildings.push({ x: cx, z: cz, w: big ? 14 : 26, d: big ? 14 : 24, h: big ? 5 : 16 + rand() * 18, color: CATEGORY_COLOURS[lm.category] ?? '#E8DCC4', roof: '#2B2F36', landmark: lm.id });
+      const bd = big ? 14 : 24; lm.doorZ = cz + bd / 2 + 2.2; // the door is on the south face, the doorstep two metres out
+      buildings.push({ x: cx, z: cz, w: big ? 14 : 26, d: bd, h: big ? 5 : 16 + rand() * 18, color: CATEGORY_COLOURS[lm.category] ?? '#E8DCC4', roof: '#2B2F36', landmark: lm.id });
       for (let t = 0; t < 10; t++) { const a = rand() * Math.PI * 2, r = 15 + rand() * 4; trees.push({ x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r, s: 0.9 + rand() * 0.6 }); }
       continue;
     }
@@ -60,8 +65,11 @@ export function generateCity(seed = 2026): City {
     }
   }
   // street trees along the pavements
-  for (let n = 0; n < 160; n++) { const i = Math.floor(rand() * GRID), j = Math.floor(rand() * GRID), side = rand() < 0.5; const edge = (rand() < 0.5 ? -1 : 1) * (BLOCK / 2 + 0.8); trees.push({ x: blockCentre(i) + (side ? edge : (rand() - 0.5) * BLOCK), z: blockCentre(j) + (side ? (rand() - 0.5) * BLOCK : edge), s: 0.8 + rand() * 0.6 }); }
-  return { buildings, landmarks, trees, blockCentres, spawn: { x: PITCH / 2, z: PITCH / 2 } };
+  for (let n = 0; n < 700; n++) { const i = Math.floor(rand() * GRID), j = Math.floor(rand() * GRID), side = rand() < 0.5; const edge = (rand() < 0.5 ? -1 : 1) * (BLOCK / 2 + 0.8); trees.push({ x: blockCentre(i) + (side ? edge : (rand() - 0.5) * BLOCK), z: blockCentre(j) + (side ? (rand() - 0.5) * BLOCK : edge), s: 0.8 + rand() * 0.6 }); }
+  // street moments: people on the pavements of ordinary blocks, spread over the whole city
+  const moments: Moment[] = [], free = blockCentres.filter((b) => !b.landmark);
+  for (let n = 0; n < 30; n++) { const b = free[Math.floor(rand() * free.length)], edge = Math.floor(rand() * 4), along = (rand() - 0.5) * 24, off = BLOCK / 2 - 1.2; const [mx, mz, rot] = edge === 0 ? [b.x + along, b.z - off, Math.PI] : edge === 1 ? [b.x + off, b.z + along, Math.PI / 2] : edge === 2 ? [b.x + along, b.z + off, 0] : [b.x - off, b.z + along, -Math.PI / 2]; moments.push({ id: `m${n}`, eventId: STREET_MOMENT_IDS[n % STREET_MOMENT_IDS.length], x: mx, z: mz, rot }); }
+  return { moments, buildings, landmarks, trees, blockCentres, spawn: { x: PITCH / 2, z: PITCH / 2 } };
 }
 
 /** Pushes a circle out of a box. Returns the corrected position. */

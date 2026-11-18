@@ -1,3 +1,20 @@
+## v46: venue doors and street moments in the open world
+
+- Every venue has a door on its south face and a gold ring on the doorstep. Stand on the ring and the landmark card shows the entry fee (or "Open to everyone") and an Enter button. It uses the same rules as the map and phone (busy, jail, entry fee) and takes you inside the venue; Outside brings you back.
+- Street moments: 30 people stand on the pavements with a gold ring and an icon pin (pure water girl, suya boy, puff-puff seller, agbero levy, lost phone, wrong change, thief, checkpoint, coconut seller, free tasting). Walk up and they stop you with the existing street-event card (same choices, prices, risks and skills as indoors); each person comes back after two minutes. The player stands still while the card is open, and the timer works without the game loop.
+- Tests: every moment is a real event, none stands inside a building, every doorstep can be reached.
+- Next ideas (docs/MISSIONS_PROPOSAL.md): multi-step missions from the street, hostile area boys, ammo shop.
+
+## v45: rigged characters, camera control, bigger open world
+
+- All characters now use the supplied rigged GLB (public/models/characters/base_body.glb). bodyAsset.ts prepares it once per body type: 49 deforming bones rebuilt as a clean hierarchy, height and masc/femme shape baked in, the head and hands cut off. rigged.ts and garments.ts dress it. The other GLB (simple_low_poly_character, no bones) is kept in assets-src/characters.
+- Clothes are procedural and fit any body: each garment is a copy of part of the body surface pushed out along the normals, skinned to the same bones (tee, shirt, jersey, hoodie, jacket, kaftan, vest over a tank, jeans, trousers, shorts, skirt, dress, sneakers, boots, sandals). Bags, chain, holster and insignia are small pieces fixed to bones. Hands are generated.
+- Head, face, hair, beard, glasses, caps and the other headgear are still built by build.ts and sit on the neck. The old all-procedural body stays in build.ts as the base for that code.
+- Animation: the game's joint angles drive the bones through a pose bridge (no dependence on the file's bone axes). The existing walk, run, sit, lie and hard-scene reaction poses all work on the new body. No Mixamo needed.
+- Camera: the player can always take the camera back from a cinematic shot by dragging, pinching or scrolling (for 7 seconds); in Close View the drag rotates all the way round; the closest zoom is closer. Trees and palms sink while they stand between the camera and the player.
+- Open world: city 15x15 blocks (about 780 m); about 150 people (full detail only close up, cheap stand-ins further away, hidden far away); about 150 moving cars, danfos and buses in four instanced meshes, plus parked cars; far fewer draw calls. The player runs by default (full stick 7.6 m/s, Run button sprints at 11.5 m/s, a gentle push walks). Fixed road z-fighting at distance.
+- Not yet checked on a real phone: performance of the crowd and traffic, the Unilag camera in the actual story scenes.
+
 ## v44: shooting system (open world)
 
 - Armed players can draw their equipped gun (button or F), aim and fire (Fire button or Space) and reload (button or R) in the open world. Uses the existing weapon stats: damage, range, clip size, cooldown, noise and heat per shot; the hit chance falls with distance and a headshot does double damage. Bullets stop at buildings; light aim assist for thumbs.

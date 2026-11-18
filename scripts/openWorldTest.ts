@@ -1,4 +1,4 @@
-import { blockCentre, BLOCK, EXTENT, generateCity, nearestLandmark, resolveMove } from '../src/features/openworld/worldGen';
+import { blockCentre, BLOCK, EXTENT, GRID, generateCity, nearestLandmark, resolveMove } from '../src/features/openworld/worldGen';
 import { LANDMARKS } from '../src/content/lagos/landmarks';
 let fails = 0; const ok = (c: boolean, m: string) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fails++; };
 const c = generateCity(), c2 = generateCity();
@@ -7,7 +7,7 @@ ok(c.landmarks.length === LANDMARKS.length, `every landmark has a block (${c.lan
 ok(new Set(c.landmarks.map((l) => `${l.bi},${l.bj}`)).size === c.landmarks.length, 'no two landmarks share a block');
 const inside = c.buildings.every((b) => Math.abs(b.x) + b.w / 2 < EXTENT && Math.abs(b.z) + b.d / 2 < EXTENT);
 ok(inside, 'all buildings are inside the city');
-const roadSafe = c.buildings.every((b) => { const bx = Math.round(b.x / (BLOCK + 12) * 1) ; void bx; return Math.abs(((b.x - blockCentre(Math.round(b.x / 52 + 4))) )) + b.w / 2 <= BLOCK / 2 + 0.01 || b.landmark !== undefined; });
+const roadSafe = c.buildings.every((b) => { const bx = Math.round(b.x / (BLOCK + 12) * 1) ; void bx; return Math.abs(((b.x - blockCentre(Math.round(b.x / 52 + (GRID - 1) / 2))) )) + b.w / 2 <= BLOCK / 2 + 0.01 || b.landmark !== undefined; });
 ok(roadSafe, 'no house reaches into a road');
 const [sx, sz] = resolveMove(c, c.spawn.x, c.spawn.z);
 ok(sx === c.spawn.x && sz === c.spawn.z, 'the spawn point is clear (on the road)');
@@ -17,4 +17,10 @@ ok(Math.abs(px - b.x) > b.w / 2 - 0.01 || Math.abs(pz - b.z) > b.d / 2 - 0.01, '
 const [wx] = resolveMove(c, 9999, 0);
 ok(wx <= EXTENT, 'the city edge stops the player');
 ok(nearestLandmark(c, lm.x + 3, lm.z)?.id === lm.id && nearestLandmark(c, 0, 1e6) === null, 'nearest-landmark finds a close one and none far away');
+import { getStreetEvent } from '../src/data/streetEvents';
+ok(c.moments.length > 0 && c.moments.every((m) => !!getStreetEvent(m.eventId)), `every street moment is a real event (${c.moments.length})`);
+const clear = (x: number, z: number) => c.buildings.every((b) => Math.abs(x - b.x) > b.w / 2 + 0.4 || Math.abs(z - b.z) > b.d / 2 + 0.4);
+ok(c.moments.every((m) => clear(m.x, m.z)), 'no street moment stands inside a building');
+ok(c.landmarks.every((l) => clear(l.doorX, l.doorZ)), 'every doorstep is outside its building and reachable');
+ok(c.landmarks.every((l) => { const [x, z] = resolveMove(c, l.doorX, l.doorZ); return Math.hypot(x - l.doorX, z - l.doorZ) < 0.01; }), 'a player can stand on every doorstep');
 console.log(fails ? `\n${fails} check(s) failed` : '\nAll open-world checks passed'); process.exit(fails ? 1 : 0);

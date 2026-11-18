@@ -1,10 +1,15 @@
 import { armPose, bodyPose, cadence, legPose } from './gait';
 import { isReaction, reactionPose } from './reaction';
+import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { MathUtils } from 'three';
 import type { Appearance } from '@/types/game';
-import { buildCharacter, toSpec } from '../character/build';
+import { toSpec } from '../character/build';
+import { BODY_URL } from '../character/bodyAsset';
+import { buildRiggedCharacter } from '../character/rigged';
+
+useGLTF.preload(BODY_URL);
 
 /** What the avatar is doing with its hands. Drives the arm poses below; positions/poses come from the walker. */
 export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash'
@@ -21,7 +26,8 @@ export interface Motion { moving: boolean; lying: boolean; sitting: boolean; act
  */
 export function Avatar({ appearance: a, motion }: { appearance: Appearance; motion?: MutableRefObject<Motion> }) {
   const key = JSON.stringify(a);
-  const rig = useMemo(() => buildCharacter(toSpec(a)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gltf = useGLTF(BODY_URL); // the rigged body; suspends the first time, then it is cached
+  const rig = useMemo(() => buildRiggedCharacter(toSpec(a), gltf as never), [key, gltf]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => rig.dispose(), [rig]);
   useEffect(() => { const f = a.frame; rig.root.scale.set(f?.w ?? 1, f?.h ?? 1, f?.w ?? 1); }, [rig, a.frame?.w, a.frame?.h]); // NPC body proportions (one scale, no extra geometry)
   const smooth = useRef([{ x: 0, f: -0.18, z: 0.06 }, { x: 0, f: -0.18, z: -0.06 }]);
@@ -103,6 +109,7 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
     const y = rx ? rx.body.posY : m.lying ? 0.7 : m.sitting ? -0.3 : pushing ? 0.17 + (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.09 : 0;
     const bob = act === 'cheer' ? Math.abs(Math.sin(t * 6)) * 0.04 : act === 'lift' ? -0.06 * (1 - lp) : act === 'dance' ? Math.abs(Math.sin(t * 5)) * 0.07 : m.moving || m.lying || pushing ? 0 : Math.sin(t * 1.6) * 0.006;
     b.position.y = MathUtils.lerp(b.position.y, y + (rx ? 0 : bob + bp.y * gb), rx ? 0.4 : 0.3);
+    rig.sync?.(); // joint angles -> the rigged body's bones
   });
   return <primitive object={rig.root} />;
 }
