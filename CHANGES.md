@@ -1,3 +1,28 @@
+## v48: Mixamo animation, fitted shoes, owned cars you can drive, a livelier street
+
+- Mixamo animation on the new body. The walk, run, sprint and rifle clips from the shooter project were retargeted onto this body's own skeleton (tools/bakeAnims.ts -> src/three/character/animData.json). The body rests in an A-pose and Mixamo in a T-pose, so limbs are matched by bone direction, not copied rotations. Checked: the lowest ankle stays within 8 mm of standing height in every clip. Playback is src/three/character/clips.ts (blends idle, walk, run, sprint by speed; rifle set when the gun is up). Seated, lying, reaction and hand-activity poses are still the old procedural ones. Player speeds are now realistic (walk 1.7, run 4.4, sprint 7.2 m/s).
+- The AK-47 rides the right hand bone (grip fitted to the rifle-aim clip); the left hand stays within about 5 cm of the foregrip when standing and walking, 11 to 15 cm when running and sprinting. Bullets leave the real muzzle.
+- Shoes are real models fitted to the body's foot measurements (shoes.ts): sneakers, boots, sandals, slippers and loafers, with soles, laces, straps and a boot shaft. New boutique items for each.
+- Clothes: smooth shading and a slightly looser fit, rib collar, cuffs and hem bands, a belt and buckle on trousers and jeans, rounded bags. Hands are double-sided and fuller. The boutique now shows the whole body for tops, bottoms and shoes (it cropped the legs).
+- Owned cars: the cars you own are parked on the road beside the home spot. Walk up and tap Drive; the joystick steers, Run boosts, Get out leaves it where it stands (arcade physics in worldGen.driveStep; buildings stop you).
+- Roads: ground height fixed (cars hovered at pavement height), edge lines, zebra crossings on every junction arm, street lamps, kerbs. Buildings have windows (done in the wall shader, no textures), some lit.
+- Landmarks: name board over every door, podium and step, columns and pediment on government, cultural and business buildings, market awnings, neon on clubs. The University of Lagos has its gate arch, lawns and flagpoles.
+- Street life: about 28% of pedestrians are hawkers with oranges, bread or pure water on their heads, in slippers.
+- Tests: clipTest, shoeTest, dressTest added; openWorldTest covers owned spots, ground height and driving.
+- Not done: eyes and face quality (no way to judge them without seeing them), the left hand on the foregrip at run speed, strafing and backwards rifle clips, traffic that stops at lights, interiors. Nothing here has been looked at on a real phone.
+
+## v47: one gun, short jail, real cars, spawn at the venue door
+
+- Jail is 5 minutes for every arrest (was 10 to 120, shooting arrests 40 to 100). Sleeping on the cell bunk takes 2 minutes off each time (`trimSentence`), so you can sleep your way out. The bunk is now a lying-down pose. An armed arrest no longer doubles the sentence; the gun is still taken.
+- One gun only: the AK-47 (`WeaponId = 'ak47'`, 30-round clip, fast auto fire, 120 m range). Pistols and the old "rifle later" entry are gone. Old saves that held any gun now hold the AK-47 (store version 2).
+- The gun is the real AK-47 model from the shooter project (public/models/weapons/ak47.glb, CC BY 4.0, credit in CREDITS.md, still to be shown in an in-game credits screen). It is held in both hands: new `rifle` pose in Avatar.tsx whose arm angles were solved numerically (tools/rifleHoldSolve.ts, both hands within about 4 cm of the gun). It stays up while walking and running. Bullets leave the real muzzle; the body turns so the barrel lines up with the aim.
+- Rig now exposes `handL` / `handR` bones for holding things.
+- Coming out of a venue puts you on that venue's doorstep, facing away from the door (`spawnFor`); from home you get the default spot.
+- Rotate-your-phone: a full-screen pop-up with an animated phone when the open world is opened in portrait ("Play anyway" dismisses it).
+- Traffic and parked cars use the project's real car models (sedan, hatch, wagon, two pickups, van as danfo/bus), instanced per model.
+- Not done yet: Mixamo animations on the new body, character/clothes/shoes/bags remodel, hand and eye problems, designed roads and real-life venue exteriors (Unilag), street hawkers, owned cars at the house and driving.
+- Not seen on a real phone: everything here was checked with typecheck, the test suite and numbers, not on a device.
+
 ## v46: venue doors and street moments in the open world
 
 - Every venue has a door on its south face and a gold ring on the doorstep. Stand on the ring and the landmark card shows the entry fee (or "Open to everyone") and an Enter button. It uses the same rules as the map and phone (busy, jail, entry fee) and takes you inside the venue; Outside brings you back.

@@ -13,7 +13,7 @@ import { AvatarPreview, type PreviewFocus } from '@/three/avatar/AvatarPreview';
 import type { Appearance } from '@/types/game';
 import { Chip, EmptyState, SearchField } from '../ui';
 
-const FOCUS: Record<BoutiqueSlot, PreviewFocus> = { top: 'upper', bottom: 'full', shoes: 'lower', hair: 'head', extra: 'head', bag: 'full' };
+const FOCUS: Record<BoutiqueSlot, PreviewFocus> = { top: 'full', bottom: 'full', shoes: 'full', hair: 'head', extra: 'head', bag: 'full' };
 
 /** Is this item what the character currently has on? */
 function worn(a: Appearance, it: BoutiqueItem): boolean {

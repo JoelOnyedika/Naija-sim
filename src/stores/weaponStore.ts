@@ -11,4 +11,6 @@ interface WeaponState {
 export const useWeaponStore = create<WeaponState>()(persist((set) => ({
   owned: [], equipped: null, heat: 0,
   set: (p) => set(p), reset: () => set({ owned: [], equipped: null, heat: 0 }),
-}), { name: 'nigerialife.weapons', version: 1, storage: safeJsonStorage, partialize: ({ owned, equipped, heat }) => ({ owned, equipped, heat }) as never }));
+}), { name: 'nigerialife.weapons', version: 2, storage: safeJsonStorage,
+  // v1 saves could hold the old pistols or the rifle: anyone who carried one now has the AK-47
+  migrate: ((old: { owned?: string[]; equipped?: string | null; heat?: number } | undefined) => ({ owned: old?.owned?.length ? ['ak47'] : [], equipped: old?.equipped ? 'ak47' : null, heat: old?.heat ?? 0 })) as never, partialize: ({ owned, equipped, heat }) => ({ owned, equipped, heat }) as never }));

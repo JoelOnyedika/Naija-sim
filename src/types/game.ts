@@ -27,7 +27,7 @@ export type BeardStyle = 'none' | 'stubble' | 'moustache' | 'goatee' | 'full';
 export type TopStyle = 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey' | 'vest';
 /** `dress` is a one-piece: it replaces the top as well. */
 export type BottomStyle = 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress';
-export type ShoeStyle = 'sneakers' | 'boots' | 'sandals' | 'barefoot';
+export type ShoeStyle = 'sneakers' | 'boots' | 'sandals' | 'slippers' | 'loafers' | 'barefoot';
 export type Accessory = 'none' | 'glasses' | 'cap' | 'chain' | 'earrings' | 'gele' | 'headphones' | 'stud';
 export type BagStyle = 'none' | 'tote' | 'backpack' | 'crossbody' | 'clutch' | 'handbag';
 export interface Appearance {

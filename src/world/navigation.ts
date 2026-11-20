@@ -185,7 +185,7 @@ export const SPECS: Record<string, Spec> = {
   v_bleachers: { pose: 'stand', action: 'dance', mode: 'front' },
   v_kiosk: { pose: 'stand', action: 'drink', mode: 'front' },
   v_dj_booth: { pose: 'stand', action: 'piano', mode: 'front' },
-  v_cell_bed: { pose: 'sit', action: 'idle', mode: 'on', top: 0.55 },
+  v_cell_bed: { pose: 'sleep', action: 'idle', mode: 'on', top: 0.55 },
   pet_cat: { pose: 'stand', action: 'idle', mode: 'front' },
   pet_dog: { pose: 'stand', action: 'idle', mode: 'front' },
   pet_lion: { pose: 'stand', action: 'idle', mode: 'front' },

@@ -12,7 +12,7 @@ import { enterInterior, leaveInterior } from './interiors';
 /**
  * Pickpocketing and jail. Fictional gameplay about NPCs only.
  *  success chance = base (50%) minus 2% per point of criminality, never below 15%      (successChance)
- *  sentence       = 10 min + 5 min per point of criminality, never above 2 hours        (sentenceMinutesFor)
+ *  sentence       = 5 minutes (CRIME.sentenceBaseMinutes); sleeping on the bunk cuts 2 minutes each time (trimSentence)
  *  a success adds 1 criminality, an arrest adds 2, a served sentence takes 1 off.
  * Everything is configurable in CRIME (balance.ts). THE CLIENT MUST NOT DECIDE THESE IN A REAL GAME: the dice, the sentence, the
  * clock and the money all belong to a server. `CrimeAuthority` is that boundary; the local one below is for offline play.
@@ -87,9 +87,17 @@ export function stepJail(now = Date.now()): 'released' | 'imprisoned' | null {
   return null;
 }
 
+/** Sleeping on the cell bunk: takes `minutes` off the sentence that is left (never below now). Returns the minutes actually cut. */
+export function trimSentence(minutes: number = CRIME.sleepCutMinutes, now = Date.now()): number {
+  const s = useJailStore.getState().sentence; if (!s || now >= s.endAt) return 0;
+  const cut = Math.min(minutes * 60_000, s.endAt - now);
+  useJailStore.getState().patch({ sentence: { ...s, endAt: s.endAt - cut } });
+  return Math.round(cut / 600) / 100;
+}
+
 /** Locks the player up for `minutes` (used by loan collectors with police). Same sentence record as a pickpocketing arrest. */
 export function arrestPlayer(minutes: number, reason: string, now = Date.now()): void {
-  const search = policeSearch(minutes); minutes = search.minutes; // a weapon on you: double the sentence, and it is taken
+  const search = policeSearch(minutes); minutes = Math.min(CRIME.maxSentenceMinutes, search.minutes); // a weapon on you: it is taken (the sentence stays short)
   if (search.confiscated) reason = `${reason} (weapon found)`;
   const jail = useJailStore.getState();
   useJailStore.getState().patch({ criminality: jail.criminality + CRIME.criminalityPerArrest, sentence: { startAt: now, endAt: now + minutes * 60_000, minutes, reason } });

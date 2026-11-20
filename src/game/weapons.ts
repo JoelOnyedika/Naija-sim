@@ -15,7 +15,6 @@ export const gunFightBonus = (): number => { const w = equippedWeapon(); return 
 export function whyNotBuy(id: WeaponId, money = useEconomyStore.getState().money): string | null {
   const w = WEAPONS[id];
   if (!isMember()) return 'Only members can buy this.';
-  if (w.later) return 'Not available yet.';
   if (W().owned.includes(id)) return 'You already have one.';
   if (money < w.price) return 'You cannot afford it.';
   return null;

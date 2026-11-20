@@ -23,7 +23,7 @@ export const BOTTOM_STYLES: { id: BottomStyle; label: string }[] = [
 ];
 
 export const SHOE_STYLES: { id: ShoeStyle; label: string }[] = [
-  { id: 'sneakers', label: 'Sneakers' }, { id: 'boots', label: 'Boots' }, { id: 'sandals', label: 'Sandals' }, { id: 'barefoot', label: 'Barefoot' },
+  { id: 'sneakers', label: 'Sneakers' }, { id: 'boots', label: 'Boots' }, { id: 'sandals', label: 'Sandals' }, { id: 'slippers', label: 'Slippers' }, { id: 'loafers', label: 'Loafers' }, { id: 'barefoot', label: 'Barefoot' },
 ];
 export const ACCESSORIES: { id: Accessory; label: string }[] = [
   { id: 'none', label: 'None' }, { id: 'glasses', label: 'Glasses' }, { id: 'cap', label: 'Cap' }, { id: 'chain', label: 'Chain' }, { id: 'earrings', label: 'Earrings' }, { id: 'gele', label: 'Gele' }, { id: 'headphones', label: 'Headphones' }, { id: 'stud', label: 'Ear stud' },
@@ -51,6 +51,13 @@ export const BOUTIQUE: BoutiqueItem[] = [
   { id: 'b-sneakers-white', name: 'White sneakers', slot: 'shoes', style: 'sneakers', color: '#F4F1EA', price: 15000, glyph: '👟' },
   { id: 'b-boots-black', name: 'Black boots', slot: 'shoes', style: 'boots', color: '#1B1F24', price: 35000, glyph: '🥾' },
   { id: 'b-sandals-tan', name: 'Tan sandals', slot: 'shoes', style: 'sandals', color: '#B77B4E', price: 9000, glyph: '🩴' },
+  { id: 'b-sneakers-black', name: 'Black sneakers', slot: 'shoes', style: 'sneakers', color: '#1B1F24', price: 16000, glyph: '👟' },
+  { id: 'b-sneakers-red', name: 'Red sneakers', slot: 'shoes', style: 'sneakers', color: '#C23B3B', price: 18000, glyph: '👟' },
+  { id: 'b-boots-brown', name: 'Brown boots', slot: 'shoes', style: 'boots', color: '#6B4128', price: 38000, glyph: '🥾' },
+  { id: 'b-slippers-black', name: 'Black slippers', slot: 'shoes', style: 'slippers', color: '#1B1F24', price: 2500, glyph: '🩴' },
+  { id: 'b-slippers-blue', name: 'Blue slippers', slot: 'shoes', style: 'slippers', color: '#2B4C7E', price: 2500, glyph: '🩴' },
+  { id: 'b-loafers-brown', name: 'Brown loafers', slot: 'shoes', style: 'loafers', color: '#7A4A2A', price: 28000, glyph: '👞' },
+  { id: 'b-loafers-black', name: 'Black loafers', slot: 'shoes', style: 'loafers', color: '#1B1F24', price: 30000, glyph: '👞' },
   { id: 'b-hair-bowl', name: 'Bowl cut', slot: 'hair', style: 'bowl', price: 6000, glyph: '💇' },
   { id: 'b-hair-fade', name: 'Fade', slot: 'hair', style: 'fade', price: 3000, glyph: '💈' },
   { id: 'b-hair-afro', name: 'Afro', slot: 'hair', style: 'afro', price: 5000, glyph: '💇' },

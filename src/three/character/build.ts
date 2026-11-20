@@ -21,7 +21,7 @@ export interface Spec {
   hairColor: string; beard: 'none' | 'stubble' | 'moustache' | 'goatee' | 'full';
   top: 'tee' | 'shirt' | 'hoodie' | 'jacket' | 'kaftan' | 'jersey' | 'vest'; topColor: string;
   bottom: 'jeans' | 'shorts' | 'trousers' | 'skirt' | 'dress'; bottomColor: string;
-  shoes: 'sneakers' | 'boots' | 'sandals' | 'barefoot'; shoeColor: string;
+  shoes: 'sneakers' | 'boots' | 'sandals' | 'slippers' | 'loafers' | 'barefoot'; shoeColor: string;
   accessory: Accessory;
   bag: BagStyle; bagColor: string;
   gun?: boolean;
@@ -177,7 +177,11 @@ function headShell(R: number, seg: number, keep: (x: number, y: number, z: numbe
 /** What a rigged body gives the builder, so build.ts only makes the head (face, hair, headwear) and hands the rest over. See rigged.ts. */
 export interface HostCtx { body: Group; head: Group; R: number; mat: (c: string, r?: number, o?: { double?: boolean; metal?: number }) => Material; mesh: (g: BufferGeometry, m: Material, parent: Group, pos?: [number, number, number], rot?: [number, number, number], scale?: [number, number, number]) => Mesh; mix: (a: string, b: string, t: number) => string; shade: (hex: string, amt: number) => string }
 export interface Host { root: Group; body: Group; R: number; headY: number; attachHead: () => Group; finish: (ctx: HostCtx) => Rig }
-export interface Rig { sync?: () => void; headBone?: Group; dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; footL: Group; footR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number }
+export interface Rig { sync?: () => void; headBone?: Group; dispose: () => void; root: Group; body: Group; head: Group; hipL: Group; hipR: Group; kneeL: Group; kneeR: Group; footL: Group; footR: Group; shoulderL: Group; shoulderR: Group; elbowL: Group; elbowR: Group; height: number;
+  /** The real hand bones (rigged body only): things held in the hands are parented here so they follow every arm pose. handR is the game's right (+x) hand. */
+  handL?: Group; handR?: Group;
+  /** Mixamo clips: write a baked pose (4 numbers per bone, see clips.ts) and the hips height change; leavePose goes back to the joint-angle pose. */
+  playPose?: (q: ArrayLike<number>, dy: number) => void; leavePose?: () => void; bone?: (name: string) => Group }
 
 export function buildCharacter(spec: Spec, host?: Host): Rig {
   const st = POLY, fem = spec.body === 'femme';

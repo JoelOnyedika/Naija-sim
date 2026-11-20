@@ -7,6 +7,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildCharacter, type Host, type Rig, type Spec } from './build';
 import { bodyTemplate, makeSkeleton, makeSkinned, type BodyTemplate } from './bodyAsset';
 import { dress, type Dressing } from './garments';
+import { BAKED_LEG, BONES } from './clips';
 
 /** Base pose data per body type: arms hang instead of sticking out. Computed once. */
 export interface BasePose { local: Quaternion[]; parentWorld: Quaternion[]; parentWorldInv: Quaternion[]; world: Quaternion[] }
@@ -61,6 +62,17 @@ export function buildRiggedCharacter(spec: Spec, gltf: GLTF): Rig {
     }
     const hr = headProxy.rotation; set(bones[neck], neck, dq.set(0, 0, 0, 1).setFromEuler(hr).slerp(new Quaternion(), 0.65)); set(bones[headI], headI, dq.setFromEuler(hr).slerp(new Quaternion(), 0.35));
   };
+  // ---- baked Mixamo clips (clips.ts): write the retargeted bone rotations straight into the skeleton, bypassing the joint-angle bridge above
+  const restLocal = (i: number) => { const p = tpl.parent[i]; return p < 0 ? tpl.quat[i].clone() : tpl.quat[p].clone().invert().multiply(tpl.quat[i]); };
+  const rest = bones.map((_, i) => restLocal(i)), baked = BONES.map((nm) => idx[nm]), isBaked = new Set(baked);
+  const legScale = (tpl.pos[0].y - tpl.pos[idx['DEF-footL']].y) / BAKED_LEG, rootY = tpl.pos[0].y;
+  let inClip = false;
+  const playPose = (q: ArrayLike<number>, dy: number) => {
+    if (!inClip) { inClip = true; bones.forEach((b, i) => { if (!isBaked.has(i)) b.quaternion.copy(rest[i]); }); } // fingers, twist bones: back to rest, they follow their parents
+    baked.forEach((bi, j) => bones[bi].quaternion.set(q[j * 4], q[j * 4 + 1], q[j * 4 + 2], q[j * 4 + 3]));
+    bones[0].position.y = rootY + dy * legScale;
+  };
+  const leavePose = () => { if (!inClip) return; inClip = false; bones.forEach((b, i) => b.quaternion.copy(base.local[i])); bones[0].position.y = rootY; };
   const headProxy = new Group();
   // the head, built by build.ts, rides on the head bone; the group is counter-rotated so it faces +z and stands upright
   const R = fem ? 0.122 : 0.13, headCentre = new Vector3(0, m.headBaseY + R * 1.0, -0.005);
@@ -74,7 +86,7 @@ export function buildRiggedCharacter(spec: Spec, gltf: GLTF): Rig {
       dressing = dress(spec, tpl, sk, base, skin, ctx);
       const total = m.top;
       const dispose = () => { dressing?.dispose(); root.traverse((o: Object3D) => { const g = (o as { geometry?: BufferGeometry }).geometry; if (g && !(g as { userData?: { shared?: boolean } }).userData?.shared) g.dispose(); }); skin.dispose(); };
-      return { dispose, root, body, head: headProxy as Group, ...P, height: total, sync, headBone: ctx.head } as Rig;
+      return { dispose, root, body, head: headProxy as Group, ...P, height: total, sync, headBone: ctx.head, handL: bones[idx[`DEF-hand${negSide}`]] as unknown as Group, handR: bones[idx[`DEF-hand${posSide}`]] as unknown as Group, playPose, leavePose, bone: (name: string) => bones[idx[name]] as unknown as Group } as Rig;
     },
   };
   void (null as unknown as Material);

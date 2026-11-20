@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ChevronsUp, Crosshair, MapPin, RotateCw } from 'lucide-react';
+import { ArrowLeft, ChevronsUp, Crosshair, LogOut, MapPin, RotateCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '@/audio/sfx';
 import { WEAPONS } from '@/data/weapons';
@@ -18,8 +18,10 @@ import { useWeaponStore } from '@/stores/weaponStore';
 import { useFlowStore } from '@/stores/flowStore';
 import { makeCombat } from './combat';
 import { newClip, sentenceFor } from './shooting';
-import { generateCity, nearestLandmark, EXTENT, type LandmarkSpot } from './worldGen';
-import { WorldScene, type WorldInput, type WorldState } from './WorldScene';
+import { generateCity, nearestLandmark, spawnFor, EXTENT, type LandmarkSpot } from './worldGen';
+import { useInteriorStore } from '@/stores/interiorStore';
+import { WorldScene, type DriveState, type WorldInput, type WorldState } from './WorldScene';
+import { getVehicle } from '@/data/vehicles';
 
 /** Cities of the game. Only Lagos has a world today; the others are placeholders so the picker is ready for them. */
 export const CITIES = [
@@ -50,9 +52,13 @@ export function OpenWorldScreen() {
   const go = useFlowStore((s) => s.go);
   const look = useCharacterStore((s) => s.appearance);
   const city = useMemo(() => generateCity(), []);
-  const input = useRef<WorldInput>({ mx: 0, mz: 0, run: false, yaw: 0, pitch: 0.28 });
-  const state = useRef<WorldState>({ x: city.spawn.x, z: city.spawn.z, heading: Math.PI });
+  // you come out where you were: the doorstep of the venue you were inside (Unilag, a mall...), otherwise the default spot
+  const start = useMemo(() => spawnFor(city, useInteriorStore.getState().current?.landmarkId), [city]);
+  const input = useRef<WorldInput>({ mx: 0, mz: 0, run: false, yaw: start.yaw, pitch: 0.28 });
+  const state = useRef<WorldState>({ x: start.x, z: start.z, heading: start.heading });
   const combat = useRef(makeCombat());
+  const drive = useRef<DriveState>({ carId: null, near: null, enterReq: false, exitReq: false, speed: 0, cars: {} });
+  const [carUi, setCarUi] = useState({ near: null as string | null, driving: null as string | null, kmh: 0 });
   const weaponId = useWeaponStore((s) => s.equipped);
   const [hud, setHud] = useState({ drawn: false, loaded: 0, reserve: 0, stars: 0, msg: '', hit: false, reloading: false });
   const [near, setNear] = useState<LandmarkSpot | null>(null);
@@ -61,7 +67,7 @@ export function OpenWorldScreen() {
   const usedAt = useRef(new Map<string, number>());
   const [run, setRun] = useState(false);
   const [picker, setPicker] = useState(false);
-  const [portrait, setPortrait] = useState(false);
+  const [portrait, setPortrait] = useState(false), [dismissRotate, setDismissRotate] = useState(false);
   const stick = useRef<{ id: number; ox: number; oy: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const lookPtr = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -96,6 +102,7 @@ export function OpenWorldScreen() {
   useEffect(() => {
     const t = window.setInterval(() => {
       const c = combat.current, now = performance.now();
+      { const d = drive.current, kmh = Math.round(Math.abs(d.speed) * 3.6); setCarUi((p) => (p.near === d.near && p.driving === d.carId && p.kmh === kmh ? p : { near: d.near, driving: d.carId, kmh })); }
       setHud((p) => { const n = { drawn: c.drawn, loaded: c.clip.loaded, reserve: c.clip.reserve, stars: c.stars, msg: c.msg && now < c.msg.until ? c.msg.text : '', hit: now - c.hitMarkerAt < 180, reloading: now < c.reloadingUntil }; return JSON.stringify(n) === JSON.stringify(p) ? p : n; });
       if (c.arrested) { c.arrested = false; const mins = sentenceFor(c.sentence); c.drawn = false; arrestPlayer(mins, 'Shooting in public'); go('game'); }
     }, 100);
@@ -127,7 +134,7 @@ export function OpenWorldScreen() {
 
   return (
     <motion.div className="absolute inset-0 overflow-hidden bg-night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <WorldScene city={city} look={look} input={input} state={state} combat={combat} />
+      <WorldScene city={city} look={look} input={input} state={state} combat={combat} drive={drive} />
 
       {/* drag anywhere on the right to look around */}
       <div className="absolute inset-y-0 right-0 z-20 w-[62%] touch-none"
@@ -147,7 +154,7 @@ export function OpenWorldScreen() {
       {/* wanted stars, ammo and messages */}
       <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex flex-col items-center gap-1.5 pt-safe">
         {hud.stars > 0 && <div className="flex gap-1 rounded-full bg-black/55 px-3 py-1 text-lg" aria-label={`Wanted level ${hud.stars}`}>{[1, 2, 3].map((n) => <span key={n} className={n <= hud.stars ? 'text-rose-400 drop-shadow' : 'text-white/25'}>★</span>)}<span className="ml-1 self-center text-[11px] font-bold uppercase tracking-wide text-rose-300">Wanted</span></div>}
-        {hud.drawn && weaponId && <div className="rounded-full bg-black/55 px-3 py-1 text-[13px] font-bold">{WEAPONS[weaponId].glyph} {WEAPONS[weaponId].name} · <span className={hud.loaded === 0 ? 'text-rose-300' : ''}>{hud.loaded}</span><span className="text-white/60"> / {hud.reserve}</span>{hud.reloading && <span className="ml-1 text-danfo">reloading…</span>}</div>}
+        {hud.drawn && weaponId && !carUi.driving && <div className="rounded-full bg-black/55 px-3 py-1 text-[13px] font-bold">{WEAPONS[weaponId].glyph} {WEAPONS[weaponId].name} · <span className={hud.loaded === 0 ? 'text-rose-300' : ''}>{hud.loaded}</span><span className="text-white/60"> / {hud.reserve}</span>{hud.reloading && <span className="ml-1 text-danfo">reloading…</span>}</div>}
         {hud.msg && <div className="rounded-full bg-black/65 px-4 py-1.5 text-sm font-bold">{hud.msg}</div>}
       </div>
       {hud.drawn && <div className="pointer-events-none absolute left-1/2 top-[36%] z-30 -translate-x-1/2 -translate-y-1/2" aria-hidden><div className={`h-7 w-7 rounded-full border-2 ${hud.hit ? 'scale-125 border-rose-400' : 'border-white/80'} transition`} /><span className={`absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${hud.hit ? 'bg-rose-400' : 'bg-white'}`} /></div>}
@@ -172,16 +179,33 @@ export function OpenWorldScreen() {
         onPointerUp={() => { stick.current = null; setKnob({ x: 0, y: 0 }); input.current.mx = 0; input.current.mz = 0; }} onPointerCancel={() => { stick.current = null; setKnob({ x: 0, y: 0 }); input.current.mx = 0; input.current.mz = 0; }}>
         <span className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/35 ring-2 ring-white/60" style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }} />
       </div>
-      {weaponId && (<>
+      {weaponId && !carUi.driving && (<>
         {hud.drawn && <button aria-label="Fire" className="absolute bottom-[6.4rem] right-5 z-30 flex h-[4.5rem] w-[4.5rem] touch-none items-center justify-center rounded-full bg-rose-600 shadow-[0_8px_28px_rgba(225,29,72,0.55)] active:scale-95"
           onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); combat.current.fireTap = true; combat.current.firing = true; }}
           onPointerUp={() => { combat.current.firing = false; }} onPointerCancel={() => { combat.current.firing = false; }}><Crosshair size={30} /></button>}
         <button aria-label={hud.drawn ? 'Put the weapon away' : 'Draw the weapon'} aria-pressed={hud.drawn} onClick={toggleDraw} className={`absolute bottom-8 right-[6.3rem] z-30 flex h-14 w-14 items-center justify-center rounded-full text-2xl ${hud.drawn ? 'cta-naija' : 'cta-ghost'}`}>{WEAPONS[weaponId].glyph}</button>
         {hud.drawn && <button aria-label="Reload" onClick={reloadNow} className="cta-ghost absolute bottom-[6.2rem] right-[7.2rem] z-30 flex h-12 w-12 items-center justify-center rounded-full"><RotateCw size={20} /></button>}
       </>)}
+      {carUi.near && !carUi.driving && (
+        <button onClick={() => { drive.current.enterReq = true; }} className="cta-naija absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-2xl px-5 font-display text-sm font-extrabold">🚗 Drive your {getVehicle(carUi.near)?.name ?? 'car'}</button>
+      )}
+      {carUi.driving && (
+        <div className="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3">
+          <div className="glass-dark rounded-2xl px-4 py-2 text-center"><span className="font-display text-2xl font-extrabold tabular-nums">{carUi.kmh}</span><span className="ml-1 text-xs font-bold opacity-70">km/h</span></div>
+          <button onClick={() => { drive.current.exitReq = true; }} className="cta-ghost flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-bold"><LogOut size={18} />Get out</button>
+        </div>
+      )}
       <button onClick={() => { sfx.click(); setRun((v) => !v); }} aria-pressed={run} className={`absolute bottom-8 right-5 z-30 flex h-16 w-16 flex-col items-center justify-center rounded-full text-[11px] font-extrabold ${run ? 'cta-naija' : 'cta-ghost'}`}><ChevronsUp size={22} />Run</button>
 
-      {portrait && <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-6"><p className="glass-dark rounded-2xl px-4 py-2 text-center text-[13px] font-semibold">📱 Turn your phone sideways for the best view</p></div>}
+      <AnimatePresence>
+        {portrait && !dismissRotate && (
+          <motion.div key="rotate" className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-night/90 px-8 text-center backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-label="Rotate your phone">
+            <motion.div animate={{ rotate: [0, 0, -90, -90, 0] }} transition={{ duration: 2.6, repeat: Infinity, times: [0, 0.15, 0.45, 0.8, 1], ease: 'easeInOut' }} className="flex h-24 w-14 items-center justify-center rounded-2xl border-4 border-white/90"><span className="h-1.5 w-6 rounded-full bg-white/70" /></motion.div>
+            <div><h2 className="font-display text-2xl font-extrabold">Rotate your phone</h2><p className="mt-1 text-sm text-white/70">Turn it sideways to play. You get a much wider view of the street.</p></div>
+            <button onClick={() => { sfx.click(); setDismissRotate(true); }} className="cta-ghost h-11 rounded-xl px-5 text-sm font-bold">Play anyway</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {picker && (

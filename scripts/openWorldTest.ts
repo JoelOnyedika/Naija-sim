@@ -1,4 +1,4 @@
-import { blockCentre, BLOCK, EXTENT, GRID, generateCity, nearestLandmark, resolveMove } from '../src/features/openworld/worldGen';
+import { blockCentre, BLOCK, EXTENT, GRID, generateCity, nearestLandmark, resolveMove, spawnFor, ownedSpots, groundY, driveStep, PITCH, SLAB } from '../src/features/openworld/worldGen';
 import { LANDMARKS } from '../src/content/lagos/landmarks';
 let fails = 0; const ok = (c: boolean, m: string) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fails++; };
 const c = generateCity(), c2 = generateCity();
@@ -23,4 +23,21 @@ const clear = (x: number, z: number) => c.buildings.every((b) => Math.abs(x - b.
 ok(c.moments.every((m) => clear(m.x, m.z)), 'no street moment stands inside a building');
 ok(c.landmarks.every((l) => clear(l.doorX, l.doorZ)), 'every doorstep is outside its building and reachable');
 ok(c.landmarks.every((l) => { const [x, z] = resolveMove(c, l.doorX, l.doorZ); return Math.hypot(x - l.doorX, z - l.doorZ) < 0.01; }), 'a player can stand on every doorstep');
+const uni = spawnFor(c, 'lagos.unilag'), home = spawnFor(c, null), unknown = spawnFor(c, 'nope');
+const ul = c.landmarks.find((l) => l.id === 'lagos.unilag')!;
+ok(Math.hypot(uni.x - ul.doorX, uni.z - ul.doorZ) < 2 && clear(uni.x, uni.z), 'coming out of Unilag puts you on the Unilag doorstep, outside the building');
+ok(c.landmarks.every((l) => { const s = spawnFor(c, l.id); return clear(s.x, s.z) && Math.hypot(s.x - l.doorX, s.z - l.doorZ) < 2; }), 'every venue spawns you at its own door');
+ok(home.x === c.spawn.x && unknown.x === c.spawn.x, 'from home (or an unknown venue) you get the default spot');
+ok(Math.abs(uni.yaw - uni.heading - Math.PI) < 1e-9, 'the camera starts behind the player');
+const spots = ownedSpots(c, 4);
+ok(spots.length === 4 && spots.every((p) => clear(p.x, p.z)), 'four owned cars park on the road beside the home spot, none inside a building');
+ok(spots.every((p, i) => i === 0 || Math.hypot(p.x - spots[i - 1].x, p.z - spots[i - 1].z) > 5.5), 'parked cars do not overlap');
+ok(ownedSpots(c, 20).length === 6, 'at most six cars are parked');
+ok(groundY(0, 0) === SLAB || groundY(PITCH / 2, 0) === 0, 'blocks are raised, roads are level');
+ok(groundY(PITCH / 2, PITCH / 2) === 0 && groundY(99999, 0) === 0, 'the junction and anywhere outside the city are at road level');
+const car = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 300; i++) driveStep(car, 1, 0, false, 1 / 60);
+ok(car.speed > 19 && car.speed <= 21.01 && car.z > 40 && Math.abs(car.x) < 1e-6, 'holding the throttle accelerates to about 21 m/s straight ahead');
+const t0 = car.heading; for (let i = 0; i < 60; i++) driveStep(car, 1, 1, false, 1 / 60); ok(car.heading < t0, 'steering right turns the car right (heading decreases)');
+const still = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 60; i++) driveStep(still, 0, 1, false, 1 / 60); ok(still.heading === 0 && still.x === 0, 'a parked car does not turn on the spot');
+const rev = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 200; i++) driveStep(rev, -1, 0, false, 1 / 60); ok(rev.speed < -5 && rev.speed >= -7.01, 'reverse is slow');
 console.log(fails ? `\n${fails} check(s) failed` : '\nAll open-world checks passed'); process.exit(fails ? 1 : 0);

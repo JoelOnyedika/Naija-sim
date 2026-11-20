@@ -20,7 +20,7 @@ import { getActiveHome } from './active';
 import { backupIn, powerMode } from './power';
 import { usePowerStore } from '@/stores/powerStore';
 import { finishPetAction, stepPets } from './petCare';
-import { stepJail } from './crime';
+import { isJailed, stepJail, trimSentence } from './crime';
 import { stepCollectors } from './collectors';
 import { stepLoans } from './loans';
 import { stepStory, stepStoryClock } from './story';
@@ -46,6 +46,8 @@ function trackDaily(a: Activity, paid: number) {
 }
 
 function onFinished(a: Activity) {
+  // sleeping on the cell bunk shortens the sentence, so a player can sleep their way out
+  if (a.activityKey === 'v_cell_bed:sleep' && isJailed()) { const cut = trimSentence(); if (cut > 0) toast(`You slept. ${cut} minute${cut === 1 ? '' : 's'} off your sentence.`, 'good'); }
   // a gamble: lost means no pay, no XP, and a penalty; won adds a bonus
   if (a.risk) {
     if (Math.random() >= a.risk.winChance) { useStatsStore.getState().apply(a.risk.loseEffects); sfx.error(); toast(a.risk.loseMessage, 'bad'); vendorReact(a.targetUid, 'lose'); trackDaily(a, 0); return; }

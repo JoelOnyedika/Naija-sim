@@ -21,7 +21,7 @@ import { CHAT, channelFor, cleanMessage, getTransport, playerMenu } from '../src
 import { stepChatter } from '../src/game/chatter';
 import { buyClub, clubPrice, tonightsBill } from '../src/game/club';
 import { crowdMoment } from '../src/game/clubCrowd';
-import { attemptPickpocket, formatRemaining, isJailed, remainingMs, sentenceMinutesFor, stepJail, successChance } from '../src/game/crime';
+import { attemptPickpocket, formatRemaining, isJailed, remainingMs, sentenceMinutesFor, stepJail, successChance, trimSentence } from '../src/game/crime';
 import { npcCountFor, SimulatedServer } from '../src/game/instances';
 import { chooseActivity, interactWith, startUse } from '../src/game/interactions';
 import { enterInterior, leaveInterior, travelToVenue } from '../src/game/interiors';
@@ -224,7 +224,7 @@ leaveInterior();
 
 console.log('Crime and jail');
 ok(successChance(0) === 0.5 && Math.abs(successChance(10) - 0.3) < 1e-9 && successChance(30) === CRIME.minSuccess && successChance(-5) === 0.5, 'success chance: 50% at zero, 2% less per wanted point, never below 15%');
-ok(sentenceMinutesFor(0) === 10 && sentenceMinutesFor(4) === 30 && sentenceMinutesFor(30) === 120 && sentenceMinutesFor(1e9) === 120, 'sentences: 10 minutes plus 5 per point, never above 2 hours');
+ok(sentenceMinutesFor(0) === 5 && sentenceMinutesFor(4) === 5 && sentenceMinutesFor(30) === 5 && sentenceMinutesFor(1e9) === 5, 'sentences: always 5 minutes');
 ok(formatRemaining(125_000) === '2:05' && formatRemaining(3_725_000) === '1:02:05', 'remaining time reads as m:ss or h:mm:ss');
 fresh(); enterInterior('market');
 const npcs = makeNpcs('market', I().current!.seed, I().current!.npcCount);
@@ -262,7 +262,12 @@ J().patch({ sentence: { startAt: end, endAt: end + 60_000, minutes: 1, reason: '
 ok(stepJail(end + 30_000) === null && I().current?.kind === 'jail', 'while time remains, nothing releases you');
 ok(stepJail(end + 61_000) === 'released' && I().current === null, 'the same tick releases you at the end time');
 J().patch({ criminality: 30, sentence: null });
-ok(sentenceMinutesFor(J().criminality) <= 120, 'even at maximum wanted level a sentence is at most two hours');
+ok(sentenceMinutesFor(J().criminality) <= 5, 'even at maximum wanted level a sentence is at most five minutes');
+{ const t0 = Date.now(); J().patch({ sentence: { startAt: t0, endAt: t0 + 5 * 60_000, minutes: 5, reason: 'Test' } });
+  ok(trimSentence(2, t0) === 2 && remainingMs(t0) === 3 * 60_000, 'one sleep on the bunk takes 2 minutes off');
+  trimSentence(2, t0); ok(remainingMs(t0) === 1 * 60_000, 'a second sleep takes another 2');
+  ok(trimSentence(2, t0) === 1 && remainingMs(t0) === 0, 'a third sleep only takes what is left, never more');
+  J().patch({ sentence: null }); }
 J().reset(); ok(J().criminality === 0 && J().sentence === null, 'a new life clears the record');
 
 console.log('Club');

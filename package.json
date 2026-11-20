@@ -50,9 +50,11 @@
     "test:workflow": "tsx scripts/workflowTest.ts",
     "test:story": "tsx scripts/storyTest.ts",
     "test:interact": "tsx scripts/interactTest.ts",
-    "test:anim": "tsx scripts/animTest.ts",
+    "test:anim": "tsx scripts/animTest.ts && tsx scripts/clipTest.ts",
     "test:openworld": "tsx scripts/openWorldTest.ts",
     "test:shooting": "tsx scripts/shootingTest.ts",
+    "test:shoes": "tsx scripts/shoeTest.ts",
+    "test:dress": "tsx scripts/dressTest.ts",
     "test:pwa": "tsx scripts/pwaTest.ts"
   },
   "dependencies": {

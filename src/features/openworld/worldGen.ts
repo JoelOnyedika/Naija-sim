@@ -72,6 +72,17 @@ export function generateCity(seed = 2026): City {
   return { moments, buildings, landmarks, trees, blockCentres, spawn: { x: PITCH / 2, z: PITCH / 2 } };
 }
 
+/**
+ * Where the player steps out. From inside a venue: on that venue's doorstep, facing away from the door (the doors are on the south face, so the player
+ * faces south and the camera yaw is behind them). Otherwise (at home, or a venue with no spot in this city) the city's default spawn.
+ * `heading` is the way the body faces (0 = +z); `yaw` is the camera yaw that puts the camera behind the body (yaw = heading + PI).
+ */
+export function spawnFor(city: City, landmarkId?: string | null): { x: number; z: number; heading: number; yaw: number } {
+  const l = landmarkId ? city.landmarks.find((x) => x.id === landmarkId) : undefined;
+  if (l) return { x: l.doorX, z: l.doorZ + 1.5, heading: 0, yaw: Math.PI };
+  return { x: city.spawn.x, z: city.spawn.z, heading: Math.PI, yaw: 0 };
+}
+
 /** Pushes a circle out of a box. Returns the corrected position. */
 export function pushOut(px: number, pz: number, r: number, b: Rect): [number, number] {
   const hx = b.w / 2, hz = b.d / 2, dx = px - b.x, dz = pz - b.z;
@@ -96,4 +107,31 @@ export function nearestLandmark(city: City, x: number, z: number, range = 26): L
   let best: LandmarkSpot | null = null, bd = range;
   for (const l of city.landmarks) { const d = Math.hypot(l.x - x, l.z - z); if (d < bd) { bd = d; best = l; } }
   return best;
+}
+
+/** Height of the ground under (x, z): blocks (pavement and buildings) are raised 0.3, the roads between them are at 0. */
+export const SLAB = 0.3;
+export function groundY(x: number, z: number): number {
+  const fx = ((x / PITCH + GRID / 2) % 1 + 1) % 1, fz = ((z / PITCH + GRID / 2) % 1 + 1) % 1, m = (BLOCK / 2) / PITCH, lo = 0.5 - m, hi = 0.5 + m;
+  return Math.abs(x) < EXTENT && Math.abs(z) < EXTENT && fx > lo && fx < hi && fz > lo && fz < hi ? SLAB : 0;
+}
+
+/**
+ * Where the player's own cars are parked: in a row along the kerb of the road next to the home spawn, clear of the junction.
+ * `n` cars (at most 6), each with its position, the way it faces (heading, 0 = +z) and the slot index.
+ */
+export function ownedSpots(city: City, n: number): { x: number; z: number; heading: number }[] {
+  const out: { x: number; z: number; heading: number }[] = [], z = city.spawn.z + 4.6;
+  for (let k = 0; k < Math.min(6, n); k++) out.push({ x: city.spawn.x + 11 + k * 6.4, z, heading: Math.PI / 2 });
+  return out;
+}
+
+/** Advances a driven car one step (arcade): throttle -1..1 (negative = reverse), steer -1..1 (positive = right), boost for the faster top speed. Pure, so it can be tested. */
+export function driveStep(c: { x: number; z: number; heading: number; speed: number }, throttle: number, steer: number, boost: boolean, dt: number) {
+  const top = boost ? 30 : 21, target = throttle > 0.05 ? throttle * top : throttle < -0.05 ? throttle * 7 : 0;
+  c.speed += (target - c.speed) * (1 - Math.exp(-dt * (target === 0 ? 1.4 : 1.7)));
+  const grip = Math.min(1, Math.abs(c.speed) / 5); // no turning on the spot
+  c.heading -= steer * 1.7 * grip * Math.sign(c.speed || 1) * dt * (1 - Math.min(0.45, Math.abs(c.speed) / 70));
+  c.x += Math.sin(c.heading) * c.speed * dt; c.z += Math.cos(c.heading) * c.speed * dt;
+  return c;
 }

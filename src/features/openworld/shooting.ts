@@ -3,6 +3,7 @@
  * Uses the weapon stats in data/weapons.ts and the hit rule `fire()` in game/weapons.ts.
  * Ray tests: a person is two spheres (body and head, a headshot does double damage); buildings stop bullets.
  */
+import { CRIME } from '@/data/balance';
 import { WEAPONS, type WeaponId } from '@/data/weapons';
 import { fire } from '@/game/weapons';
 import type { Rect } from './worldGen';
@@ -89,4 +90,5 @@ export function stars(heat: number, civilianHarmed: boolean): 0 | 1 | 2 | 3 {
 /** How many officers chase at a given number of stars. */
 export const officersFor = (s: number) => (s <= 0 ? 0 : s === 1 ? 1 : s === 2 ? 2 : 4);
 /** Sentence in minutes for being caught after shooting in public, harsher with more stars. */
-export const sentenceFor = (s: number) => 20 + s * 20;
+/** Every arrest is the same short sentence (5 minutes); a sleep on the bunk cuts it. */
+export const sentenceFor = (_stars: number) => CRIME.sentenceBaseMinutes;

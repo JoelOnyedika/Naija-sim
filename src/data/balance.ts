@@ -121,6 +121,8 @@ export const CRIME = {
   walletRange: [2000, 12000] as [number, number],
   /** A successful theft takes this share of the NPC's wallet. */
   takeShare: [0.5, 1] as [number, number],
-  sentenceBaseMinutes: 10, sentencePerPointMinutes: 5, maxSentenceMinutes: 120,
+  sentenceBaseMinutes: 5, sentencePerPointMinutes: 0, maxSentenceMinutes: 5,
+  /** Sleeping on the cell bunk takes this many minutes off the sentence (each sleep). */
+  sleepCutMinutes: 2,
   cooldownSeconds: 20,
 } as const;

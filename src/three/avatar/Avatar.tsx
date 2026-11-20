@@ -2,8 +2,10 @@ import { armPose, bodyPose, cadence, legPose } from './gait';
 import { isReaction, reactionPose } from './reaction';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
-import { MathUtils } from 'three';
+import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { CylinderGeometry, Group, Matrix4, MathUtils, Mesh, MeshStandardMaterial, SphereGeometry, TorusGeometry, BoxGeometry, DoubleSide } from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { ANIM, ClipPlayer, RIFLE, UNARMED } from '../character/clips';
 import type { Appearance } from '@/types/game';
 import { toSpec } from '../character/build';
 import { BODY_URL } from '../character/bodyAsset';
@@ -11,20 +13,72 @@ import { buildRiggedCharacter } from '../character/rigged';
 
 useGLTF.preload(BODY_URL);
 
+/** The one gun. Model space: origin = right-hand grip, +z barrel, +y up (see public/models/weapons/CREDITS.md). */
+export const AK_URL = '/models/weapons/ak47.glb';
+/** Where the muzzle is in the body's space while the rifle clips play, and which way the barrel points (yaw, radians, from the body's front): for tracers and for turning the body to aim. Fitted to the retargeted clips by tools/bakeAnims.ts. */
+export const AK_MUZZLE = { body: ANIM.gun.muzzleBody as [number, number, number], yaw: ANIM.gun.barrelYaw };
+
+/** The rifle rides in the right hand bone, so it follows every Mixamo clip. The grip transform comes from the retargeted rifle-aim pose (right palm on the grip, barrel toward the left hand). */
+function HeldAK({ rig }: { rig: ReturnType<typeof buildRiggedCharacter> }) {
+  const gltf = useGLTF(AK_URL);
+  useEffect(() => {
+    const hand = rig.bone?.(ANIM.gun.bone); if (!hand) return;
+    const g = gltf.scene.clone(true), holder = new Group();
+    holder.position.set(...(ANIM.gun.pos as [number, number, number])); holder.quaternion.set(ANIM.gun.quat[0], ANIM.gun.quat[1], ANIM.gun.quat[2], ANIM.gun.quat[3]); holder.add(g); hand.add(holder);
+    return () => { hand.remove(holder); };
+  }, [gltf, rig]);
+  return null;
+}
+
+/** What a street hawker carries on the head: a basin of oranges, a tray of bread, a stack of pure-water sachets. */
+export type HeadCargo = 'oranges' | 'bread' | 'water';
+function cargoMesh(kind: HeadCargo): Group {
+  const g = new Group(), mat = (c: string, r = 0.7, extra: { side?: typeof DoubleSide; transparent?: boolean; opacity?: number } = {}) => new MeshStandardMaterial({ color: c, roughness: r, ...extra });
+  const add = (geo: Mesh['geometry'], m: MeshStandardMaterial, x: number, y: number, z: number) => { const o = new Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
+  const pad = new Mesh(new TorusGeometry(0.1, 0.04, 6, 12), mat('#C23B3B', 0.9)); pad.rotation.x = Math.PI / 2; pad.position.y = 0.03; g.add(pad); // the cloth ring she carries it on
+  if (kind === 'oranges') {
+    const basin = new Mesh(new CylinderGeometry(0.3, 0.22, 0.13, 14, 1, true), mat('#3E6FB0', 0.4, { side: DoubleSide })); basin.position.y = 0.1; g.add(basin);
+    add(new CylinderGeometry(0.22, 0.22, 0.012, 14), mat('#3E6FB0', 0.4), 0, 0.045, 0); add(new TorusGeometry(0.3, 0.014, 5, 16), mat('#F4F4F2', 0.5), 0, 0.165, 0).rotation.x = Math.PI / 2;
+    const fruit = new SphereGeometry(0.058, 8, 6), om = mat('#F08A1C', 0.6);
+    for (let i = 0; i < 19; i++) { const ring = i < 9 ? 0.2 : i < 16 ? 0.11 : 0, a = i * 2.4, h = i < 9 ? 0.14 : i < 16 ? 0.2 : 0.26; add(fruit, om, Math.cos(a) * ring, h, Math.sin(a) * ring); }
+  } else if (kind === 'bread') {
+    add(new RoundedBoxGeometry(0.62, 0.035, 0.4, 2, 0.012), mat('#8A5A2B', 0.8), 0, 0.06, 0);
+    const loaf = new RoundedBoxGeometry(0.16, 0.1, 0.34, 3, 0.04), lm = mat('#D9A55B', 0.75);
+    for (const [x, y] of [[-0.22, 0.13], [-0.07, 0.13], [0.08, 0.13], [0.23, 0.13], [-0.15, 0.225], [0.0, 0.225], [0.15, 0.225], [-0.07, 0.32], [0.08, 0.32]]) add(loaf, lm, x, y, 0);
+  } else {
+    const pack = new RoundedBoxGeometry(0.4, 0.15, 0.3, 3, 0.03), pm = mat('#DCE9F2', 0.25, { transparent: true, opacity: 0.88 });
+    for (const y of [0.12, 0.27, 0.42]) { add(pack, pm, 0, y, 0); add(new BoxGeometry(0.2, 0.05, 0.003), mat('#2B7BD4', 0.5), 0, y, 0.152); }
+  }
+  return g;
+}
+function HeadLoad({ rig, kind }: { rig: ReturnType<typeof buildRiggedCharacter>; kind: HeadCargo }) {
+  useEffect(() => {
+    const head = rig.bone?.('DEF-head'); if (!head) return;
+    const g = cargoMesh(kind), holder = new Group(); holder.add(g);
+    rig.root.updateMatrixWorld(true); head.updateWorldMatrix(true, false);
+    // place it on the crown in the base pose, then express that in the head bone's own frame so it rides every head movement
+    holder.applyMatrix4(new Matrix4().copy(head.matrixWorld).invert().multiply(new Matrix4().makeTranslation(0, rig.height - 0.03, -0.035)));
+    head.add(holder); return () => { head.remove(holder); g.traverse((o) => { const m = o as Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as MeshStandardMaterial).dispose(); } }); };
+  }, [rig, kind]);
+  return null;
+}
+
 /** What the avatar is doing with its hands. Drives the arm poses below; positions/poses come from the walker. */
 export type ActionKind = 'idle' | 'eat' | 'cook' | 'type' | 'dance' | 'shower' | 'pushup' | 'tv' | 'read' | 'piano' | 'drink' | 'wash'
   | 'work' | 'lift' | 'hammer' | 'sweep' | 'talk' | 'pray' | 'cheer' | 'swing' | 'curl'
   // social and ceremony poses, used by the character-interaction system (game/interact.ts)
   | 'listen' | 'handshake' | 'give' | 'chant' | 'wave' | 'crossed' | 'gesture'
   // hard-scene body language (three/avatar/reaction.ts)
-  | 'stagger' | 'cower' | 'shiver' | 'kneel' | 'beaten' | 'punch' | 'kick' | 'point' | 'brace';
+  | 'stagger' | 'cower' | 'shiver' | 'kneel' | 'beaten' | 'punch' | 'kick' | 'point' | 'brace'
+  // two-handed rifle hold (works while walking and running)
+  | 'rifle';
 export interface Motion { moving: boolean; lying: boolean; sitting: boolean; action?: ActionKind; bathing?: boolean; bubble?: string | null; /** metres per second while moving: sets the stride (default 1.7, a normal walk) */ speed?: number }
 
 /**
  * The low-poly person (see ../character/build.ts). The model is rebuilt only when the appearance changes; `motion` lets a
  * parent drive walk / sit / lie poses. The pose code below is the existing simple procedural motion, applied to the new rig's joints.
  */
-export function Avatar({ appearance: a, motion }: { appearance: Appearance; motion?: MutableRefObject<Motion> }) {
+export function Avatar({ appearance: a, motion, held, cargo }: { appearance: Appearance; motion?: MutableRefObject<Motion>; /** goods carried on the head (street hawkers) */ cargo?: HeadCargo | null; /** a gun in the hands (only 'ak47' exists): use with motion.action = 'rifle' */ held?: 'ak47' | null }) {
   const key = JSON.stringify(a);
   const gltf = useGLTF(BODY_URL); // the rigged body; suspends the first time, then it is cached
   const rig = useMemo(() => buildRiggedCharacter(toSpec(a), gltf as never), [key, gltf]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -32,6 +86,7 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
   useEffect(() => { const f = a.frame; rig.root.scale.set(f?.w ?? 1, f?.h ?? 1, f?.w ?? 1); }, [rig, a.frame?.w, a.frame?.h]); // NPC body proportions (one scale, no extra geometry)
   const smooth = useRef([{ x: 0, f: -0.18, z: 0.06 }, { x: 0, f: -0.18, z: -0.06 }]);
   const seedOf = useRef(Math.random() * 10); // so two people in the same scene never move in step
+  const player = useRef(new ClipPlayer());
   const gait = useRef({ phase: 0, blend: 0 }); // phase in cycles; blend 0 (standing) .. 1 (walking), so starting and stopping ease in and out
   const legs = [rig.hipL, rig.hipR], knees = [rig.kneeL, rig.kneeR], feet = [rig.footL, rig.footR], arms = [rig.shoulderL, rig.shoulderR], fores = [rig.elbowL, rig.elbowR];
   const body = { current: rig.body };
@@ -45,7 +100,13 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
     const gb = g.blend;
     const rx = !m.moving && !m.lying && isReaction(m.action) ? reactionPose(m.action, t, seedOf.current) : null; // a hard-scene pose, if one is playing
     // hands: an action only shows while standing still or sitting (never mid-stride, never lying down)
-    const act: ActionKind | undefined = m.moving || m.lying ? undefined : m.action;
+    const act: ActionKind | undefined = m.lying || (m.moving && m.action !== 'rifle') ? undefined : m.action;
+    // Mixamo clips (idle / walk / run, and the rifle set when the gun is up) whenever the body is not doing a seated, lying, reaction or hand-activity pose
+    if (rig.playPose && !m.sitting && !m.lying && !rx && (act === undefined || act === 'idle' || act === 'rifle')) {
+      const dy = player.current.update(dt, walking ? Math.max(0.6, sp) : 0, act === 'rifle' ? RIFLE : UNARMED);
+      rig.playPose(player.current.q, dy); b.rotation.set(0, 0, 0); b.position.set(0, 0, 0); return;
+    }
+    rig.leavePose?.();
     const lp = Math.sin(t * 2) * 0.5 + 0.5; // 0..1 and back, the rhythm of lifting
     [0, 1].forEach((i) => {
       const s = i === 0 ? 1 : -1; // legs[0] is the left leg (-x)
@@ -111,5 +172,9 @@ export function Avatar({ appearance: a, motion }: { appearance: Appearance; moti
     b.position.y = MathUtils.lerp(b.position.y, y + (rx ? 0 : bob + bp.y * gb), rx ? 0.4 : 0.3);
     rig.sync?.(); // joint angles -> the rigged body's bones
   });
-  return <primitive object={rig.root} />;
+  return (<>
+    <primitive object={rig.root} />
+    {held === 'ak47' && <Suspense fallback={null}><HeldAK rig={rig} /></Suspense>}
+    {cargo && <HeadLoad rig={rig} kind={cargo} />}
+  </>);
 }

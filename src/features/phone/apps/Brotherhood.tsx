@@ -23,7 +23,7 @@ export function BrotherhoodApp() {
         const w = WEAPONS[id], have = owned.includes(id), why = whyNotBuy(id, money);
         return (
           <Card key={id}>
-            <Row glyph={w.glyph} title={w.name} sub={`${w.blurb} +${Math.round(w.fightBonus * 100)} fight points`} right={have ? <Btn tone={equipped === id ? 'green' : 'light'} onClick={() => { equip(equipped === id ? null : id); sfx.click(); }}>{equipped === id ? 'Carried' : 'Carry'}</Btn> : <Btn disabled={!!why} onClick={() => buy(id)}>{w.later ? 'Later' : formatNaira(w.price)}</Btn>} />
+            <Row glyph={w.glyph} title={w.name} sub={`${w.blurb} +${Math.round(w.fightBonus * 100)} fight points`} right={have ? <Btn tone={equipped === id ? 'green' : 'light'} onClick={() => { equip(equipped === id ? null : id); sfx.click(); }}>{equipped === id ? 'Carried' : 'Carry'}</Btn> : <Btn disabled={!!why} onClick={() => buy(id)}>{formatNaira(w.price)}</Btn>} />
             {!have && why && <div className="px-1 pt-1 text-[11.5px] text-slate-500">{why}</div>}
           </Card>
         );

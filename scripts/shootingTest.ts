@@ -15,18 +15,18 @@ const hd = castRay([0, 1.9, 0], fwd, 30, [t('a', 0, -10)], []); ok(hd.head === t
 const aimed = assistAim(origin, [0.03, 0, -1], [t('a', 0, -10)], 30);
 ok(Math.abs(aimed[0]) < 0.02, 'aim assist pulls a slightly-off shot onto the target');
 ok(assistAim(origin, [0.5, 0, -1], [t('a', 0, -10)], 30)[0] > 0.3, 'aim assist leaves a wild shot alone');
-const sure = shoot('pistol_import', [0, 1.5, 0], fwd, [t('a', 0, -2)], [], () => 0);
+const sure = shoot('ak47', [0, 1.5, 0], fwd, [t('a', 0, -2)], [], () => 0);
 ok(sure.hit && sure.damage > 0, 'a close shot with a good roll hits and does damage');
-const miss = shoot('pistol_import', [0, 1.5, 0], fwd, [t('a', 0, -2)], [], () => 0.999);
+const miss = shoot('ak47', [0, 1.5, 0], fwd, [t('a', 0, -2)], [], () => 0.999);
 ok(!miss.hit && miss.damage === 0, 'a bad roll misses');
-const head = shoot('pistol_import', [0, 1.9, 0], fwd, [t('a', 0, -2)], [], () => 0);
+const head = shoot('ak47', [0, 1.9, 0], fwd, [t('a', 0, -2)], [], () => 0);
 ok(head.damage === Math.round(28 * 2) || head.damage > sure.damage, 'a headshot does double damage');
-ok(shoot('pistol_local', [0, 1.5, 0], fwd, [t('a', 0, -40)], [], () => 0).hit === false, 'beyond weapon range never hits');
-let c = newClip('pistol_local'); ok(c.loaded === 6 && c.reserve === 12, 'a new clip is full with two spare clips');
-for (let i = 0; i < 6; i++) c = spend(c); ok(!canFire(c) && c.loaded === 0, 'six shots empty the local pistol');
-c = reload('pistol_local', c); ok(c.loaded === 6 && c.reserve === 6, 'reload moves a clip from the reserve');
-ok(reload('pistol_local', { loaded: 6, reserve: 6 }).reserve === 6, 'reloading a full clip changes nothing');
-ok(reload('pistol_local', { loaded: 0, reserve: 0 }).loaded === 0, 'no reserve, no reload');
+ok(shoot('ak47', [0, 1.5, 0], fwd, [t('a', 0, -200)], [], () => 0).hit === false, 'beyond weapon range never hits');
+let c = newClip('ak47'); ok(c.loaded === 30 && c.reserve === 60, 'a new clip is full with two spare clips');
+for (let i = 0; i < 30; i++) c = spend(c); ok(!canFire(c) && c.loaded === 0, 'thirty shots empty the AK-47');
+c = reload('ak47', c); ok(c.loaded === 30 && c.reserve === 30, 'reload moves a clip from the reserve');
+ok(reload('ak47', { loaded: 30, reserve: 30 }).reserve === 30, 'reloading a full clip changes nothing');
+ok(reload('ak47', { loaded: 0, reserve: 0 }).loaded === 0, 'no reserve, no reload');
 ok(stars(0, false) === 0 && stars(20, false) === 1 && stars(45, false) === 2 && stars(90, false) === 3, 'stars rise with heat');
 ok(stars(0, true) === 2, 'hurting a civilian is at least two stars');
 ok(officersFor(0) === 0 && officersFor(3) > officersFor(1), 'more stars, more officers');
@@ -34,8 +34,8 @@ import { arrestPlayer } from '../src/game/crime';
 import { useJailStore } from '../src/stores/jailStore';
 import { useWeaponStore } from '../src/stores/weaponStore';
 import { sentenceFor } from '../src/features/openworld/shooting';
-useWeaponStore.getState().set({ owned: ['pistol_local'], equipped: 'pistol_local', heat: 80 });
-try { arrestPlayer(sentenceFor(3), 'Shooting in public'); const j = useJailStore.getState().sentence; ok(!!j && j.minutes === sentenceFor(3) * 2, 'an arrest with a gun on you doubles the sentence'); ok(useWeaponStore.getState().equipped === null, 'and the gun is taken'); }
+useWeaponStore.getState().set({ owned: ['ak47'], equipped: 'ak47', heat: 80 });
+try { arrestPlayer(sentenceFor(3), 'Shooting in public'); const j = useJailStore.getState().sentence; ok(!!j && j.minutes === 5, 'an arrest with a gun on you is the same 5 minutes'); ok(useWeaponStore.getState().equipped === null, 'and the gun is taken'); }
 catch (e) { ok(false, `arrest from the street works (${(e as Error).message})`); }
-ok(sentenceFor(3) > sentenceFor(1), 'more stars, a longer sentence');
+ok(sentenceFor(3) === 5 && sentenceFor(1) === 5, 'every arrest is 5 minutes');
 console.log(fails ? `\n${fails} check(s) failed` : '\nAll shooting checks passed'); process.exit(fails ? 1 : 0);

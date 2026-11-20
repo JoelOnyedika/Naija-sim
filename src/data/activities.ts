@@ -49,7 +49,7 @@ const BASE_ACTIVITY_SETS: Record<string, UseDef[]> = {
   v_kiosk: [{ id: 'buy_snack', glyph: '🥤', label: 'Buy a snack', seconds: 6, effects: { hunger: 25, thirst: 15 }, cost: 1500, pose: 'stand' }],
   v_dj_booth: [{ id: 'club_mix', glyph: '🎧', label: 'Take over the decks', seconds: 12, effects: { happiness: 12, social: 3, energy: -5 }, pose: 'stand', party: true, skill: { id: 'creativity', xp: 6 }, requires: [SPEAKER_STACK] }],
   v_speaker_stack: [{ id: 'club_dance', glyph: '💃', label: 'Dance', seconds: 14, effects: { happiness: 16, social: 5, energy: -9, hygiene: -3 }, pose: 'stand', party: true, skill: { id: 'fitness', xp: 3 } }],
-  v_cell_bed: [{ id: 'rest', glyph: '🛏️', label: 'Rest on the bunk', seconds: 10, effects: { energy: 6 }, pose: 'sit' }],
+  v_cell_bed: [{ id: 'sleep', glyph: '😴', label: 'Sleep on the bunk (-2 min)', seconds: 8, effects: { energy: 10 }, pose: 'sleep' }],
   pet_cat: petSet(PET_CARE.foodCost.cat),
   pet_dog: petSet(PET_CARE.foodCost.dog),
   pet_lion: petSet(PET_CARE.foodCost.lion),
