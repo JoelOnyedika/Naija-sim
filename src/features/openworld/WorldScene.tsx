@@ -14,12 +14,14 @@ import { AK_MUZZLE, Avatar, type HeadCargo, type Motion } from '@/three/avatar/A
 import type { Appearance } from '@/types/game';
 import { say, type Combat } from './combat';
 import { assistAim, canFire, officersFor, reload, shoot, spend, stars, type V3 } from './shooting';
-import { BLOCK, EXTENT, GRID, PITCH, ROAD, blockCentre, driveStep, groundY, ownedSpots, resolveMove, type City } from './worldGen';
+import { BLOCK, EXTENT, GRID, PITCH, ROAD, blockCentre, driveStep, groundY, ownedSpots, resolveMove, signalState, stopLineAhead, trafficSpeed, type City } from './worldGen';
 import { PlayerCar } from '@/three/models/CarModel';
 import { getVehicle, type VehicleDef } from '@/data/vehicles';
 import { useVehicleStore } from '@/stores/vehicleStore';
 
-export interface WorldInput { mx: number; mz: number; run: boolean; yaw: number; pitch: number; frozen?: boolean }
+export interface WorldInput { mx: number; mz: number; run: boolean; yaw: number; pitch: number; frozen?: boolean;
+  /** Driving pedals (held buttons or W / S): the accelerator and the brake, which reverses once the car has stopped. */
+  gas?: boolean; brake?: boolean }
 export interface WorldState { x: number; z: number; heading: number }
 /** The player's own cars in the open world: where each is, which one is being driven, which one is close enough to get into. */
 export interface DriveState { carId: string | null; near: string | null; enterReq: boolean; exitReq: boolean; speed: number; cars: Record<string, { x: number; z: number; heading: number; speed: number }> }
@@ -28,6 +30,22 @@ const pick = <T,>(a: T[], r: () => number) => a[Math.floor(r() * a.length)];
 const mulberry = (seed: number) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 
 /** Everything that never changes is drawn with a handful of instanced meshes: one draw call per kind, not per building. */
+/** A signal head at every approach of every junction, red or green with the cycle in worldGen.signalState. */
+function TrafficLights() {
+  const heads = useRef<InstancedMesh>(null), poles = useRef<InstancedMesh>(null), last = useRef('');
+  const spots = useMemo(() => { const out: { x: number; z: number; axis: 'x' | 'z' }[] = [], off = ROAD / 2 + 2.5, k = ROAD / 2 + 0.6;
+    for (let a = 0; a <= GRID; a++) for (let b = 0; b <= GRID; b++) { const jx = (a - GRID / 2) * PITCH, jz = (b - GRID / 2) * PITCH;
+      out.push({ x: jx - off, z: jz + k, axis: 'x' }, { x: jx + off, z: jz - k, axis: 'x' }, { x: jx - k, z: jz - off, axis: 'z' }, { x: jx + k, z: jz + off, axis: 'z' }); }
+    return out; }, []);
+  useEffect(() => { const o = new Object3D(); spots.forEach((s, i) => { o.position.set(s.x, 0.3 + 2.4, s.z); o.updateMatrix(); poles.current!.setMatrixAt(i, o.matrix); o.position.set(s.x, 0.3 + 5.0, s.z); o.updateMatrix(); heads.current!.setMatrixAt(i, o.matrix); }); poles.current!.instanceMatrix.needsUpdate = true; heads.current!.instanceMatrix.needsUpdate = true; }, [spots]);
+  const col = useMemo(() => ({ g: new Color('#22E06B'), r: new Color('#FF3B30') }), []);
+  useFrame(() => { const s = signalState(performance.now() / 1000), key = `${s.x}${s.z}`; if (key === last.current) return; last.current = key; spots.forEach((p, i) => heads.current!.setColorAt(i, (p.axis === 'x' ? s.x : s.z) ? col.g : col.r)); if (heads.current!.instanceColor) heads.current!.instanceColor.needsUpdate = true; });
+  return (<>
+    <instancedMesh ref={poles} args={[undefined, undefined, spots.length]} frustumCulled={false}><cylinderGeometry args={[0.09, 0.11, 4.8, 6]} /><meshStandardMaterial color="#2A2E34" /></instancedMesh>
+    <instancedMesh ref={heads} args={[undefined, undefined, spots.length]} frustumCulled={false}><boxGeometry args={[0.7, 0.9, 0.5]} /><meshBasicMaterial toneMapped={false} /></instancedMesh>
+  </>);
+}
+
 /** Road furniture: white edge lines along every road, zebra crossings on all four arms of every junction, and street lamps on the pavement corners. */
 function RoadDetails() {
   const edge = useRef<InstancedMesh>(null), zebra = useRef<InstancedMesh>(null), poles = useRef<InstancedMesh>(null), heads = useRef<InstancedMesh>(null), kerb = useRef<InstancedMesh>(null);
@@ -302,7 +320,7 @@ function Effects({ combat }: { combat: MutableRefObject<Combat> }) {
 
 const CAR_COLOURS = ['#C23B3B', '#F4F1EA', '#2B4C7E', '#1B1F24', '#0B8F4D', '#E4572E', '#9DB8C7', '#6B4128'];
 const CAR_MODELS: StreetModel[] = ['sedan', 'hatch', 'wagon', 'pickup_s', 'pickup_l'];
-interface CarDef { axis: 'x' | 'z'; lane: number; dir: 1 | -1; t: number; speed: number; kind: 'car' | 'danfo' | 'bus'; colour: string; model: StreetModel }
+interface CarDef { axis: 'x' | 'z'; lane: number; dir: 1 | -1; t: number; speed: number; v?: number; kind: 'car' | 'danfo' | 'bus'; colour: string; model: StreetModel }
 
 /** One model's cars as two instanced meshes (painted body + dark trim) from the real street-car GLBs. `place(i, o)` positions instance i; colours are set once, when the meshes appear. */
 function Fleet({ model, colours, bind }: { model: StreetModel; colours: string[]; bind: (m: StreetModel, body: InstancedMesh | null, trim: InstancedMesh | null) => void }) {
@@ -317,13 +335,25 @@ function Traffic({ cars }: { cars: CarDef[] }) {
   const groups = useMemo(() => { const m = new Map<StreetModel, number[]>(); cars.forEach((c, i) => { const g = m.get(c.model) ?? []; g.push(i); m.set(c.model, g); }); return [...m.entries()]; }, [cars]);
   const mesh = useRef(new Map<StreetModel, { body: InstancedMesh; trim: InstancedMesh }>());
   const o = useMemo(() => new Object3D(), []);
+  // cars that share a lane and direction, so each can see the one in front
+  const lanes = useMemo(() => { const m = new Map<string, number[]>(); cars.forEach((c, i) => { const k = `${c.axis}:${c.lane}:${c.dir}`; const g = m.get(k) ?? []; g.push(i); m.set(k, g); }); return [...m.values()]; }, [cars]);
   useFrame((_, dtRaw) => {
-    const dt = Math.min(dtRaw, 0.1), span = EXTENT * 2 + 24;
+    const dt = Math.min(dtRaw, 0.1), span = EXTENT * 2 + 24, wrap = (t: number) => ((t + EXTENT + 12) % span + span) % span - EXTENT - 12;
+    const sig = signalState(performance.now() / 1000);
+    // speed: cruise, slow for a red signal, keep a gap to the car in front
+    for (const lane of lanes) {
+      const c0 = cars[lane[0]], order = lane.map((i) => ({ i, p: wrap(cars[i].t) })).sort((a, b) => (a.p - b.p) * c0.dir);
+      order.forEach((e, k) => {
+        const c = cars[e.i], lead = order[k + 1], gap = lead ? (lead.p - e.p) * c.dir - 5.2 : 99, red = !(c.axis === 'x' ? sig.x : sig.z);
+        const target = trafficSpeed(c.speed, stopLineAhead(e.p, c.dir), red, gap), v = c.v ?? c.speed;
+        c.v = v + Math.max(-9 * dt, Math.min(2.6 * dt, target - v));
+        c.t += c.v * c.dir * dt;
+      });
+    }
     for (const [model, idx] of groups) {
       const m = mesh.current.get(model); if (!m) continue;
       idx.forEach((ci, j) => {
-        const c = cars[ci]; c.t += c.speed * c.dir * dt;
-        const p = ((c.t + EXTENT + 12) % span + span) % span - EXTENT - 12, side = c.dir * 2.7, rotY = c.axis === 'x' ? (c.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : c.dir > 0 ? 0 : Math.PI;
+        const c = cars[ci], p = wrap(c.t), side = c.dir * 2.7, rotY = c.axis === 'x' ? (c.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : c.dir > 0 ? 0 : Math.PI;
         o.position.set(c.axis === 'x' ? p : c.lane - side, 0.04, c.axis === 'x' ? c.lane + side : p); o.rotation.set(0, rotY, 0); o.scale.set(1, 1, c.kind === 'bus' ? 1.45 : 1); o.updateMatrix();
         m.body.setMatrixAt(j, o.matrix); m.trim.setMatrixAt(j, o.matrix);
       });
@@ -358,7 +388,7 @@ function OwnedCars({ city, state, input, combat, drive }: { city: City; state: M
     if (d.carId && !d.cars[d.carId]) d.carId = null;
     if (d.carId) {
       const car = d.cars[d.carId];
-      driveStep(car, i.mz, i.mx, i.run, dt);
+      driveStep(car, i.gas ? 1 : 0, !!i.brake, i.mx, dt);
       const [nx, nz] = resolveMove(city, car.x, car.z, 1.7);
       if (Math.hypot(nx - car.x, nz - car.z) > 0.02) { if (Math.abs(car.speed) > 6) sfx.error(); car.speed *= -0.25; }
       car.x = nx; car.z = nz; s.x = nx; s.z = nz; s.heading = car.heading; d.speed = car.speed;
@@ -454,7 +484,7 @@ export function WorldScene({ city, look, input, state, combat, drive, npcCount =
     <Canvas dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.5, far: 900, position: [state.current.x + Math.sin(input.current.yaw) * 7, 4, state.current.z + Math.cos(input.current.yaw) * 7] }} style={{ touchAction: 'none' }}>
       <color attach="background" args={['#9CC9F0']} /><fog attach="fog" args={['#BFD9EE', 160, 520]} />
       <hemisphereLight args={['#FFFFFF', '#7E8C72', 1.15]} /><directionalLight position={[80, 120, 40]} intensity={1.9} color="#FFF1D6" />
-      <Ground /><RoadDetails /><Buildings city={city} /><LandmarkPins city={city} /><LandmarkFacades city={city} />
+      <Ground /><RoadDetails /><TrafficLights /><Buildings city={city} /><LandmarkPins city={city} /><LandmarkFacades city={city} />
       <Traffic cars={cars} /><ParkedCars city={city} /><Doors city={city} /><Moments city={city} look={look} />
       {npcs.map((n) => <Pedestrian key={n.id} id={`p${n.id}`} look={n.look} centre={n.centre} seed={n.id + 3} player={state} combat={combat} cargo={n.cargo} />)}
       {[0, 1, 2, 3].map((n) => <Officer key={n} idx={n} look={cops} combat={combat} player={state} city={city} />)}

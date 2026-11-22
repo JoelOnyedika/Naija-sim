@@ -36,3 +36,17 @@ export function mountPoses(items: PoseItem[], w = 1100, h = 640, spacing = 1.35,
     </Canvas>,
   );
 }
+
+/** TEST-ONLY: one look from several angles with a camera aimed at (0, focusY, 0) from `dist` m: for close-ups of hands, shoes, collars. */
+export function mountClose(look: Appearance, yaws: number[], focusY: number, dist: number, w = 1000, h = 520, motion?: { moving?: boolean; speed?: number; action?: string }) {
+  let d = document.getElementById('av'); if (!d) { d = document.createElement('div'); d.id = 'av'; document.body.appendChild(d); }
+  d.style.cssText = `position:fixed;left:0;top:0;width:${w}px;height:${h}px;z-index:99999;background:linear-gradient(135deg,#4a4660,#2a2535 60%,#5a3a28)`;
+  root?.unmount(); root = createRoot(d);
+  const n = yaws.length, sp = Math.min(dist * 0.62, 0.95 + dist * 0.12);
+  root.render(
+    <Canvas camera={{ position: [0, focusY + dist * 0.12, dist], fov: 30, near: 0.05, far: 50 }} onCreated={({ camera }) => camera.lookAt(0, focusY, 0)} gl={{ preserveDrawingBuffer: true }}>
+      <hemisphereLight args={['#fff4dc', '#8a7d88', 0.9]} /><directionalLight position={[2, 4, 4]} intensity={2.0} /><directionalLight position={[-3, 2, 2]} intensity={0.6} color="#9fb4ff" /><ambientLight intensity={0.25} />
+      {yaws.map((y, i) => <group key={i} position={[(i - (n - 1) / 2) * sp, 0, 0]} rotation={[0, y, 0]}><Avatar appearance={look} held={motion?.action === 'rifle' ? 'ak47' : null} cargo={(motion as { cargo?: 'oranges' | 'bread' | 'water' } | undefined)?.cargo ?? null} motion={motion ? { current: { moving: !!motion.moving, lying: false, sitting: false, action: motion.action as never, speed: motion.speed } } : undefined} /></group>)}
+    </Canvas>,
+  );
+}

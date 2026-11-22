@@ -51,12 +51,16 @@ function extract(t: BodyTemplate, key: string, pick: Pick, off: (v: V) => number
 }
 
 const shadeC = (hex: string, a: number) => { const c = new Color(hex); c.lerp(new Color(a < 0 ? '#000' : '#fff'), Math.abs(a)); return '#' + c.getHexString(); };
+/** Moves the vertices within `band` of a cut line onto the line, so the cut edge of an extracted garment is straight. */
+function flattenHem(g: BufferGeometry, line: number, band: number, dir: 'up' | 'down') {
+  const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i); if (dir === 'up' ? y < line + band : y > line - band) P.setY(i, line); } P.needsUpdate = true;
+}
 const fabricSmooth = (c: string, rough = 0.7) => new MeshStandardMaterial({ color: c, roughness: rough, flatShading: false, side: DoubleSide });
 const fabric = (c: string, rough = 0.85, vertexColors = false) => new MeshStandardMaterial({ color: vertexColors ? '#ffffff' : c, roughness: rough, flatShading: false, side: DoubleSide, vertexColors });
 
 export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSkeleton>, _base: BasePose, _skin: Material, ctx: HostCtx): Dressing {
   const body = ctx.body, m = t.m, fem = spec.body === 'femme', mats: Material[] = [], objs: Object3D[] = [];
-  const elbowX = Math.abs(t.pos[t.index['DEF-forearmL']].x), wristX = Math.abs(t.pos[t.index['DEF-handL']].x), shX = m.armX;
+  const wristX = Math.abs(t.pos[t.index['DEF-handL']].x);
   const skinned = (g: BufferGeometry, mat: Material) => { mats.push(mat); const s = makeSkinned(g, mat, sk); body.add(s); objs.push(s); return s; };
 
   // ---- shoes: real shoe models fitted to this body's foot (shoes.ts), fixed to the foot (and shin for boot shafts) bones
@@ -75,7 +79,9 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   const waistTop = m.hipY + 0.075;
   if (spec.bottom === 'jeans' || spec.bottom === 'trousers' || spec.bottom === 'shorts') {
     const low = spec.bottom === 'shorts' ? m.kneeY + 0.13 : 0.12, off = spec.bottom === 'jeans' ? 0.02 : 0.016;
-    skinned(extract(t, `legs:${spec.bottom}`, (v) => ((v.region === 'pelvis' || v.region === 'thigh' || v.region === 'shin' || v.region === 'foot') && v.y > low && v.y < waistTop) || (v.region === 'torso' && v.y < waistTop), (v) => off + (spec.bottom === 'trousers' ? 0.004 : 0) + 0.0 * v.y), fabric(spec.bottomColor, spec.bottom === 'jeans' ? 0.9 : 0.7));
+    const legs = extract(t, `legs:${spec.bottom}`, (v) => (((v.region === 'pelvis' || v.region === 'thigh' || v.region === 'shin') && v.y > low && v.y < waistTop) || (spec.bottom !== 'shorts' && v.region === 'foot' && v.y > 0.1 && Math.abs(v.z - t.pos[t.index['DEF-footL']].z) < 0.05)) || (v.region === 'torso' && v.y < waistTop), (v) => off + (spec.bottom === 'trousers' ? 0.004 : 0) + 0.0 * v.y);
+    if (spec.bottom !== 'shorts') flattenHem(legs, 0.11, 0.035, 'up'); // a straight hem at the shoe, not the ragged edge of whichever triangles survived
+    skinned(legs, fabric(spec.bottomColor, spec.bottom === 'jeans' ? 0.9 : 0.7));
   }
   if (spec.bottom === 'jeans' || spec.bottom === 'trousers') {
     const belt = extract(t, 'belt', (v) => (v.region === 'torso' || v.region === 'pelvis') && v.y > waistTop - 0.05 && v.y < waistTop, () => 0.034);
@@ -94,17 +100,36 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
 
   // ---- tops
   const top = spec.top, tc = spec.topColor;
+  // sleeves are picked by position along the arm (shoulder to wrist), not by the file's region labels: the arm's vertex rings are uneven and mix labels, which left slits
+  const shP = t.pos[t.index['DEF-upper_armL']], wrP = t.pos[t.index['DEF-handL']], armAx = wrP.clone().sub(shP), armLen = armAx.length(); armAx.normalize();
+  const onArm = (v: V, end: number) => { const px = Math.abs(v.x) - shP.x, py = v.y - shP.y, pz = v.z - shP.z, along = px * armAx.x + py * armAx.y + pz * armAx.z, rx = px - armAx.x * along, ry = py - armAx.y * along, rz = pz - armAx.z * along; return v.region !== 'hand' && v.region !== 'head' && along > -0.03 && along < armLen * end && Math.hypot(rx, ry, rz) < 0.1; };
+  /** Sleeves are clean tapered tubes fixed to the arm bones (the file's arm is too sparse to cut a sleeve from), with a cuff band at the end. */
+  const wposOf = (bn: string) => new Vector3().setFromMatrixPosition(sk.bones[t.index[bn]].matrixWorld);
+  const addSleeves = (sleeves: 'short' | 'long') => {
+    const mat = fabricSmooth(tc, 0.8), cuffMat = fabricSmooth(shadeC(tc, new Color(tc).getHSL({ h: 0, s: 0, l: 0 }).l > 0.5 ? -0.18 : 0.16), 0.7); mats.push(mat, cuffMat);
+    for (const S of ['L', 'R'] as const) {
+      const p0 = wposOf(`DEF-upper_arm${S}`), p1 = wposOf(`DEF-forearm${S}`), p2 = wposOf(`DEF-hand${S}`);
+      const tube = (a: Vector3, b: Vector3, r0: number, r1: number, bone: string, cuff: boolean) => {
+        const dir = a.clone().sub(b), len = dir.length(); dir.normalize();
+        const o = new Mesh(new CylinderGeometry(r0, r1, len, 16, 1, true), mat); o.rotation.setFromQuaternion(new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir)); place(sk, t, bone, o, a.clone().add(b).multiplyScalar(0.5)); objs.push(o);
+        if (cuff) { const c = new Mesh(new CylinderGeometry(r1 + 0.004, r1 + 0.004, 0.03, 16, 1, true), cuffMat); c.rotation.copy(o.rotation); place(sk, t, bone, c, b.clone().addScaledVector(dir, 0.015)); objs.push(c); }
+      };
+      const end1 = p0.clone().lerp(p1, sleeves === 'short' ? 0.5 : 1.0);
+      tube(p0.clone().add(new Vector3(0, 0.02, 0)), end1, 0.07, sleeves === 'short' ? 0.064 : 0.058, `DEF-upper_arm${S}`, sleeves === 'short');
+      if (sleeves === 'long') tube(p1.clone().add(new Vector3(0, 0.012, 0)), p1.clone().lerp(p2, 0.94), 0.056, 0.047, `DEF-forearm${S}`, true);
+    }
+  };
   const mk = (key: string, sleeves: 'none' | 'short' | 'long', hem: number, off: number, colour?: (v: V) => Color, extra?: (v: V) => number) => {
-    const sleeveX = sleeves === 'short' ? shX + 0.5 * (elbowX - shX) : sleeves === 'long' ? wristX - 0.035 : shX - 0.005; // a sleeveless garment still covers the chest and shoulder blades, which the file weights to the arm
-    return extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || ((v.region === 'upperarm' || (sleeves === 'long' && v.region === 'forearm')) && Math.abs(v.x) < sleeveX), (v) => off + (extra?.(v) ?? 0), colour);
+    if (sleeves !== 'none') addSleeves(sleeves);
+    // the garment itself covers the chest, the shoulder blades and the shoulder cap, which the file weights to the arm
+    return extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || onArm(v, sleeves === 'short' ? 0.19 : 0.3), (v) => off + (extra?.(v) ?? 0), colour);
   };
   const chestY = m.shoulderY - 0.13;
   // collar band, sleeve cuffs and hem band as a darker (or, on a dark garment, lighter) colour on the same garment: it reads as a ribbed neckline, cuffs and hem
   const trim = (v: V, base: string, kind: 'rib' | 'collar') => {
-    const b = new Color(base), dark = b.getHSL({ h: 0, s: 0, l: 0 }).l > 0.45, band = b.clone().lerp(new Color(dark ? '#000000' : '#ffffff'), kind === 'collar' ? 0.5 : 0.3);
-    const neck = v.y > m.neckY - 0.04 && (v.region === 'torso' || v.region === 'neck'), hem = (v.region === 'torso' || v.region === 'pelvis') && v.y < m.hipY - 0.04 + 0.025;
-    const cuff = (v.region === 'upperarm' || v.region === 'forearm') && Math.abs(v.x) > (kind === 'rib' ? shX + 0.5 * (elbowX - shX) - 0.03 : wristX - 0.07);
-    return neck || hem || cuff ? band : b;
+    const b = new Color(base), light = b.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5, band = b.clone().lerp(new Color(light ? '#000000' : '#ffffff'), kind === 'collar' ? 0.22 : 0.16);
+    const neck = v.region === 'torso' && v.y > m.shoulderY - 0.035, hem = (v.region === 'torso' || v.region === 'pelvis') && v.y < m.hipY - 0.04 + 0.022;
+    return neck || hem ? band : b;
   };
   if (top === 'tee' || top === 'shirt') skinned(mk(`top:${top}`, top === 'tee' ? 'short' : 'long', m.hipY - 0.04, top === 'tee' ? 0.02 : 0.018, (v) => trim(v, tc, top === 'tee' ? 'rib' : 'collar')), fabric(tc, 0.8, true));
   else if (top === 'jersey') { const a = new Color(tc), b = new Color('#ffffff'); skinned(mk('top:jersey', 'short', m.hipY - 0.05, 0.015, (v) => (v.y > chestY - 0.045 && v.y < chestY + 0.01 ? b : a)), fabric(tc, 0.7, true)); }

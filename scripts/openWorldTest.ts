@@ -1,4 +1,4 @@
-import { blockCentre, BLOCK, EXTENT, GRID, generateCity, nearestLandmark, resolveMove, spawnFor, ownedSpots, groundY, driveStep, PITCH, SLAB } from '../src/features/openworld/worldGen';
+import { blockCentre, BLOCK, EXTENT, GRID, generateCity, nearestLandmark, resolveMove, spawnFor, ownedSpots, groundY, driveStep, CAR_TOP, CAR_REVERSE, PITCH, SLAB, ROAD, signalState, stopLineAhead, trafficSpeed, SIGNAL } from '../src/features/openworld/worldGen';
 import { LANDMARKS } from '../src/content/lagos/landmarks';
 let fails = 0; const ok = (c: boolean, m: string) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fails++; };
 const c = generateCity(), c2 = generateCity();
@@ -35,9 +35,25 @@ ok(spots.every((p, i) => i === 0 || Math.hypot(p.x - spots[i - 1].x, p.z - spots
 ok(ownedSpots(c, 20).length === 6, 'at most six cars are parked');
 ok(groundY(0, 0) === SLAB || groundY(PITCH / 2, 0) === 0, 'blocks are raised, roads are level');
 ok(groundY(PITCH / 2, PITCH / 2) === 0 && groundY(99999, 0) === 0, 'the junction and anywhere outside the city are at road level');
-const car = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 300; i++) driveStep(car, 1, 0, false, 1 / 60);
-ok(car.speed > 19 && car.speed <= 21.01 && car.z > 40 && Math.abs(car.x) < 1e-6, 'holding the throttle accelerates to about 21 m/s straight ahead');
-const t0 = car.heading; for (let i = 0; i < 60; i++) driveStep(car, 1, 1, false, 1 / 60); ok(car.heading < t0, 'steering right turns the car right (heading decreases)');
-const still = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 60; i++) driveStep(still, 0, 1, false, 1 / 60); ok(still.heading === 0 && still.x === 0, 'a parked car does not turn on the spot');
-const rev = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 200; i++) driveStep(rev, -1, 0, false, 1 / 60); ok(rev.speed < -5 && rev.speed >= -7.01, 'reverse is slow');
+const car = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 600; i++) driveStep(car, 1, false, 0, 1 / 60);
+ok(car.speed > 24 && car.speed <= CAR_TOP + 0.01 && car.z > 100 && Math.abs(car.x) < 1e-6, 'the accelerator speeds the car up straight ahead to its top speed');
+const t0 = car.heading; for (let i = 0; i < 60; i++) driveStep(car, 1, false, 1, 1 / 60); ok(car.heading < t0, 'steering right turns the car right (heading decreases)');
+const braking = { x: 0, z: 0, heading: 0, speed: 25 }; for (let i = 0; i < 40; i++) driveStep(braking, 0, true, 0, 1 / 60);
+ok(braking.speed < 25 - 15 && braking.speed >= 0, 'the brake slows the car hard and does not push it backwards while it is still moving');
+for (let i = 0; i < 120; i++) driveStep(braking, 0, true, 0, 1 / 60); ok(braking.speed < -3, 'holding the brake once stopped reverses');
+const rev = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 400; i++) driveStep(rev, 0, true, 0, 1 / 60); ok(rev.speed < -5 && rev.speed >= -(CAR_REVERSE + 0.01), 'reverse is slow');
+const roll = { x: 0, z: 0, heading: 0, speed: 20 }; for (let i = 0; i < 60 * 30; i++) driveStep(roll, 0, false, 0, 1 / 60); ok(roll.speed === 0, 'with both pedals up the car rolls to a stop');
+const still = { x: 0, z: 0, heading: 0, speed: 0 }; for (let i = 0; i < 60; i++) driveStep(still, 0, false, 1, 1 / 60); ok(still.heading === 0 && still.x === 0, 'a parked car does not turn on the spot');
+const never = (t: number) => { const s = signalState(t); return s.x && s.z; };
+ok(Array.from({ length: 800 }, (_, i) => i * 0.25).every((t) => !never(t)), 'the two directions are never green together');
+ok(signalState(1).x && !signalState(1).z && !signalState(SIGNAL.green + 1).x && !signalState(SIGNAL.green + 1).z && signalState(SIGNAL.green + SIGNAL.clear + 1).z, 'cycle: x green, all red, z green, all red');
+const junc = (GRID / 2 - 3) * PITCH; // a junction well inside the city
+{ let p = junc - 160, v = 0; const cruise = 9; for (let i = 0; i < 60 * 40; i++) { const tgt = trafficSpeed(cruise, stopLineAhead(p, 1), true, 99); v += Math.max(-9 / 60, Math.min(2.6 / 60, tgt - v)); p += v / 60; }
+  const lines = Array.from({ length: GRID + 1 }, (_, k) => (k - GRID / 2) * PITCH - (ROAD / 2 + 2.5)), line = lines.reduce((a, b) => (Math.abs(b - p) < Math.abs(a - p) ? b : a)), short = line - p; ok(short > -0.2 && short < 1.5 && v < 0.05, `on red a car stops just before the stop line (${short.toFixed(2)} m short of it, speed ${v.toFixed(2)}) and stays stopped`); }
+{ let p = junc - 160, v = 0; const cruise = 9; for (let i = 0; i < 60 * 40; i++) { v += Math.max(-9 / 60, Math.min(2.6 / 60, trafficSpeed(cruise, stopLineAhead(p, 1), false, 99) - v)); p += v / 60; }
+  ok(p > junc + ROAD / 2 && v > 8, 'on green it drives straight through at its cruising speed'); }
+{ let p = junc + 160, v = 0; const cruise = 9; for (let i = 0; i < 60 * 40; i++) { v += Math.max(-9 / 60, Math.min(2.6 / 60, trafficSpeed(cruise, stopLineAhead(p, -1), true, 99) - v)); p -= v / 60; }
+  const lines = Array.from({ length: GRID + 1 }, (_, k) => (k - GRID / 2) * PITCH + (ROAD / 2 + 2.5)), line = lines.reduce((a, b) => (Math.abs(b - p) < Math.abs(a - p) ? b : a)), short = p - line; ok(short > -0.2 && short < 1.5 && v < 0.05, `the same for traffic coming the other way (${short.toFixed(2)} m short of its line)`); }
+ok(trafficSpeed(9, null, false, 3) < 1 && trafficSpeed(9, null, false, 30) === 9 && trafficSpeed(9, null, false, 8) > 3 && trafficSpeed(9, null, false, 8) < 9, 'a car keeps a gap: stops close behind another, slows as it nears, full speed when clear');
+ok(stopLineAhead(junc + ROAD / 2 + 4, 1) !== null && (stopLineAhead(junc + ROAD / 2 + 4, 1) as number) > 20 && (stopLineAhead(junc + ROAD / 2 + 4, 1) as number) < PITCH, 'a car already past a junction looks to the next one, not back');
 console.log(fails ? `\n${fails} check(s) failed` : '\nAll open-world checks passed'); process.exit(fails ? 1 : 0);

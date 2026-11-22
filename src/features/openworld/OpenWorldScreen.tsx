@@ -57,7 +57,11 @@ export function OpenWorldScreen() {
   const input = useRef<WorldInput>({ mx: 0, mz: 0, run: false, yaw: start.yaw, pitch: 0.28 });
   const state = useRef<WorldState>({ x: start.x, z: start.z, heading: start.heading });
   const combat = useRef(makeCombat());
+  const pedal = useRef({ gas: false, brake: false });
+  // every outing starts with no wanted stars: heat left over from an earlier outing (or from carrying a gun about) is cooled below the first star
+  useEffect(() => { const w = useWeaponStore.getState(); if (w.heat > 10) w.set({ heat: 10 }); }, []);
   const drive = useRef<DriveState>({ carId: null, near: null, enterReq: false, exitReq: false, speed: 0, cars: {} });
+  if (import.meta.env.DEV) (window as unknown as { __ow?: unknown }).__ow = { state, drive, input, combat }; // dev-only: lets the browser tests walk the player to a car
   const [carUi, setCarUi] = useState({ near: null as string | null, driving: null as string | null, kmh: 0 });
   const weaponId = useWeaponStore((s) => s.equipped);
   const [hud, setHud] = useState({ drawn: false, loaded: 0, reserve: 0, stars: 0, msg: '', hit: false, reloading: false });
@@ -117,6 +121,7 @@ export function OpenWorldScreen() {
     const t = window.setInterval(() => {
       const k = keys.current; if (!k.size || stick.current) return;
       input.current.mz = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0);
+      input.current.gas = k.has('w') || k.has('arrowup') || pedal.current.gas; input.current.brake = k.has('s') || k.has('arrowdown') || k.has(' ') || pedal.current.brake;
       input.current.mx = (k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0);
       if (k.has('q') || k.has('arrowleft')) input.current.yaw += 0.04; if (k.has('e') || k.has('arrowright')) input.current.yaw -= 0.04;
     }, 16);
@@ -189,13 +194,21 @@ export function OpenWorldScreen() {
       {carUi.near && !carUi.driving && (
         <button onClick={() => { drive.current.enterReq = true; }} className="cta-naija absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-2xl px-5 font-display text-sm font-extrabold">🚗 Drive your {getVehicle(carUi.near)?.name ?? 'car'}</button>
       )}
-      {carUi.driving && (
-        <div className="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3">
-          <div className="glass-dark rounded-2xl px-4 py-2 text-center"><span className="font-display text-2xl font-extrabold tabular-nums">{carUi.kmh}</span><span className="ml-1 text-xs font-bold opacity-70">km/h</span></div>
-          <button onClick={() => { drive.current.exitReq = true; }} className="cta-ghost flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-bold"><LogOut size={18} />Get out</button>
+      {carUi.driving && (<>
+        <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-3">
+          <div className="glass-dark rounded-2xl px-4 py-1.5 text-center"><span className="font-display text-2xl font-extrabold tabular-nums">{carUi.kmh}</span><span className="ml-1 text-xs font-bold opacity-70">km/h</span></div>
+          <button onClick={() => { drive.current.exitReq = true; }} className="cta-ghost flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-bold"><LogOut size={16} />Get out</button>
         </div>
-      )}
-      <button onClick={() => { sfx.click(); setRun((v) => !v); }} aria-pressed={run} className={`absolute bottom-8 right-5 z-30 flex h-16 w-16 flex-col items-center justify-center rounded-full text-[11px] font-extrabold ${run ? 'cta-naija' : 'cta-ghost'}`}><ChevronsUp size={22} />Run</button>
+        {/* pedals: brake (reverses once stopped) and accelerator, held with the right thumb; the joystick on the left steers */}
+        <div className="absolute bottom-6 right-5 z-30 flex items-end gap-3 touch-none select-none">
+          {([['brake', 'BRAKE', 'h-20 w-16 bg-red-600/85'], ['gas', 'GAS', 'h-28 w-20 bg-emerald-600/90']] as const).map(([k, label, cls]) => (
+            <button key={k} aria-label={k === 'gas' ? 'Accelerator' : 'Brake and reverse'} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pedal.current[k] = true; input.current[k] = true; }}
+              onPointerUp={() => { pedal.current[k] = false; input.current[k] = false; }} onPointerCancel={() => { pedal.current[k] = false; input.current[k] = false; }} onContextMenu={(e) => e.preventDefault()}
+              className={`flex flex-col items-center justify-end rounded-2xl pb-2 text-[11px] font-extrabold tracking-wider text-white shadow-lg active:scale-95 active:brightness-125 ${cls}`}><span className="mb-1 h-1.5 w-8 rounded-full bg-white/60" />{label}</button>
+          ))}
+        </div>
+      </>)}
+      {!carUi.driving && <button onClick={() => { sfx.click(); setRun((v) => !v); }} aria-pressed={run} className={`absolute bottom-8 right-5 z-30 flex h-16 w-16 flex-col items-center justify-center rounded-full text-[11px] font-extrabold ${run ? 'cta-naija' : 'cta-ghost'}`}><ChevronsUp size={22} />Run</button>}
 
       <AnimatePresence>
         {portrait && !dismissRotate && (

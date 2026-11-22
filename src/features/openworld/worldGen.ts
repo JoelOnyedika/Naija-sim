@@ -126,12 +126,40 @@ export function ownedSpots(city: City, n: number): { x: number; z: number; headi
   return out;
 }
 
-/** Advances a driven car one step (arcade): throttle -1..1 (negative = reverse), steer -1..1 (positive = right), boost for the faster top speed. Pure, so it can be tested. */
-export function driveStep(c: { x: number; z: number; heading: number; speed: number }, throttle: number, steer: number, boost: boolean, dt: number) {
-  const top = boost ? 30 : 21, target = throttle > 0.05 ? throttle * top : throttle < -0.05 ? throttle * 7 : 0;
-  c.speed += (target - c.speed) * (1 - Math.exp(-dt * (target === 0 ? 1.4 : 1.7)));
+/**
+ * Advances a driven car one step (arcade). `gas` 0..1 is the accelerator, `brake` the brake pedal (it slows the car hard; once the car has almost stopped and
+ * the brake is still held, it reverses), `steer` -1..1 (positive = right). Letting go of both lets the car roll to a stop. Pure, so it can be tested.
+ */
+export const CAR_TOP = 28, CAR_REVERSE = 7, CAR_BRAKE = 34;
+export function driveStep(c: { x: number; z: number; heading: number; speed: number }, gas: number, brake: boolean, steer: number, dt: number) {
+  if (brake) {
+    if (c.speed > 0.6) c.speed = Math.max(0, c.speed - CAR_BRAKE * dt);
+    else c.speed += (-CAR_REVERSE - c.speed) * (1 - Math.exp(-dt * 1.6)); // stopped and still on the brake: reverse
+  } else if (gas > 0.05) c.speed += (gas * CAR_TOP - c.speed) * (1 - Math.exp(-dt * 0.9));
+  else c.speed *= Math.exp(-dt * 0.45); // coasting
+  if (Math.abs(c.speed) < 0.05 && !brake && gas <= 0.05) c.speed = 0;
   const grip = Math.min(1, Math.abs(c.speed) / 5); // no turning on the spot
-  c.heading -= steer * 1.7 * grip * Math.sign(c.speed || 1) * dt * (1 - Math.min(0.45, Math.abs(c.speed) / 70));
+  c.heading -= steer * 1.7 * grip * Math.sign(c.speed || 1) * dt * (1 - Math.min(0.5, Math.abs(c.speed) / 60));
   c.x += Math.sin(c.heading) * c.speed * dt; c.z += Math.cos(c.heading) * c.speed * dt;
   return c;
+}
+
+/** Traffic signal cycle (seconds): the x-axis roads are green, then all red, then the z-axis roads are green, then all red. */
+export const SIGNAL = { green: 14, clear: 3 };
+export function signalState(t: number): { x: boolean; z: boolean } {
+  const cycle = 2 * (SIGNAL.green + SIGNAL.clear), p = ((t % cycle) + cycle) % cycle;
+  return { x: p < SIGNAL.green, z: p >= SIGNAL.green + SIGNAL.clear && p < 2 * SIGNAL.green + SIGNAL.clear };
+}
+/** The stop line of the junction ahead of a car at `p` driving along an axis in direction `dir`: how far in front of the car it is (negative = already past it or in the junction), or null if there is none ahead. */
+export function stopLineAhead(p: number, dir: 1 | -1): number | null {
+  const stop = ROAD / 2 + 2.5; let best: number | null = null;
+  for (let k = 0; k <= GRID; k++) { const j = (k - GRID / 2) * PITCH, line = j - dir * stop, d = (line - p) * dir; if (d > -1.5 && (best === null || d < best)) best = d; }
+  return best;
+}
+/** The speed a car should aim for: its cruising speed, slowed for a red signal (stop at the line) and for the car in front (keep a gap). Pure. */
+export function trafficSpeed(cruise: number, stopDist: number | null, red: boolean, gapAhead: number): number {
+  let target = cruise;
+  if (red && stopDist !== null && stopDist > -0.3 && stopDist < 70) target = Math.min(target, stopDist < 0.4 ? 0 : Math.sqrt(2 * 5 * stopDist) * 0.9);
+  if (gapAhead < 14) target = Math.min(target, cruise * Math.max(0, (gapAhead - 2.5) / 11));
+  return Math.max(0, target);
 }

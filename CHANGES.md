@@ -1,3 +1,17 @@
+## v49: fixes from playing it (first version checked with real screenshots)
+
+How this was checked: a headless Chromium with WebGL now runs here, so this version was looked at, not guessed. Scripts that drive it are in tests-browser/ (mountAvatar.tsx has mountClose for close-ups); the character, shoes, sleeves, hawkers, driving, junctions and the rifle were rendered and looked at, and the GT-R was driven with the real pedal buttons.
+
+- Driving: a real accelerator and brake. GAS (big, right) and BRAKE (left of it) pedals on screen; the joystick only steers. The brake slows the car hard, and held once stopped it reverses. W / S / Space work on a keyboard. Letting go of both lets the car roll to a stop. Speed and Get out are at the top.
+- Wanted stars: heat left over from an earlier outing (or from carrying a gun about) showed stars the moment you stepped out. Every outing now starts with the heat cooled below the first star. Verified with a player at heat 100: no stars on entry.
+- Standing: the Mixamo idle is gone. Standing around is the plain neutral stance. Mixamo is only used for walking and running, and for the rifle (aim, walk, run).
+- Shoes rebuilt as lofted, rounded shoes (taper, toe cap, laces, sole) at a believable size (about 29 cm); the bare foot under closed shoes is hidden so nothing pokes out. The hem of trousers now meets the shoe cleanly.
+- Clothes: sleeves are now clean tapered tubes with cuffs (the file's arm is too sparse to cut sleeves from; that is what made torn, slit sleeves). Black sleeve panels and the black neck ring (my collar trim bug) are gone. Collar and hem bands are a subtle tone of the garment.
+- Hawker head loads were floating above the head; fixed (they now sit on a cloth ring).
+- Traffic: signals at every junction (14 s green each way, 3 s all-red, never green both ways), cars stop at the stop line on red, queue behind each other with a gap, and go on green. Signal heads at every approach.
+- Tests added: stop-on-red, queueing, signal cycle, pedals, stars. 46 suites pass.
+- Not done: the arm and head of the base body are low poly as supplied (elbows are angular); eyes and face are unchanged; the left hand drifts off the foregrip at run speed.
+
 ## v48: Mixamo animation, fitted shoes, owned cars you can drive, a livelier street
 
 - Mixamo animation on the new body. The walk, run, sprint and rifle clips from the shooter project were retargeted onto this body's own skeleton (tools/bakeAnims.ts -> src/three/character/animData.json). The body rests in an A-pose and Mixamo in a T-pose, so limbs are matched by bone direction, not copied rotations. Checked: the lowest ankle stays within 8 mm of standing height in every clip. Playback is src/three/character/clips.ts (blends idle, walk, run, sprint by speed; rifle set when the gun is up). Seated, lying, reaction and hand-activity poses are still the old procedural ones. Player speeds are now realistic (walk 1.7, run 4.4, sprint 7.2 m/s).

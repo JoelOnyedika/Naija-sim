@@ -57,7 +57,9 @@ function HeadLoad({ rig, kind }: { rig: ReturnType<typeof buildRiggedCharacter>;
     const g = cargoMesh(kind), holder = new Group(); holder.add(g);
     rig.root.updateMatrixWorld(true); head.updateWorldMatrix(true, false);
     // place it on the crown in the base pose, then express that in the head bone's own frame so it rides every head movement
-    holder.applyMatrix4(new Matrix4().copy(head.matrixWorld).invert().multiply(new Matrix4().makeTranslation(0, rig.height - 0.03, -0.035)));
+    // all in the character's own space (the character itself may be anywhere in the scene): head-relative = inverse(head in rig space) x the spot on the crown
+    const headInRig = new Matrix4().copy(rig.root.matrixWorld).invert().multiply(head.matrixWorld);
+    holder.applyMatrix4(headInRig.invert().multiply(new Matrix4().makeTranslation(0, rig.height - 0.04, -0.035)));
     head.add(holder); return () => { head.remove(holder); g.traverse((o) => { const m = o as Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as MeshStandardMaterial).dispose(); } }); };
   }, [rig, kind]);
   return null;
@@ -102,7 +104,8 @@ export function Avatar({ appearance: a, motion, held, cargo }: { appearance: App
     // hands: an action only shows while standing still or sitting (never mid-stride, never lying down)
     const act: ActionKind | undefined = m.lying || (m.moving && m.action !== 'rifle') ? undefined : m.action;
     // Mixamo clips (idle / walk / run, and the rifle set when the gun is up) whenever the body is not doing a seated, lying, reaction or hand-activity pose
-    if (rig.playPose && !m.sitting && !m.lying && !rx && (act === undefined || act === 'idle' || act === 'rifle')) {
+    // Mixamo only for moving and for the rifle: standing around unarmed is the plain neutral stance, not the Mixamo idle
+    if (rig.playPose && !m.sitting && !m.lying && !rx && (act === 'rifle' || (m.moving && (act === undefined || act === 'idle')))) {
       const dy = player.current.update(dt, walking ? Math.max(0.6, sp) : 0, act === 'rifle' ? RIFLE : UNARMED);
       rig.playPose(player.current.q, dy); b.rotation.set(0, 0, 0); b.position.set(0, 0, 0); return;
     }
