@@ -88,7 +88,7 @@ function chain(parts: BufferGeometry[], at: [number, number, number], rot: [numb
   const m = new Matrix4().compose(new Vector3(...at), new Quaternion().setFromEuler(new Euler(...rot)), new Vector3(1, 1, 1));
   for (const sg of segs) {
     m.multiply(new Matrix4().makeRotationX(sg.curl));
-    const g = new CylinderGeometry(sg.r0, sg.r1, sg.len, 5).toNonIndexed(); g.deleteAttribute('uv');
+    const g = new CylinderGeometry(sg.r0, sg.r1, sg.len, 6).toNonIndexed(); g.deleteAttribute('uv');
     g.applyMatrix4(new Matrix4().makeTranslation(0, -sg.len / 2, 0)); g.applyMatrix4(m); parts.push(g);
     m.multiply(new Matrix4().makeTranslation(0, -sg.len, 0));
   }
@@ -96,13 +96,14 @@ function chain(parts: BufferGeometry[], at: [number, number, number], rot: [numb
 /** A hand hanging from the wrist (y = 0): tapered palm, four fingers with two joints each, and a thumb. */
 export function handGeo(side: number, hs: number): BufferGeometry {
   const parts: BufferGeometry[] = [];
-  parts.push(placed(new CylinderGeometry(0.047 * hs, 0.058 * hs, 0.088 * hs, 4), [0, -0.046 * hs, 0], [0, Math.PI / 4, 0], [1, 1, 0.42]));
-  const lens = [0.07, 0.078, 0.072, 0.056], xs = [0.03, 0.01, -0.01, -0.03];
+  parts.push(placed(new CylinderGeometry(0.046 * hs, 0.054 * hs, 0.09 * hs, 8), [0, -0.046 * hs, 0], [0, Math.PI / 8, 0], [1, 1, 0.56]));
+  parts.push(placed(new IcosahedronGeometry(0.03 * hs, 0), [-side * 0.03 * hs, -0.034 * hs, 0.012 * hs], [0, 0, 0], [1.05, 1.25, 0.8])); // the thumb's pad, so the thumb grows out of the palm
+  const lens = [0.074, 0.082, 0.076, 0.06], xs = [0.03, 0.01, -0.01, -0.03];
   xs.forEach((x, k) => {
     const L = lens[k] * hs;
-    chain(parts, [x * hs * 1.05, -0.086 * hs, 0], [0, 0, 0], [{ len: L * 0.55, r0: 0.0105 * hs, r1: 0.0095 * hs, curl: -0.12 - k * 0.02 }, { len: L * 0.45, r0: 0.0092 * hs, r1: 0.0075 * hs, curl: -0.4 }]);
+    chain(parts, [x * hs * 1.05, -0.086 * hs, 0], [0, 0, 0], [{ len: L * 0.4, r0: 0.0108 * hs, r1: 0.0098 * hs, curl: -0.14 - k * 0.03 }, { len: L * 0.33, r0: 0.0098 * hs, r1: 0.0088 * hs, curl: -0.35 }, { len: L * 0.27, r0: 0.0088 * hs, r1: 0.0072 * hs, curl: -0.3 }]);
   });
-  chain(parts, [-side * 0.036 * hs, -0.02 * hs, 0.012 * hs], [-0.35, 0, -side * 0.5], [{ len: 0.04 * hs, r0: 0.0135 * hs, r1: 0.0115 * hs, curl: 0 }, { len: 0.034 * hs, r0: 0.0112 * hs, r1: 0.0088 * hs, curl: -0.3 }]);
+  chain(parts, [-side * 0.034 * hs, -0.03 * hs, 0.014 * hs], [-0.45, 0, -side * 0.35], [{ len: 0.04 * hs, r0: 0.0135 * hs, r1: 0.0115 * hs, curl: 0 }, { len: 0.034 * hs, r0: 0.0112 * hs, r1: 0.0088 * hs, curl: -0.3 }]);
   return merge(parts);
 }
 /** Extrude a side profile ((forward, y) points) across `width`, centred on x = 0. */
@@ -313,7 +314,7 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
       const lowest = Math.max(-R * 3.1, hairFloor - 0.12), wide = (shr + 0.045) / R; // wide enough to clear the shoulders and the garment on them
       const sheet = lathe([[R * 1.12, -R * 0.4], [R * Math.min(wide, 1.5), Math.max(lowest * 0.45, -R * 1.5)], [R * wide, Math.max(lowest * 0.8, -R * 2.2)], [R * wide * 0.96, lowest], [R * wide * 0.7, lowest - 0.01]], 9);
       const sg = new LatheGeometry(sheet.parameters.points, 9, 0.95, Math.PI * 2 - 1.9);
-      mesh(sg, mat(spec.hairColor, 0.38, { double: true }), head, [0, -R * 0.05, -R * 0.05], undefined, [1, 1, 0.95]);
+      mesh(sg, mat(spec.hairColor, 0.38, { double: true }), head, [0, -R * 0.05, -R * 0.42], undefined, [0.84, 1, 0.8]); // set back and narrowed so it hangs behind the shoulders instead of through them
       break; }
     case 'puffs': {
       shellHair(0.1, 0.5, 0.05);

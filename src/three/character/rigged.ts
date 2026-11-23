@@ -42,8 +42,8 @@ const footlessCache = new Map<string, BufferGeometry>();
 /** The body geometry without the triangles of the foot below the ankle: shares the vertex data, has its own index. */
 function footless(tpl: ReturnType<typeof bodyTemplate>): BufferGeometry {
   const hit = footlessCache.get(tpl.kind); if (hit) return hit;
-  const src = tpl.geometry, P = src.attributes.position, ix = src.index!, keep: number[] = [];
-  for (let i = 0; i < ix.count; i += 3) { const a = ix.getX(i), b = ix.getX(i + 1), c = ix.getX(i + 2); if (tpl.region[a] === 'foot' && tpl.region[b] === 'foot' && tpl.region[c] === 'foot' && Math.max(P.getY(a), P.getY(b), P.getY(c)) < 0.105) continue; keep.push(a, b, c); }
+  const src = tpl.geometry, ix = src.index!, keep: number[] = [];
+  for (let i = 0; i < ix.count; i += 3) { const a = ix.getX(i), b = ix.getX(i + 1), c = ix.getX(i + 2); if (tpl.region[a] === 'foot' && tpl.region[b] === 'foot' && tpl.region[c] === 'foot') continue; keep.push(a, b, c); }
   const g = new BufferGeometry(); for (const k of Object.keys(src.attributes)) g.setAttribute(k, src.attributes[k]); g.setIndex(keep); g.userData.shared = true; footlessCache.set(tpl.kind, g); return g;
 }
 

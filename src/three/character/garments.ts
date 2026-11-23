@@ -60,7 +60,6 @@ const fabric = (c: string, rough = 0.85, vertexColors = false) => new MeshStanda
 
 export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSkeleton>, _base: BasePose, _skin: Material, ctx: HostCtx): Dressing {
   const body = ctx.body, m = t.m, fem = spec.body === 'femme', mats: Material[] = [], objs: Object3D[] = [];
-  const wristX = Math.abs(t.pos[t.index['DEF-handL']].x);
   const skinned = (g: BufferGeometry, mat: Material) => { mats.push(mat); const s = makeSkinned(g, mat, sk); body.add(s); objs.push(s); return s; };
 
   // ---- shoes: real shoe models fitted to this body's foot (shoes.ts), fixed to the foot (and shin for boot shafts) bones
@@ -78,10 +77,14 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   // ---- bottoms
   const waistTop = m.hipY + 0.075;
   if (spec.bottom === 'jeans' || spec.bottom === 'trousers' || spec.bottom === 'shorts') {
-    const low = spec.bottom === 'shorts' ? m.kneeY + 0.13 : 0.12, off = spec.bottom === 'jeans' ? 0.02 : 0.016;
+    const low = spec.bottom === 'shorts' ? m.kneeY + 0.13 : 0.09, off = spec.bottom === 'jeans' ? 0.02 : 0.016;
     const legs = extract(t, `legs:${spec.bottom}`, (v) => (((v.region === 'pelvis' || v.region === 'thigh' || v.region === 'shin') && v.y > low && v.y < waistTop) || (spec.bottom !== 'shorts' && v.region === 'foot' && v.y > 0.1 && Math.abs(v.z - t.pos[t.index['DEF-footL']].z) < 0.05)) || (v.region === 'torso' && v.y < waistTop), (v) => off + (spec.bottom === 'trousers' ? 0.004 : 0) + 0.0 * v.y);
-    if (spec.bottom !== 'shorts') flattenHem(legs, 0.11, 0.035, 'up'); // a straight hem at the shoe, not the ragged edge of whichever triangles survived
+    if (spec.bottom !== 'shorts') flattenHem(legs, 0.085, 0.07, 'up'); // a straight hem at the shoe, not the ragged edge of whichever triangles survived
     skinned(legs, fabric(spec.bottomColor, spec.bottom === 'jeans' ? 0.9 : 0.7));
+  }
+  if (spec.bottom === 'jeans' || spec.bottom === 'trousers') { // an ankle cuff: closes the gap between the hem and the shoe on every foot position
+    const cm = fabric(spec.bottomColor, spec.bottom === 'jeans' ? 0.9 : 0.7); mats.push(cm);
+    for (const S of ['L', 'R'] as const) { const fp = t.pos[t.index[`DEF-foot${S}`]], r = spec.bottom === 'trousers' ? 0.07 : 0.062; const c = new Mesh(new CylinderGeometry(r, r * 0.98, 0.1, 14, 1, true), cm); place(sk, t, `DEF-shin${S}001`, c, new Vector3(fp.x, 0.125, fp.z + 0.004)); objs.push(c); }
   }
   if (spec.bottom === 'jeans' || spec.bottom === 'trousers') {
     const belt = extract(t, 'belt', (v) => (v.region === 'torso' || v.region === 'pelvis') && v.y > waistTop - 0.05 && v.y < waistTop, () => 0.034);
@@ -90,8 +93,8 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
     if (fz > -9) { const bk = new Mesh(new BoxGeometry(0.045, 0.034, 0.012), new MeshStandardMaterial({ color: '#D9B04A', roughness: 0.3, metalness: 0.85 })); mats.push(bk.material as Material); place(sk, t, 'DEF-spine', bk, new Vector3(0, waistTop - 0.025, fz + 0.036)); }
   }
   const skirt = (len: number, flare: number, c: string) => {
-    const top = m.hipY + 0.06, r0 = fem ? 0.19 : 0.2; const pts: Vector2[] = []; for (let i = 0; i <= 6; i++) { const f = i / 6; pts.push(new Vector2(r0 + flare * f * f, top - len * f)); }
-    const g = new LatheGeometry(pts, 14); g.scale(1, 1, 0.78); g.translate(0, 0, -0.045);
+    const top = m.hipY + 0.06, r0 = 0.2; const pts: Vector2[] = []; for (let i = 0; i <= 6; i++) { const f = i / 6; pts.push(new Vector2(r0 + flare * f * f, top - len * f)); }
+    const g = new LatheGeometry(pts, 14); g.scale(1, 1, 0.675); g.translate(0, 0, -0.06);
     const n = g.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4); for (let i = 0; i < n; i++) { si[i * 4] = t.index['DEF-spine']; sw[i * 4] = 1; }
     g.setAttribute('skinIndex', new BufferAttribute(si, 4)); g.setAttribute('skinWeight', new BufferAttribute(sw, 4)); return skinned(g, fabric(c, 0.75));
   };
@@ -102,10 +105,10 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   const top = spec.top, tc = spec.topColor;
   // sleeves are picked by position along the arm (shoulder to wrist), not by the file's region labels: the arm's vertex rings are uneven and mix labels, which left slits
   const shP = t.pos[t.index['DEF-upper_armL']], wrP = t.pos[t.index['DEF-handL']], armAx = wrP.clone().sub(shP), armLen = armAx.length(); armAx.normalize();
-  const onArm = (v: V, end: number) => { const px = Math.abs(v.x) - shP.x, py = v.y - shP.y, pz = v.z - shP.z, along = px * armAx.x + py * armAx.y + pz * armAx.z, rx = px - armAx.x * along, ry = py - armAx.y * along, rz = pz - armAx.z * along; return v.region !== 'hand' && v.region !== 'head' && along > -0.03 && along < armLen * end && Math.hypot(rx, ry, rz) < 0.1; };
+  const onArm = (v: V, end: number) => { const px = Math.abs(v.x) - shP.x, py = v.y - shP.y, pz = v.z - shP.z, along = px * armAx.x + py * armAx.y + pz * armAx.z, rx = px - armAx.x * along, ry = py - armAx.y * along, rz = pz - armAx.z * along; return v.region !== 'hand' && v.region !== 'head' && v.region !== 'arm' && along > -0.03 && along < armLen * end && Math.hypot(rx, ry, rz) < 0.1; };
   /** Sleeves are clean tapered tubes fixed to the arm bones (the file's arm is too sparse to cut a sleeve from), with a cuff band at the end. */
   const wposOf = (bn: string) => new Vector3().setFromMatrixPosition(sk.bones[t.index[bn]].matrixWorld);
-  const addSleeves = (sleeves: 'short' | 'long') => {
+  const addSleeves = (sleeves: 'short' | 'long', wide = 1) => {
     const mat = fabricSmooth(tc, 0.8), cuffMat = fabricSmooth(shadeC(tc, new Color(tc).getHSL({ h: 0, s: 0, l: 0 }).l > 0.5 ? -0.18 : 0.16), 0.7); mats.push(mat, cuffMat);
     for (const S of ['L', 'R'] as const) {
       const p0 = wposOf(`DEF-upper_arm${S}`), p1 = wposOf(`DEF-forearm${S}`), p2 = wposOf(`DEF-hand${S}`);
@@ -114,9 +117,10 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
         const o = new Mesh(new CylinderGeometry(r0, r1, len, 16, 1, true), mat); o.rotation.setFromQuaternion(new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir)); place(sk, t, bone, o, a.clone().add(b).multiplyScalar(0.5)); objs.push(o);
         if (cuff) { const c = new Mesh(new CylinderGeometry(r1 + 0.004, r1 + 0.004, 0.03, 16, 1, true), cuffMat); c.rotation.copy(o.rotation); place(sk, t, bone, c, b.clone().addScaledVector(dir, 0.015)); objs.push(c); }
       };
+      { const cap = new Mesh(new SphereGeometry(0.071 * wide, 14, 10), mat); place(sk, t, `DEF-upper_arm${S}`, cap, p0.clone().add(new Vector3(0, 0.004, 0))); objs.push(cap); } // rounded shoulder cap
       const end1 = p0.clone().lerp(p1, sleeves === 'short' ? 0.5 : 1.0);
-      tube(p0.clone().add(new Vector3(0, 0.02, 0)), end1, 0.07, sleeves === 'short' ? 0.064 : 0.058, `DEF-upper_arm${S}`, sleeves === 'short');
-      if (sleeves === 'long') tube(p1.clone().add(new Vector3(0, 0.012, 0)), p1.clone().lerp(p2, 0.94), 0.056, 0.047, `DEF-forearm${S}`, true);
+      tube(p0.clone().add(new Vector3(0, 0.02, 0)), end1, 0.07 * wide, (sleeves === 'short' ? 0.064 : 0.058) * wide, `DEF-upper_arm${S}`, sleeves === 'short');
+      if (sleeves === 'long') tube(p1.clone().add(new Vector3(0, 0.012, 0)), p1.clone().lerp(p2, 0.94), 0.056 * wide, 0.047 * wide, `DEF-forearm${S}`, true);
     }
   };
   const mk = (key: string, sleeves: 'none' | 'short' | 'long', hem: number, off: number, colour?: (v: V) => Color, extra?: (v: V) => number) => {
@@ -134,12 +138,13 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   if (top === 'tee' || top === 'shirt') skinned(mk(`top:${top}`, top === 'tee' ? 'short' : 'long', m.hipY - 0.04, top === 'tee' ? 0.02 : 0.018, (v) => trim(v, tc, top === 'tee' ? 'rib' : 'collar')), fabric(tc, 0.8, true));
   else if (top === 'jersey') { const a = new Color(tc), b = new Color('#ffffff'); skinned(mk('top:jersey', 'short', m.hipY - 0.05, 0.015, (v) => (v.y > chestY - 0.045 && v.y < chestY + 0.01 ? b : a)), fabric(tc, 0.7, true)); }
   else if (top === 'hoodie' || top === 'jacket') {
-    skinned(mk(`top:${top}`, 'long', m.hipY - 0.1, top === 'hoodie' ? 0.027 : 0.024), fabric(tc, top === 'hoodie' ? 0.9 : 0.6));
+    const hg = mk(`top:${top}`, 'long', m.hipY - 0.1, top === 'hoodie' ? 0.027 : 0.024); if (!hg.userData.flat) { flattenHem(hg, m.hipY - 0.1, 0.12, 'up'); hg.userData.flat = true; } // a straight hem, not ragged triangles
+    skinned(hg, fabric(tc, top === 'hoodie' ? 0.9 : 0.6));
     if (top === 'hoodie') { const hood = new Mesh(new IcosahedronGeometry(0.1, 0), fabric(shadeC(tc, -0.1), 0.9)); hood.scale.set(1.1, 0.7, 0.8); mats.push(hood.material as Material); place(sk, t, 'DEF-spine003', hood, new Vector3(0, m.neckY + 0.0, -0.1 - 0.0)); }
     else { const col = new Mesh(new CylinderGeometry(0.075, 0.062, 0.07, 8, 1, true), fabric(shadeC(tc, -0.1), 0.6)); mats.push(col.material as Material); place(sk, t, 'DEF-spine003', col, new Vector3(0, m.neckY + 0.015, -0.01)); }
   } else if (top === 'kaftan') {
     const flare = (v: V) => (v.region === 'pelvis' || v.region === 'thigh' || v.region === 'torso') && v.y < m.hipY ? 0.075 * Math.min(1, (m.hipY - v.y) / (m.hipY - m.kneeY)) : 0;
-    skinned(extract(t, 'top:kaftan', (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > m.kneeY - 0.02) || (v.region === 'thigh' && v.y > m.kneeY - 0.02) || ((v.region === 'upperarm' || v.region === 'forearm') && Math.abs(v.x) < wristX - 0.035), (v) => 0.02 + flare(v)), fabric(tc, 0.7));
+    const kg = extract(t, 'top:kaftan', (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > m.kneeY - 0.02) || (v.region === 'thigh' && v.y > m.kneeY - 0.02), (v) => 0.02 + flare(v)); if (!(kg.userData.flat)) { flattenHem(kg, m.kneeY - 0.02, 0.09, 'up'); kg.userData.flat = true; } skinned(kg, fabric(tc, 0.7)); addSleeves('long', 1.3);
     const trim = new Mesh(new TorusGeometry(0.085, 0.008, 4, 10), fabric('#E5B93C', 0.4)); trim.rotation.x = Math.PI / 2; mats.push(trim.material as Material); place(sk, t, 'DEF-spine003', trim, new Vector3(0, m.neckY - 0.02, 0.0));
   } else if (top === 'vest') {
     // a tank top under an open vest, like the reference
@@ -161,8 +166,8 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   if (spec.gun && spec.top !== 'jacket' && spec.top !== 'hoodie') { const h = solid('#1A1C20', 0.5, 0.3); rigid(new BoxGeometry(0.05, 0.16, 0.09), h, 'DEF-spine', new Vector3(0.205, m.hipY + 0.0, 0.0)); rigid(new BoxGeometry(0.045, 0.1, 0.05), solid('#3A2A1E', 0.7), 'DEF-spine', new Vector3(0.207, m.hipY + 0.1, 0.01)); }
   if (spec.bag !== 'none') {
     const bc = solid(spec.bagColor, 0.5), bd = solid(shadeC(spec.bagColor, -0.3), 0.55), gold = solid('#E5B93C', 0.25, 0.85);
-    if (spec.bag === 'backpack') { rigid(rbox(0.26, 0.36, 0.13), bc, 'DEF-spine002', new Vector3(0, m.shoulderY - 0.2, -0.17)); rigid(rbox(0.2, 0.14, 0.05), bd, 'DEF-spine002', new Vector3(0, m.shoulderY - 0.3, -0.255)); for (const sd of [-1, 1]) rigid(rbox(0.03, 0.34, 0.012), bd, 'DEF-spine002', new Vector3(sd * 0.075, m.shoulderY - 0.17, 0.12), [0.1, 0, 0]); }
-    if (spec.bag === 'crossbody') { rigid(rbox(0.19, 0.13, 0.07), bc, 'DEF-spine', new Vector3(-0.225, m.hipY - 0.03, 0.0)); rigid(rbox(0.04, 0.6, 0.012), bd, 'DEF-spine002', new Vector3(-0.02, m.shoulderY - 0.25, 0.125), [0, 0, 0.55]); rigid(rbox(0.04, 0.6, 0.012), bd, 'DEF-spine002', new Vector3(-0.02, m.shoulderY - 0.25, -0.125), [0, 0, 0.55]); rigid(rbox(0.03, 0.03, 0.01), gold, 'DEF-spine', new Vector3(-0.225, m.hipY - 0.03, 0.04)); }
+    if (spec.bag === 'backpack') { rigid(rbox(0.26, 0.36, 0.13), bc, 'DEF-spine002', new Vector3(0, m.shoulderY - 0.2, -0.17)); rigid(rbox(0.2, 0.14, 0.05), bd, 'DEF-spine002', new Vector3(0, m.shoulderY - 0.3, -0.255)); for (const sd of [-1, 1]) rigid(rbox(0.03, 0.34, 0.012), bd, 'DEF-spine002', new Vector3(sd * 0.075, m.shoulderY - 0.17, 0.085), [0.1, 0, 0]); }
+    if (spec.bag === 'crossbody') { rigid(rbox(0.19, 0.13, 0.07), bc, 'DEF-spine', new Vector3(-0.225, m.hipY - 0.03, 0.0)); rigid(rbox(0.04, 0.6, 0.012), bd, 'DEF-spine002', new Vector3(-0.02, m.shoulderY - 0.25, 0.09), [0, 0, 0.55]); rigid(rbox(0.04, 0.6, 0.012), bd, 'DEF-spine002', new Vector3(-0.02, m.shoulderY - 0.25, -0.125), [0, 0, 0.55]); rigid(rbox(0.03, 0.03, 0.01), gold, 'DEF-spine', new Vector3(-0.225, m.hipY - 0.03, 0.04)); }
     if (spec.bag === 'tote') { rigid(rbox(0.25, 0.28, 0.1), bc, 'DEF-spine', new Vector3(-0.22, m.hipY - 0.06, 0.0)); rigid(new TorusGeometry(0.075, 0.008, 5, 12, Math.PI), bd, 'DEF-spine', new Vector3(-0.22, m.hipY + 0.08, 0.0), [0, 0, 0]); }
     if (spec.bag === 'handbag' || spec.bag === 'clutch') { const hand = `DEF-hand${t.pos[t.index['DEF-handL']].x > 0 ? 'R' : 'L'}`; const hp = new Vector3().setFromMatrixPosition(sk.bones[t.index[hand]].matrixWorld); rigid(rbox(0.25, 0.17, 0.1), bc, hand, hp.clone().add(new Vector3(0, -0.2, 0.03))); rigid(new TorusGeometry(0.065, 0.007, 5, 12, Math.PI), gold, hand, hp.clone().add(new Vector3(0, -0.11, 0.03))); }
   }

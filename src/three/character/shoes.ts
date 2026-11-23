@@ -37,7 +37,12 @@ function loft(st: Station[], cx: number, z0: number, z1: number, n = 3.0, seg = 
   const ring = (s: Station) => { const out: number[] = [], cy = (s.y0 + s.y1) / 2, ry = (s.y1 - s.y0) / 2; for (let k = 0; k < seg; k++) { const a = (k / seg) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); out.push(cx + s.hw * Math.sign(c) * Math.abs(c) ** e, cy + ry * Math.sign(sn) * Math.abs(sn) ** e, z0 + s.u * (z1 - z0)); } return out; };
   st.forEach((s) => pos.push(...ring(s)));
   for (let i = 0; i < st.length - 1; i++) for (let k = 0; k < seg; k++) { const a = i * seg + k, b = i * seg + ((k + 1) % seg), c = (i + 1) * seg + k, d = (i + 1) * seg + ((k + 1) % seg); idx.push(a, c, b, b, c, d); }
-  for (const [i, flip] of [[0, true], [st.length - 1, false]] as const) { const ci = pos.length / 3, s = st[i]; pos.push(cx, (s.y0 + s.y1) / 2, z0 + s.u * (z1 - z0)); for (let k = 0; k < seg; k++) { const a = i * seg + k, b = i * seg + ((k + 1) % seg); idx.push(...(flip ? [ci, b, a] : [ci, a, b])); } }
+  // the end caps get their own copy of the ring, so they shade flat instead of smearing the side normals into a dark dimple
+  for (const [i, flip] of [[0, true], [st.length - 1, false]] as const) {
+    const s = st[i], ci = pos.length / 3, ringStart = ci + 1; pos.push(cx, (s.y0 + s.y1) / 2, z0 + s.u * (z1 - z0));
+    for (let k = 0; k < seg; k++) pos.push(pos[(i * seg + k) * 3], pos[(i * seg + k) * 3 + 1], pos[(i * seg + k) * 3 + 2]);
+    for (let k = 0; k < seg; k++) { const a = ringStart + k, b = ringStart + ((k + 1) % seg); idx.push(...(flip ? [ci, b, a] : [ci, a, b])); }
+  }
   const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
 const at = (g: BufferGeometry, x: number, y: number, z: number) => { g.translate(x, y, z); return g; };

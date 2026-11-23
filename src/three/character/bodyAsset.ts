@@ -15,7 +15,7 @@ export type Side = 'L' | 'R';
 export const HEIGHT: Record<BodyKind, number> = { masc: 1.8, femme: 1.7 };
 
 /** Which part of the body a vertex mostly belongs to. */
-export type Region = 'torso' | 'neck' | 'head' | 'upperarm' | 'forearm' | 'hand' | 'pelvis' | 'thigh' | 'shin' | 'foot';
+export type Region = 'arm' | 'torso' | 'neck' | 'head' | 'upperarm' | 'forearm' | 'hand' | 'pelvis' | 'thigh' | 'shin' | 'foot';
 const regionOf = (name: string): Region => {
   if (/head/.test(name)) return 'head'; if (/neck/.test(name)) return 'neck';
   if (/spine|collar/.test(name)) return 'torso';
@@ -63,6 +63,61 @@ function parentName(n: string): string | null {
   m = n.match(/^DEF-foot([LR])$/); if (m) return `DEF-shin${m[1]}001`;
   m = n.match(/^DEF-toe([LR])$/); if (m) return `DEF-foot${m[1]}`;
   return null;
+}
+
+
+/**
+ * Closed, smooth arm tubes for both sides, skinned across the five arm bones (upper arm, its twist bone, forearm, its twist bone, hand).
+ * Rings sit on the joints and between them; each joint ring is split 50/50 between the two bones that meet there so the elbow bends without a crease.
+ * The result is appended to `base` (same vertex arrays, longer) and tagged region 'arm'.
+ */
+function withArms(base: BufferGeometry, P: Float32Array, NRM: Float32Array, SI: Uint16Array, SW: Float32Array, region: Region[], posB: Vector3[], index: Record<string, number>, kind: BodyKind): BufferGeometry {
+  const n0 = P.length / 3, pp: number[] = [], nn: number[] = [], si: number[] = [], sw: number[] = [], ii: number[] = [], SEG = 10, fk = kind === 'femme' ? 0.9 : 1;
+  for (const S of ['L', 'R'] as const) {
+    const B = [`DEF-upper_arm${S}`, `DEF-upper_arm${S}001`, `DEF-forearm${S}`, `DEF-forearm${S}001`, `DEF-hand${S}`].map((nm) => index[nm]);
+    const Q = B.map((b) => posB[b]), L = (a: number, b: number, f: number) => Q[a].clone().lerp(Q[b], f);
+    const dir0 = Q[1].clone().sub(Q[0]).normalize(), dir4 = Q[4].clone().sub(Q[3]).normalize();
+    type Ring = { p: Vector3; rx: number; rz: number; w: [number, number][] };
+    const rings: Ring[] = [
+      { p: Q[0].clone().addScaledVector(dir0, -0.04), rx: 0.034, rz: 0.034, w: [[B[0], 1]] },
+      { p: Q[0].clone().addScaledVector(dir0, -0.012), rx: 0.056, rz: 0.058, w: [[B[0], 1]] },
+      { p: Q[0].clone().addScaledVector(dir0, 0.016), rx: 0.061, rz: 0.062, w: [[B[0], 1]] },
+      { p: L(0, 1, 0.55), rx: 0.057, rz: 0.058, w: [[B[0], 1]] },
+      { p: Q[1].clone(), rx: 0.053, rz: 0.054, w: [[B[0], 0.5], [B[1], 0.5]] },
+      { p: L(1, 2, 0.55), rx: 0.049, rz: 0.05, w: [[B[1], 1]] },
+      { p: Q[2].clone(), rx: 0.046, rz: 0.047, w: [[B[1], 0.5], [B[2], 0.5]] },
+      { p: L(2, 3, 0.5), rx: 0.046, rz: 0.044, w: [[B[2], 1]] },
+      { p: Q[3].clone(), rx: 0.041, rz: 0.038, w: [[B[2], 0.5], [B[3], 0.5]] },
+      { p: L(3, 4, 0.6), rx: 0.035, rz: 0.032, w: [[B[3], 1]] },
+      { p: Q[4].clone(), rx: 0.032, rz: 0.028, w: [[B[3], 0.5], [B[4], 0.5]] },
+      { p: Q[4].clone().addScaledVector(dir4, 0.03), rx: 0.034, rz: 0.03, w: [[B[4], 1]] },
+    ];
+    const start = pp.length / 3, N = SEG;
+    rings.forEach((r, j) => {
+      const prev = rings[Math.max(0, j - 1)].p, next = rings[Math.min(rings.length - 1, j + 1)].p, T = next.clone().sub(prev).normalize();
+      const ref = new Vector3(0, 0, 1), u = ref.clone().addScaledVector(T, -ref.dot(T)).normalize(), v = new Vector3().crossVectors(T, u).normalize();
+      for (let k = 0; k < N; k++) {
+        const a = (k / N) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a), q = r.p.clone().addScaledVector(u, c * r.rz * fk).addScaledVector(v, sn * r.rx * fk);
+        pp.push(q.x, q.y, q.z); const nrm = u.clone().multiplyScalar(c).addScaledVector(v, sn).normalize(); nn.push(nrm.x, nrm.y, nrm.z);
+        const w = [...r.w]; while (w.length < 4) w.push([0, 0]); si.push(w[0][0], w[1][0], w[2][0], w[3][0]); sw.push(w[0][1], w[1][1], w[2][1], w[3][1]); region.push('arm');
+      }
+    });
+    const tris: number[] = [];
+    for (let j = 0; j < rings.length - 1; j++) for (let k = 0; k < N; k++) { const k1 = (k + 1) % N, a = start + j * N + k, b = start + j * N + k1, c = start + (j + 1) * N + k, d = start + (j + 1) * N + k1; tris.push(a, b, c, b, d, c); }
+    // caps: a fan to the centre of the first and last ring
+    for (const [ri, flip] of [[0, false], [rings.length - 1, true]] as const) {
+      const cp = rings[ri].p, ci = pp.length / 3; pp.push(cp.x, cp.y, cp.z); nn.push(0, 0, 0); const w = [...rings[ri].w]; while (w.length < 4) w.push([0, 0]); si.push(w[0][0], w[1][0], w[2][0], w[3][0]); sw.push(w[0][1], w[1][1], w[2][1], w[3][1]); region.push('arm');
+      for (let k = 0; k < N; k++) { const a = start + ri * N + k, b = start + ri * N + (k + 1) % N; tris.push(...(flip ? [ci, b, a] : [ci, a, b])); }
+    }
+    // make every triangle face outward: compare each one's normal with the direction away from the nearest ring centre
+    const flipAll = (() => { const a = tris[0], b = tris[1], c = tris[2], g = (i: number) => new Vector3(pp[i * 3], pp[i * 3 + 1], pp[i * 3 + 2]); const nrm = g(b).sub(g(a)).cross(g(c).sub(g(a))), out = g(a).sub(rings[0].p); return nrm.dot(out) < 0; })();
+    for (let t = 0; t < tris.length; t += 3) { const a = tris[t], b = tris[t + 1], c = tris[t + 2]; ii.push(...(flipAll ? [a + n0, c + n0, b + n0] : [a + n0, b + n0, c + n0])); }
+    void start;
+  }
+  const total = n0 + pp.length / 3, P2 = new Float32Array(total * 3), N2 = new Float32Array(total * 3), SI2 = new Uint16Array(total * 4), SW2 = new Float32Array(total * 4);
+  P2.set(P); N2.set(NRM); SI2.set(SI); SW2.set(SW); P2.set(pp, n0 * 3); N2.set(nn, n0 * 3); SI2.set(si, n0 * 4); SW2.set(sw, n0 * 4);
+  const out = new BufferGeometry(); out.setAttribute('position', new BufferAttribute(P2, 3)); out.setAttribute('normal', new BufferAttribute(N2, 3)); out.setAttribute('skinIndex', new BufferAttribute(SI2, 4)); out.setAttribute('skinWeight', new BufferAttribute(SW2, 4));
+  const idx: number[] = []; const bi = base.index!; for (let i = 0; i < bi.count; i++) idx.push(bi.getX(i)); idx.push(...ii); out.setIndex(idx); return out;
 }
 
 const cache = new Map<string, BodyTemplate>();
@@ -123,11 +178,14 @@ export function bodyTemplate(gltf: GLTF, kind: BodyKind, mat: Material): BodyTem
   // forearm vertices the file weights to the fingers are still forearm: the hand starts at the wrist
   const wristX0 = Math.abs(posB[index['DEF-handL']].x);
   for (let i = 0; i < region.length; i++) if (region[i] === 'hand' && Math.abs(P[i * 3]) < wristX0 + 0.02) region[i] = 'forearm';
-  // the head is generated (build.ts) and so are the hands (the file's fingers are thin slivers): triangles touching either are dropped
-  // the forearms carry thin fins (two nearly equal wrist vertices joined to the elbow): no volume, so they are dropped
-  const sliver = (a: number, b: number, c: number) => { const e1 = edge(a, b), e2 = edge(b, c), e3 = edge(c, a), L = Math.max(e1, e2, e3), h = (e1 + e2 + e3) / 2, area = Math.sqrt(Math.max(0, h * (h - e1) * (h - e2) * (h - e3))); return L * L / (area || 1e-9) > 7 && Math.min(Math.abs(P[a * 3]), Math.abs(P[b * 3]), Math.abs(P[c * 3])) > 0.25; }; // (forearm fins only: legs and chest have long thin triangles that are real surface)
-  const edge = (a: number, b: number) => Math.hypot(P[a * 3] - P[b * 3], P[a * 3 + 1] - P[b * 3 + 1], P[a * 3 + 2] - P[b * 3 + 2]);
-  const geometry = geo((a, b, c) => !(region[a] === 'head' && region[b] === 'head' && region[c] === 'head') && region[a] !== 'hand' && region[b] !== 'hand' && region[c] !== 'hand' && !sliver(a, b, c)), full = geo(() => true);
+  // The file's arms are paper-thin fins (and its hands are slivers), so both are replaced: the head and hands are generated (build.ts),
+  // the arms are generated here as closed, skinned tubes. Shoulder-blade vertices the file weights to the upper arm belong to the torso.
+  const shoulderX = Math.abs(posB[index['DEF-upper_armL']].x);
+  for (let i = 0; i < region.length; i++) if (region[i] === 'upperarm' && Math.abs(P[i * 3]) < shoulderX + 0.005) region[i] = 'torso';
+  const isArm = (i: number) => region[i] === 'upperarm' || region[i] === 'forearm';
+  let geometry = geo((a, b, c) => !(region[a] === 'head' && region[b] === 'head' && region[c] === 'head') && region[a] !== 'hand' && region[b] !== 'hand' && region[c] !== 'hand' && !isArm(a) && !isArm(b) && !isArm(c));
+  const full = geo(() => true);
+  geometry = withArms(geometry, P, NRM, SI, SW, region, posB, index, kind);
   const at = (n: string) => posB[index[n]];
   const m: Measures = {
     top: HEIGHT[kind], hipY: at('DEF-thighL').y, kneeY: at('DEF-shinL').y, ankleY: at('DEF-footL').y, shoulderY: at('DEF-upper_armL').y, neckY: at('DEF-neck').y, headBaseY: at('DEF-head').y, headTopY: HEIGHT[kind],
