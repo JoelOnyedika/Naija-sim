@@ -36,7 +36,7 @@ function basePose(t: BodyTemplate): BasePose {
 }
 
 /** Skin material shared by body and head. */
-const skinMat = (c: string) => new MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true });
+const skinMat = (c: string) => new MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: false });
 
 const footlessCache = new Map<string, BufferGeometry>();
 /** The body geometry without the triangles of the foot below the ankle: shares the vertex data, has its own index. */

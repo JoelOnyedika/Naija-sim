@@ -11,7 +11,7 @@ import {
   Material, Mesh, MeshStandardMaterial, SphereGeometry, TorusGeometry, TubeGeometry, Vector2, Vector3,
   BoxGeometry, ExtrudeGeometry, Shape, Matrix4, Quaternion, Euler, MeshPhysicalMaterial,
 } from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // ------------------------------------------------------------------ spec
 export interface Spec {
@@ -64,11 +64,11 @@ function noise3(x: number, y: number, z: number) { return Math.sin(x * 9.1 + y *
 const matCache = new Map<string, MeshStandardMaterial>();
 void MeshStandardMaterial;
 /** Flat-shaded materials, shared by every character (never disposed with a single avatar). */
-function makeMat(_st: Style, color: string, rough = 0.8, opts: { double?: boolean; metal?: number } = {}): Material {
-  const key = `${color}|${rough}|${!!opts.double}|${opts.metal ?? 0}`;
+function makeMat(_st: Style, color: string, rough = 0.8, opts: { double?: boolean; metal?: number; smooth?: boolean } = {}): Material {
+  const key = `${color}|${rough}|${!!opts.double}|${opts.metal ?? 0}|${!!opts.smooth}`;
   let m = matCache.get(key);
   if (!m) { // a light clearcoat gives the facets the glossy highlights that make low poly look finished
-    m = new MeshPhysicalMaterial({ color, roughness: rough, metalness: opts.metal ?? 0, flatShading: true, clearcoat: 0 }); if (opts.double) m.side = DoubleSide; matCache.set(key, m as unknown as MeshStandardMaterial); }
+    m = new MeshPhysicalMaterial({ color, roughness: rough, metalness: opts.metal ?? 0, flatShading: !opts.smooth, clearcoat: 0 }); if (opts.double) m.side = DoubleSide; matCache.set(key, m as unknown as MeshStandardMaterial); }
   return m;
 }
 const shade = (hex: string, amt: number) => { const c = new Color(hex); const t = amt < 0 ? 0 : 1, a = Math.abs(amt); c.r += (t - c.r) * a; c.g += (t - c.g) * a; c.b += (t - c.b) * a; return '#' + c.getHexString(); };
@@ -104,7 +104,7 @@ export function handGeo(side: number, hs: number): BufferGeometry {
     chain(parts, [x * hs * 1.05, -0.086 * hs, 0], [0, 0, 0], [{ len: L * 0.4, r0: 0.0108 * hs, r1: 0.0098 * hs, curl: -0.14 - k * 0.03 }, { len: L * 0.33, r0: 0.0098 * hs, r1: 0.0088 * hs, curl: -0.35 }, { len: L * 0.27, r0: 0.0088 * hs, r1: 0.0072 * hs, curl: -0.3 }]);
   });
   chain(parts, [-side * 0.034 * hs, -0.03 * hs, 0.014 * hs], [-0.45, 0, -side * 0.35], [{ len: 0.04 * hs, r0: 0.0135 * hs, r1: 0.0115 * hs, curl: 0 }, { len: 0.034 * hs, r0: 0.0112 * hs, r1: 0.0088 * hs, curl: -0.3 }]);
-  return merge(parts);
+  const flat = merge(parts); flat.deleteAttribute('normal'); const sm = mergeVertices(flat, 1e-4); sm.computeVertexNormals(); return sm; // welded, so the hand shades smoothly like the arm it hangs from
 }
 /** Extrude a side profile ((forward, y) points) across `width`, centred on x = 0. */
 function sideExtrude(pts: [number, number][], width: number, bevel = 0.005): BufferGeometry {
@@ -158,6 +158,7 @@ function headGeo(R: number, _seg: number, jaw = 1): BufferGeometry {
   const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   const nr = g.attributes.normal, p = g.attributes.position, k = 5 * (N + 1) + 4; // a point on the side of a middle slice: its normal must point away from the centre
   if (nr.getX(k) * p.getX(k) + nr.getZ(k) * (p.getZ(k) - sl[5].cz * R) < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
+  const nn = g.attributes.normal; for (let i = 0; i < sl.length; i++) { const a = i * (N + 1), b = a + N, x = nn.getX(a) + nn.getX(b), y = nn.getY(a) + nn.getY(b), z = nn.getZ(a) + nn.getZ(b), l = Math.hypot(x, y, z) || 1; nn.setXYZ(a, x / l, y / l, z / l); nn.setXYZ(b, x / l, y / l, z / l); } // the loft's seam is two vertices: share one normal so smooth shading has no line down the face
   return g;
 }
 /** A shell that follows the head surface over the triangles accepted by `keep`, pushed outward by `off`. Used for hair and beards. */
@@ -190,7 +191,7 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
     const o = new Mesh(g, m); if (pos) o.position.set(...pos); if (rot) o.rotation.set(...rot); if (scale) o.scale.set(...scale); o.castShadow = true; parent.add(o); return o;
   };
   const grp = (parent: Group, x = 0, y = 0, z = 0) => { const g = new Group(); g.position.set(x, y, z); parent.add(g); return g; };
-  const mat = (c: string, r = 0.8, o: { double?: boolean; metal?: number } = {}) => makeMat(st, c, r, o);
+  const mat = (c: string, r = 0.8, o: { double?: boolean; metal?: number; smooth?: boolean } = {}) => makeMat(st, c, r, o);
 
   // ---- proportions
   const hipY = st.legs, thigh = st.legs * 0.5, calf = st.legs - st.legs * 0.5 - 0.075;
@@ -206,7 +207,7 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
   const depth = fem ? 0.66 : 0.64;
 
   const root = host ? host.root : new Group(), body = host ? host.body : grp(root);
-  const skinM = mat(spec.skin, st.rough);
+  const skinM = mat(spec.skin, st.rough), headM = mat(spec.skin, st.rough, { smooth: true }); // the head is smooth-shaded so the face reads as a face; the body keeps the faceted look
 
   // ---- torso, neck
   const neckR = 0.055 * lk * (fem ? 0.9 : 1.08);
@@ -217,7 +218,7 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
   const hseg = 10; // the head is built finer than the rest, so the face has enough facets to read as a face
   const head = host ? host.attachHead() : grp(body, 0, headY, 0);
   const jawK = fem ? 0.85 : 1.05;
-  mesh(headGeo(R, hseg, jawK), skinM, head);
+  mesh(headGeo(R, hseg, jawK), headM, head);
   const surf = (x: number, y: number) => R * faceZ(jawK, y / R) * (1 - Math.min(0.5, Math.abs(x) / R) * 0.28);
   const eyeY = R * 0.1, eyeX = R * 0.36, er = R * 0.16;
   const lipM = mat(fem ? mix(shade(spec.skin, -0.3), '#B03A4A', 0.4) : shade(spec.skin, -0.28), 0.5);
@@ -227,30 +228,30 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
   {
     const browC = spec.hair === 'bald' ? shade(spec.skin, -0.5) : mix(spec.hairColor, '#000000', 0.2);
     const tex = faceTexture({ skin: spec.skin, eye: spec.eye, fem, brow: browC });
-    const patch = headShell(R, hseg, (x, y, z) => z > 0.12 * R && Math.abs(x) < 1.0 * R && y > -1.25 * R, () => 0.0035 * R, jawK);
+    const patch = headShell(R, hseg, (x, y, z) => z > 0.12 * R && Math.abs(x) < 0.82 * R && y > -0.92 * R, () => 0.0035 * R, jawK);
     const pos = patch.attributes.position, uv: number[] = [];
     for (let i = 0; i < pos.count; i++) { const [u, v] = faceUV(pos.getX(i) / R, pos.getY(i) / R); uv.push(u, v); }
     patch.setAttribute('uv', new Float32BufferAttribute(uv, 2));
-    const faceM = new MeshPhysicalMaterial({ map: tex, roughness: 0.8, flatShading: true, clearcoat: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const faceM = new MeshPhysicalMaterial({ map: tex, roughness: 0.8, flatShading: false, clearcoat: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     mesh(patch, faceM, head);
   }
   // ears: a flattened shell with a lobe
   for (const s of [-1, 1]) {
-    mesh(ico(R * 0.22), skinM, head, [s * R * 0.8, R * 0.0, -R * 0.1], [0, 0, s * 0.12], [0.36, 1.1, 0.72]);
-    mesh(ico(R * 0.07), skinM, head, [s * R * 0.8, -R * 0.24, -R * 0.06], undefined, [0.5, 1, 0.8]);
+    mesh(ico(R * 0.22), headM, head, [s * R * 0.8, R * 0.0, -R * 0.1], [0, 0, s * 0.12], [0.36, 1.1, 0.72]);
+    mesh(ico(R * 0.07), headM, head, [s * R * 0.8, -R * 0.24, -R * 0.06], undefined, [0.5, 1, 0.8]);
   }
   // brow ridge: two heavy slanted slabs, angry and angular like the reference
   for (const s of [-1, 1]) mesh(new BoxGeometry(R * 0.5, R * 0.1, R * 0.16), mat(shade(spec.skin, -0.12), 0.9), head, [s * R * 0.37, R * 0.3, surf(s * R * 0.37, R * 0.3) - R * 0.02], [0.1, 0, s * -0.22]);
   // nose: bridge, tip and two nostril wings
   const nz = (y: number) => surf(0, y);
-  mesh(new CylinderGeometry(R * 0.05, R * 0.15, R * 0.5, 4), skinM, head, [0, -R * 0.05, nz(-R * 0.04) + R * 0.05], [-0.3, Math.PI / 4, 0], [0.85, 1, 1.15]);
-  mesh(ico(R * 0.15), skinM, head, [0, -R * 0.25, nz(-R * 0.2) + R * 0.11], undefined, [1, 0.8, 1.2]);
-  for (const s of [-1, 1]) mesh(ico(R * 0.08), skinM, head, [s * R * 0.115, -R * 0.235, nz(-R * 0.22) + R * 0.035]);
+  mesh(new CylinderGeometry(R * 0.05, R * 0.15, R * 0.5, 4), headM, head, [0, -R * 0.05, nz(-R * 0.04) + R * 0.05], [-0.3, Math.PI / 4, 0], [0.85, 1, 1.15]);
+  mesh(ico(R * 0.15), headM, head, [0, -R * 0.25, nz(-R * 0.2) + R * 0.11], undefined, [1, 0.8, 1.2]);
+  for (const s of [-1, 1]) mesh(ico(R * 0.08), headM, head, [s * R * 0.115, -R * 0.235, nz(-R * 0.22) + R * 0.035]);
 
   // ---- headwear rules: a cap, headwrap or beret covers the hair volume (no bun, puffs or afro poking through), headphones need clear sides
   const tucked = spec.accessory === 'cap' || spec.accessory === 'gele' || spec.bro === 'beret', phones = spec.accessory === 'headphones';
   // ---- hair + facial hair (shells that hug the skull)
-  const hc = mat(spec.hairColor, 0.38);
+  const hc = mat(spec.hairColor, 0.78);
   const above = (tilt: number, c: number) => (_x: number, y: number, z: number) => y * Math.cos(tilt) - z * Math.sin(tilt) > c * R; // hairline plane
   const shellHair = (c: number, tilt: number, o: number) => mesh(headShell(R, hseg, above(tilt, c), () => o * R, jawK), hc, head);
   // hair stops above the shoulders (higher under a hood), so locks never poke through the clothes underneath
@@ -314,7 +315,7 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
       const lowest = Math.max(-R * 3.1, hairFloor - 0.12), wide = (shr + 0.045) / R; // wide enough to clear the shoulders and the garment on them
       const sheet = lathe([[R * 1.12, -R * 0.4], [R * Math.min(wide, 1.5), Math.max(lowest * 0.45, -R * 1.5)], [R * wide, Math.max(lowest * 0.8, -R * 2.2)], [R * wide * 0.96, lowest], [R * wide * 0.7, lowest - 0.01]], 9);
       const sg = new LatheGeometry(sheet.parameters.points, 9, 0.95, Math.PI * 2 - 1.9);
-      mesh(sg, mat(spec.hairColor, 0.38, { double: true }), head, [0, -R * 0.05, -R * 0.42], undefined, [0.84, 1, 0.8]); // set back and narrowed so it hangs behind the shoulders instead of through them
+      mesh(sg, mat(spec.hairColor, 0.78, { double: true }), head, [0, -R * 0.05, -R * 0.42], undefined, [0.84, 1, 0.8]); // set back and narrowed so it hangs behind the shoulders instead of through them
       break; }
     case 'puffs': {
       shellHair(0.1, 0.5, 0.05);

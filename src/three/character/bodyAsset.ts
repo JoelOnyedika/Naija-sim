@@ -120,6 +120,50 @@ function withArms(base: BufferGeometry, P: Float32Array, NRM: Float32Array, SI: 
   const idx: number[] = []; const bi = base.index!; for (let i = 0; i < bi.count; i++) idx.push(bi.getX(i)); idx.push(...ii); out.setIndex(idx); return out;
 }
 
+/** A closed, skinned neck tube from the upper spine into the head (the file's own neck ends in a ragged edge once its head is removed). */
+function withNeck(base: BufferGeometry, region: Region[], posB: Vector3[], index: Record<string, number>, kind: BodyKind): BufferGeometry {
+  const P = base.attributes.position, n0 = P.count, fk = kind === 'femme' ? 0.9 : 1, N = 12;
+  const bS = index['DEF-spine003'], bN = index['DEF-neck'], bN1 = index['DEF-neck001'], qS = posB[bS], qN = posB[bN], qN1 = posB[bN1];
+  type Ring = { p: Vector3; rx: number; rz: number; w: [number, number][] };
+  const rings: Ring[] = [
+    { p: new Vector3(qS.x, qS.y + 0.06, qS.z - 0.012), rx: 0.062, rz: 0.062, w: [[bS, 1]] },
+    { p: new Vector3(qN.x, qN.y - 0.02, qN.z), rx: 0.06, rz: 0.062, w: [[bS, 0.5], [bN, 0.5]] },
+    { p: qN.clone(), rx: 0.057, rz: 0.06, w: [[bN, 1]] },
+    { p: qN1.clone(), rx: 0.055, rz: 0.058, w: [[bN, 0.5], [bN1, 0.5]] },
+    { p: new Vector3(qN1.x, qN1.y + 0.085, qN1.z + 0.012), rx: 0.055, rz: 0.06, w: [[bN1, 1]] },
+  ];
+  const pp: number[] = [], nn: number[] = [], si: number[] = [], sw: number[] = [], tris: number[] = [];
+  const push = (q: Vector3, nrm: Vector3, w: [number, number][]) => { pp.push(q.x, q.y, q.z); nn.push(nrm.x, nrm.y, nrm.z); const ww = [...w]; while (ww.length < 4) ww.push([0, 0]); si.push(ww[0][0], ww[1][0], ww[2][0], ww[3][0]); sw.push(ww[0][1], ww[1][1], ww[2][1], ww[3][1]); region.push('arm'); };
+  rings.forEach((r, j) => {
+    const prev = rings[Math.max(0, j - 1)].p, next = rings[Math.min(rings.length - 1, j + 1)].p, T = next.clone().sub(prev).normalize();
+    const ref = new Vector3(0, 0, 1), u = ref.clone().addScaledVector(T, -ref.dot(T)).normalize(), v = new Vector3().crossVectors(T, u).normalize();
+    for (let k = 0; k < N; k++) { const a = (k / N) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); push(r.p.clone().addScaledVector(u, c * r.rz * fk).addScaledVector(v, sn * r.rx * fk), u.clone().multiplyScalar(c).addScaledVector(v, sn).normalize(), r.w); }
+  });
+  for (let j = 0; j < rings.length - 1; j++) for (let k = 0; k < N; k++) { const k1 = (k + 1) % N, a = j * N + k, b = j * N + k1, c = (j + 1) * N + k, d = (j + 1) * N + k1; tris.push(a, b, c, b, d, c); }
+  for (const [ri, flip] of [[0, false], [rings.length - 1, true]] as const) { const ci = pp.length / 3; push(rings[ri].p, new Vector3(), rings[ri].w); for (let k = 0; k < N; k++) { const a = ri * N + k, b = ri * N + (k + 1) % N; tris.push(...(flip ? [ci, b, a] : [ci, a, b])); } }
+  const g3 = (i: number) => new Vector3(pp[i * 3], pp[i * 3 + 1], pp[i * 3 + 2]);
+  const flipAll = new Vector3().subVectors(g3(tris[1]), g3(tris[0])).cross(new Vector3().subVectors(g3(tris[2]), g3(tris[0]))).dot(g3(tris[0]).sub(rings[0].p)) < 0;
+  const ii: number[] = []; for (let t = 0; t < tris.length; t += 3) { const a = tris[t] + n0, b = tris[t + 1] + n0, c = tris[t + 2] + n0; ii.push(...(flipAll ? [a, c, b] : [a, b, c])); }
+  const total = n0 + pp.length / 3, cat = (old: ArrayLike<number>, add: number[], len: number, Ctor: typeof Float32Array | typeof Uint16Array) => { const o = new Ctor(total * len); o.set(old as never); o.set(add, n0 * len); return o; };
+  const out = new BufferGeometry();
+  out.setAttribute('position', new BufferAttribute(cat(P.array, pp, 3, Float32Array) as Float32Array, 3)); out.setAttribute('normal', new BufferAttribute(cat(base.attributes.normal.array, nn, 3, Float32Array) as Float32Array, 3));
+  out.setAttribute('skinIndex', new BufferAttribute(cat(base.attributes.skinIndex.array, si, 4, Uint16Array) as Uint16Array, 4)); out.setAttribute('skinWeight', new BufferAttribute(cat(base.attributes.skinWeight.array, sw, 4, Float32Array) as Float32Array, 4));
+  const idx: number[] = []; const bi = base.index!; for (let i = 0; i < bi.count; i++) idx.push(bi.getX(i)); idx.push(...ii); out.setIndex(idx); return out;
+}
+
+/** Average the normals of vertices that share a position (the file splits them per face), so the body skin shades smoothly. */
+function smoothByPosition(g: BufferGeometry) {
+  const p = g.attributes.position, nrm = new Float32Array(p.count * 3), ix = g.index!, a = new Vector3(), b = new Vector3(), c = new Vector3(), e1 = new Vector3(), e2 = new Vector3();
+  const key = (i: number) => `${Math.round(p.getX(i) * 4000)},${Math.round(p.getY(i) * 4000)},${Math.round(p.getZ(i) * 4000)}`, sums = new Map<string, Vector3>();
+  for (let t = 0; t < ix.count; t += 3) {
+    const i0 = ix.getX(t), i1 = ix.getX(t + 1), i2 = ix.getX(t + 2); a.fromBufferAttribute(p, i0); b.fromBufferAttribute(p, i1); c.fromBufferAttribute(p, i2);
+    const fn = e1.subVectors(b, a).cross(e2.subVectors(c, a)); // area-weighted
+    for (const i of [i0, i1, i2]) { const k = key(i); (sums.get(k) ?? sums.set(k, new Vector3()).get(k)!).add(fn); }
+  }
+  for (let i = 0; i < p.count; i++) { const s = sums.get(key(i)); if (s && s.lengthSq() > 0) { const n = s.clone().normalize(); nrm[i * 3] = n.x; nrm[i * 3 + 1] = n.y; nrm[i * 3 + 2] = n.z; } else { nrm[i * 3] = g.attributes.normal.getX(i); nrm[i * 3 + 1] = g.attributes.normal.getY(i); nrm[i * 3 + 2] = g.attributes.normal.getZ(i); } }
+  g.setAttribute('normal', new BufferAttribute(nrm, 3));
+}
+
 const cache = new Map<string, BodyTemplate>();
 export function bodyTemplate(gltf: GLTF, kind: BodyKind, mat: Material): BodyTemplate {
   const hit = cache.get(kind); if (hit) return hit;
@@ -183,9 +227,10 @@ export function bodyTemplate(gltf: GLTF, kind: BodyKind, mat: Material): BodyTem
   const shoulderX = Math.abs(posB[index['DEF-upper_armL']].x);
   for (let i = 0; i < region.length; i++) if (region[i] === 'upperarm' && Math.abs(P[i * 3]) < shoulderX + 0.005) region[i] = 'torso';
   const isArm = (i: number) => region[i] === 'upperarm' || region[i] === 'forearm';
-  let geometry = geo((a, b, c) => !(region[a] === 'head' && region[b] === 'head' && region[c] === 'head') && region[a] !== 'hand' && region[b] !== 'hand' && region[c] !== 'hand' && !isArm(a) && !isArm(b) && !isArm(c));
+  let geometry = geo((a, b, c) => region[a] !== 'head' && region[b] !== 'head' && region[c] !== 'head' && region[a] !== 'neck' && region[b] !== 'neck' && region[c] !== 'neck' && region[a] !== 'hand' && region[b] !== 'hand' && region[c] !== 'hand' && !isArm(a) && !isArm(b) && !isArm(c));
   const full = geo(() => true);
-  geometry = withArms(geometry, P, NRM, SI, SW, region, posB, index, kind);
+  geometry = withNeck(withArms(geometry, P, NRM, SI, SW, region, posB, index, kind), region, posB, index, kind);
+  smoothByPosition(geometry);
   const at = (n: string) => posB[index[n]];
   const m: Measures = {
     top: HEIGHT[kind], hipY: at('DEF-thighL').y, kneeY: at('DEF-shinL').y, ankleY: at('DEF-footL').y, shoulderY: at('DEF-upper_armL').y, neckY: at('DEF-neck').y, headBaseY: at('DEF-head').y, headTopY: HEIGHT[kind],

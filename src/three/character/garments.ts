@@ -93,10 +93,16 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
     if (fz > -9) { const bk = new Mesh(new BoxGeometry(0.045, 0.034, 0.012), new MeshStandardMaterial({ color: '#D9B04A', roughness: 0.3, metalness: 0.85 })); mats.push(bk.material as Material); place(sk, t, 'DEF-spine', bk, new Vector3(0, waistTop - 0.025, fz + 0.036)); }
   }
   const skirt = (len: number, flare: number, c: string) => {
-    const top = m.hipY + 0.06, r0 = 0.2; const pts: Vector2[] = []; for (let i = 0; i <= 6; i++) { const f = i / 6; pts.push(new Vector2(r0 + flare * f * f, top - len * f)); }
-    const g = new LatheGeometry(pts, 14); g.scale(1, 1, 0.675); g.translate(0, 0, -0.06);
-    const n = g.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4); for (let i = 0; i < n; i++) { si[i * 4] = t.index['DEF-spine']; sw[i * 4] = 1; }
-    g.setAttribute('skinIndex', new BufferAttribute(si, 4)); g.setAttribute('skinWeight', new BufferAttribute(sw, 4)); return skinned(g, fabric(c, 0.75));
+    const top = m.hipY + 0.06, r0 = 0.2; const pts: Vector2[] = []; for (let i = 0; i <= 10; i++) { const f = i / 10; pts.push(new Vector2(r0 + flare * f * f, top - len * f)); }
+    const g = new LatheGeometry(pts, 28); g.scale(1, 1, 0.73); g.translate(0, 0, -0.056);
+    // the hem follows the legs: weight grows from 0 at the waist to ~0.85 at the hem, split left/right by x, and the lowest rows also follow the shin so a bent knee lifts the skirt instead of poking through it
+    const n = g.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4), P = g.attributes.position, xSign = t.pos[t.index['DEF-thighL']].x > 0 ? 1 : -1, sp = t.index['DEF-spine'];
+    for (let i = 0; i < n; i++) {
+      const f = Math.min(1, Math.max(0, (top - P.getY(i)) / len)), w = 0.85 * Math.min(1, Math.max(0, (f - 0.25) / 0.6)), x = P.getX(i) * xSign, side = x >= 0 ? 'L' : 'R', sh = 0.45 * Math.min(1, Math.max(0, (f - 0.55) / 0.45)) * w;
+      if (Math.abs(x) < 0.05) { const u = (x + 0.05) / 0.1; si[i * 4] = sp; si[i * 4 + 1] = t.index['DEF-thighL']; si[i * 4 + 2] = t.index['DEF-thighR']; sw[i * 4] = 1 - w; sw[i * 4 + 1] = w * u; sw[i * 4 + 2] = w * (1 - u); }
+      else { si[i * 4] = sp; si[i * 4 + 1] = t.index[`DEF-thigh${side}`]; si[i * 4 + 2] = t.index[`DEF-shin${side}`]; sw[i * 4] = 1 - w; sw[i * 4 + 1] = w - sh; sw[i * 4 + 2] = sh; }
+    }
+    g.setAttribute('skinIndex', new BufferAttribute(si, 4)); g.setAttribute('skinWeight', new BufferAttribute(sw, 4)); const fm = fabric(c, 0.75); fm.side = DoubleSide; return skinned(g, fm);
   };
   if (spec.bottom === 'skirt') skirt(0.3, 0.12, spec.bottomColor);
   if (spec.bottom === 'dress') skirt(0.45, 0.16, spec.bottomColor);
@@ -126,7 +132,9 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
   const mk = (key: string, sleeves: 'none' | 'short' | 'long', hem: number, off: number, colour?: (v: V) => Color, extra?: (v: V) => number) => {
     if (sleeves !== 'none') addSleeves(sleeves);
     // the garment itself covers the chest, the shoulder blades and the shoulder cap, which the file weights to the arm
-    return extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || onArm(v, sleeves === 'short' ? 0.19 : 0.3), (v) => off + (extra?.(v) ?? 0), colour);
+    const g = extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || onArm(v, sleeves === 'short' ? 0.19 : 0.3), (v) => off + (extra?.(v) ?? 0), colour);
+    if (!g.userData.flat) { flattenHem(g, hem, key.includes('hoodie') || key.includes('jacket') ? 0.12 : 0.13, 'up'); g.userData.flat = true; } // a straight hem instead of ragged triangles
+    return g;
   };
   const chestY = m.shoulderY - 0.13;
   // collar band, sleeve cuffs and hem band as a darker (or, on a dark garment, lighter) colour on the same garment: it reads as a ribbed neckline, cuffs and hem
