@@ -9,7 +9,7 @@ import {
   Object3D, Quaternion, SphereGeometry, TorusGeometry, Vector2, Vector3, type Group,
 } from 'three';
 import type { BodyTemplate, Region } from './bodyAsset';
-import { buildShoe, type ShoeKind } from './shoes';
+import { buildBareFoot, buildShoe, type ShoeKind } from './shoes';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { makeSkinned, type makeSkeleton } from './bodyAsset';
 import { handGeo, type HostCtx, type Spec } from './build';
@@ -68,11 +68,15 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
     const upperMat = fabricSmooth(spec.shoeColor, spec.shoes === 'loafers' || spec.shoes === 'boots' ? 0.4 : 0.6), soleMat = fabricSmooth(sole, 0.8);
     const laceMat = fabricSmooth(spec.shoes === 'slippers' ? shadeC(spec.shoeColor, 0.35) : '#F7F7F5', 0.7), trimMat = fabricSmooth(shadeC(spec.shoeColor, -0.2), 0.5);
     mats.push(upperMat, soleMat, laceMat, trimMat);
-    const byKind = { upper: upperMat, sole: soleMat, lace: laceMat, trim: trimMat };
+    const footSkin = new MeshStandardMaterial({ color: (_skin as MeshStandardMaterial).color, roughness: 0.85, flatShading: false, side: DoubleSide }); mats.push(footSkin);
+    const byKind = { upper: upperMat, sole: soleMat, lace: laceMat, trim: trimMat, skin: footSkin };
     for (const sd of [1, -1] as const) for (const pc of buildShoe(spec.shoes as ShoeKind, t, sd)) {
       const o = new Mesh(pc.geo, byKind[pc.mat]); o.castShadow = true; mats.push(); objs.push(o);
       place(sk, t, `DEF-${pc.bone === 'foot' ? 'foot' : 'shin'}${sd === 1 ? 'L' : 'R'}`, o, new Vector3(0, 0, 0));
     }
+  } else {
+    const footSkin = new MeshStandardMaterial({ color: (_skin as MeshStandardMaterial).color, roughness: 0.85, flatShading: false, side: DoubleSide }); mats.push(footSkin);
+    for (const sd of [1, -1] as const) for (const pc of buildBareFoot(t, sd)) { const o = new Mesh(pc.geo, footSkin); o.castShadow = true; objs.push(o); place(sk, t, `DEF-foot${sd === 1 ? 'L' : 'R'}`, o, new Vector3(0, 0, 0)); }
   }
   // ---- bottoms
   const waistTop = m.hipY + 0.075;
@@ -133,7 +137,7 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
     if (sleeves !== 'none') addSleeves(sleeves);
     // the garment itself covers the chest, the shoulder blades and the shoulder cap, which the file weights to the arm
     const g = extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || onArm(v, sleeves === 'short' ? 0.19 : 0.3), (v) => off + (extra?.(v) ?? 0), colour);
-    if (!g.userData.flat) { flattenHem(g, hem, key.includes('hoodie') || key.includes('jacket') ? 0.12 : 0.13, 'up'); g.userData.flat = true; } // a straight hem instead of ragged triangles
+    if (!g.userData.flat && (key.includes('hoodie') || key.includes('jacket'))) { flattenHem(g, hem, 0.12, 'up'); g.userData.flat = true; } // a straight hem for the long tops; shirts and tees keep their natural tail, which lies over the trousers
     return g;
   };
   const chestY = m.shoulderY - 0.13;

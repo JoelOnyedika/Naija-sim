@@ -12,7 +12,7 @@ function Scene({ look, focusY, dist, motion, fx }: { look: Appearance; focusY: n
   return (
     <Canvas camera={{ position: [fx, focusY + dist * 0.08, dist], fov: 30, near: 0.05, far: 50 }} onCreated={({ camera }) => camera.lookAt(fx, focusY, 0)} gl={{ preserveDrawingBuffer: true }}>
       <hemisphereLight args={['#fff4dc', '#8a7d88', 0.9]} /><directionalLight position={[2, 4, 4]} intensity={2.0} /><directionalLight position={[-3, 2, -3]} intensity={1.0} color="#9fb4ff" /><directionalLight position={[0, 2, -4]} intensity={0.8} /><ambientLight intensity={0.3} />
-      <group rotation={[0, yaw, 0]}><Avatar appearance={look} motion={motion ? { current: { moving: !!motion.moving, lying: false, sitting: false, action: motion.action as never, speed: motion.speed } } : undefined} /></group>
+      <group rotation={[0, yaw, 0]}><Avatar appearance={look} motion={motion ? { current: { moving: !!motion.moving, lying: !!(motion as any).lying, sitting: !!(motion as any).sitting, action: motion.action as never, speed: motion.speed } } : undefined} /></group>
     </Canvas>
   );
 }

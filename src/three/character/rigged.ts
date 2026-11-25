@@ -55,7 +55,7 @@ export function buildRiggedCharacter(spec: Spec, gltf: GLTF): Rig {
   const root = new Group(), body = new Group(); root.add(body);
   const skin = skinMat(spec.skin);
   // closed shoes cover the whole foot: drop the bare foot below the ankle so no skin pokes out in front of the toe or under the sole
-  body.add(makeSkinned(spec.shoes === 'sneakers' || spec.shoes === 'boots' || spec.shoes === 'loafers' ? footless(tpl) : tpl.geometry, skin, sk, true));
+  body.add(makeSkinned(footless(tpl), skin, sk, true));
   // proxies: the animation code writes plain angles here; `sync` turns them into bone rotations
   const px = () => new Group(), P = { hipL: px(), hipR: px(), kneeL: px(), kneeR: px(), footL: px(), footR: px(), shoulderL: px(), shoulderR: px(), elbowL: px(), elbowR: px() };
   const negSide = tpl.pos[idx['DEF-thighL']].x < 0 ? 'L' : 'R', posSide = negSide === 'L' ? 'R' : 'L'; // the game's "left" limbs are at -x

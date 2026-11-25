@@ -313,9 +313,9 @@ export function buildCharacter(spec: Spec, host?: Host): Rig {
       mesh(headShell(R, hseg, (_x, y, z) => y > 0.5 * R && z > 0.15 * R, () => 0.075 * R, jawK), hc, head);
       // the length: an open sheet of hair behind the head and shoulders, down to the shoulder blades
       const lowest = Math.max(-R * 3.1, hairFloor - 0.12), wide = (shr + 0.045) / R; // wide enough to clear the shoulders and the garment on them
-      const sheet = lathe([[R * 1.12, -R * 0.4], [R * Math.min(wide, 1.5), Math.max(lowest * 0.45, -R * 1.5)], [R * wide, Math.max(lowest * 0.8, -R * 2.2)], [R * wide * 0.96, lowest], [R * wide * 0.7, lowest - 0.01]], 9);
-      const sg = new LatheGeometry(sheet.parameters.points, 9, 0.95, Math.PI * 2 - 1.9);
-      mesh(sg, mat(spec.hairColor, 0.78, { double: true }), head, [0, -R * 0.05, -R * 0.42], undefined, [0.84, 1, 0.8]); // set back and narrowed so it hangs behind the shoulders instead of through them
+      const wd = Math.min(wide, 1.55), sheet = lathe([[R * 1.12, -R * 0.4], [R * Math.min(wd, 1.35), Math.max(lowest * 0.45, -R * 1.5)], [R * wd * 0.92, Math.max(lowest * 0.8, -R * 2.2)], [R * wd * 0.74, lowest], [R * wd * 0.5, lowest - 0.012]], 12); // tapers toward the ends like hair, not a flared bell
+      const sg = new LatheGeometry(sheet.parameters.points, 12, 0.95, Math.PI * 2 - 1.9);
+      mesh(sg, mat(spec.hairColor, 0.78, { double: true }), head, [0, -R * 0.05, -R * 0.4], undefined, [0.86, 1, 0.82]); // set back and narrowed so it hangs behind the shoulders instead of through them
       break; }
     case 'puffs': {
       shellHair(0.1, 0.5, 0.05);
