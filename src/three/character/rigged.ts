@@ -18,11 +18,11 @@ function basePose(t: BodyTemplate): BasePose {
   // arms: rotate each arm segment so it points down (a little away from the body), upper arm first, then forearm
   for (const side of ['L', 'R'] as const) {
     const sx = Math.sign(t.pos[t.index[`DEF-thigh${side}`]].x) || 1, ua = t.index[`DEF-upper_arm${side}`], fa = t.index[`DEF-forearm${side}`], hand = t.index[`DEF-hand${side}`];
-    const dir1 = pos[fa].clone().sub(pos[ua]).normalize(), tgt1 = new Vector3(sx * Math.sin(0.2), -Math.cos(0.2), 0.02).normalize();
+    const dir1 = pos[fa].clone().sub(pos[ua]).normalize(), tgt1 = new Vector3(sx * Math.sin(0.25), -Math.cos(0.25), 0.02).normalize();
     const q1 = new Quaternion().setFromUnitVectors(dir1, tgt1); D[ua] = q1;
     const rot = (p: Vector3, pivot: Vector3) => p.clone().sub(pivot).applyQuaternion(q1).add(pivot);
     const faN = rot(pos[fa], pos[ua]), handN = rot(pos[hand], pos[ua]);
-    const dir2 = handN.clone().sub(faN).normalize(), tgt2 = new Vector3(sx * Math.sin(0.1), -Math.cos(0.1), 0.05).normalize();
+    const dir2 = handN.clone().sub(faN).normalize(), tgt2 = new Vector3(sx * Math.sin(0.15), -Math.cos(0.15), 0.05).normalize();
     D[fa] = new Quaternion().setFromUnitVectors(dir2, tgt2);
   }
   // base world quaternion of every bone = (its own delta, then each ancestor's) applied to its rest world quaternion

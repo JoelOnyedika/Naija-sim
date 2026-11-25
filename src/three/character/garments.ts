@@ -131,13 +131,14 @@ export function dress(spec: Spec, t: BodyTemplate, sk: ReturnType<typeof makeSke
       const end1 = p0.clone().lerp(p1, sleeves === 'short' ? 0.5 : 1.0);
       tube(p0.clone().add(new Vector3(0, 0.02, 0)), end1, 0.07 * wide, (sleeves === 'short' ? 0.064 : 0.058) * wide, `DEF-upper_arm${S}`, sleeves === 'short');
       if (sleeves === 'long') tube(p1.clone().add(new Vector3(0, 0.012, 0)), p1.clone().lerp(p2, 0.94), 0.056 * wide, 0.047 * wide, `DEF-forearm${S}`, true);
+      if (sleeves === 'long') { const el = new Mesh(new SphereGeometry(0.0596 * wide, 16, 12), mat); place(sk, t, `DEF-forearm${S}`, el, p1.clone().add(new Vector3(0, 0.006, 0))); objs.push(el); } // a round elbow, so a bent arm does not open a slit in the sleeve
     }
   };
   const mk = (key: string, sleeves: 'none' | 'short' | 'long', hem: number, off: number, colour?: (v: V) => Color, extra?: (v: V) => number) => {
     if (sleeves !== 'none') addSleeves(sleeves);
     // the garment itself covers the chest, the shoulder blades and the shoulder cap, which the file weights to the arm
     const g = extract(t, key, (v) => ((v.region === 'torso' || v.region === 'pelvis') && v.y > hem) || onArm(v, sleeves === 'short' ? 0.19 : 0.3), (v) => off + (extra?.(v) ?? 0), colour);
-    if (!g.userData.flat && (key.includes('hoodie') || key.includes('jacket'))) { flattenHem(g, hem, 0.12, 'up'); g.userData.flat = true; } // a straight hem for the long tops; shirts and tees keep their natural tail, which lies over the trousers
+    if (!g.userData.flat && (key.includes('hoodie') || key.includes('jacket'))) { flattenHem(g, hem, 0.17, 'up'); g.userData.flat = true; } // a straight hem for the long tops; shirts and tees keep their natural tail, which lies over the trousers
     return g;
   };
   const chestY = m.shoulderY - 0.13;

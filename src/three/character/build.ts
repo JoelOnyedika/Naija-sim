@@ -103,7 +103,7 @@ export function handGeo(side: number, hs: number): BufferGeometry {
     const L = lens[k] * hs;
     chain(parts, [x * hs * 1.05, -0.086 * hs, 0], [0, 0, 0], [{ len: L * 0.4, r0: 0.0108 * hs, r1: 0.0098 * hs, curl: -0.14 - k * 0.03 }, { len: L * 0.33, r0: 0.0098 * hs, r1: 0.0088 * hs, curl: -0.35 }, { len: L * 0.27, r0: 0.0088 * hs, r1: 0.0072 * hs, curl: -0.3 }]);
   });
-  chain(parts, [-side * 0.034 * hs, -0.03 * hs, 0.014 * hs], [-0.45, 0, -side * 0.35], [{ len: 0.04 * hs, r0: 0.0135 * hs, r1: 0.0115 * hs, curl: 0 }, { len: 0.034 * hs, r0: 0.0112 * hs, r1: 0.0088 * hs, curl: -0.3 }]);
+  chain(parts, [-side * 0.03 * hs, -0.03 * hs, 0.016 * hs], [-0.5, 0, -side * 0.1], [{ len: 0.04 * hs, r0: 0.0135 * hs, r1: 0.0115 * hs, curl: 0 }, { len: 0.034 * hs, r0: 0.0112 * hs, r1: 0.0088 * hs, curl: -0.3 }]);
   const flat = merge(parts); flat.deleteAttribute('normal'); const sm = mergeVertices(flat, 1e-4); sm.computeVertexNormals(); return sm; // welded, so the hand shades smoothly like the arm it hangs from
 }
 /** Extrude a side profile ((forward, y) points) across `width`, centred on x = 0. */

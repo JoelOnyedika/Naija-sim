@@ -58,7 +58,7 @@ export function reactionPose(r: Reaction, t: number, seed = 0): ReactionPose {
     case 'kneel': { // on both knees, upright, swaying, head down
       const sway = Math.sin(t * 1.2 + seed) * 0.03;
       p.hip = [-0.1, -0.1]; p.knee = [2.55, 2.55];
-      p.arm = [[0.15, -0.5, 0.18], [0.15, -0.5, -0.18]];
+      p.arm = [[-0.3, -0.5, -0.32], [-0.3, -0.5, 0.32]];
       p.body = { x: 0.3 + im * 0.2, y: 0, z: sway + im * side * 0.12, rotY: 0, posX: 0, posY: -0.4 };
       p.head = { x: 0.45 + im * 0.2, z: sway }; break;
     }
